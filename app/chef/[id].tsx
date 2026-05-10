@@ -1,0 +1,64 @@
+import { useEffect, useState } from "react";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+
+const API = "https://zafaran-backend-production.up.railway.app";
+
+export default function ChefScreen() {
+  const { id } = useLocalSearchParams();
+  const router = useRouter();
+  const [chef, setChef] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API}/api/chefs/${id}`)
+      .then(r => r.json())
+      .then(j => { if (j.success) setChef(j.data); })
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) return <ActivityIndicator color="#F0A500" style={{ flex: 1, backgroundColor: "#140B00" }} />;
+
+  return (
+    <SafeAreaView style={s.safe}>
+      <TouchableOpacity style={s.back} onPress={() => router.back()}>
+        <Text style={s.backText}>→ رجوع</Text>
+      </TouchableOpacity>
+      <View style={s.header}>
+        <Text style={s.name}>👩‍🍳 {chef?.users?.full_name}</Text>
+        <Text style={s.city}>📍 {chef?.city} · {chef?.neighborhood}</Text>
+        <Text style={s.rating}>⭐ {chef?.rating_avg}</Text>
+      </View>
+      <Text style={s.menuTitle}>🍽️ القائمة</Text>
+      <FlatList
+        data={chef?.menu || []}
+        keyExtractor={i => i.id}
+        contentContainerStyle={{ padding: 16 }}
+        renderItem={({ item }) => (
+          <TouchableOpacity style={s.card} onPress={() => router.push(`/item/${item.id}?name=${item.name}&price=${item.price}&description=${item.description}&chef_id=${chef?.id}`)}>
+            <Text style={s.itemName}>{item.name}</Text>
+            <Text style={s.itemDesc}>{item.description}</Text>
+            <Text style={s.itemPrice}>{item.price} ريال</Text>
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={<Text style={s.empty}>لا توجد وجبات حالياً</Text>}
+      />
+    </SafeAreaView>
+  );
+}
+
+const s = StyleSheet.create({
+  safe:      { flex: 1, backgroundColor: "#140B00" },
+  back:      { padding: 16 },
+  backText:  { color: "#F0A500", fontSize: 16, fontWeight: "700" },
+  header:    { padding: 16, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.12)" },
+  name:      { fontSize: 22, fontWeight: "900", color: "#FDF0DC", textAlign: "right" },
+  city:      { fontSize: 13, color: "#8A6030", textAlign: "right", marginTop: 4 },
+  rating:    { fontSize: 14, color: "#F0A500", textAlign: "right", marginTop: 4 },
+  menuTitle: { fontSize: 16, fontWeight: "800", color: "#FDF0DC", padding: 16, textAlign: "right" },
+  card:      { backgroundColor: "#1C1000", borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "rgba(240,165,0,0.12)" },
+  itemName:  { fontSize: 16, fontWeight: "800", color: "#FDF0DC", textAlign: "right" },
+  itemDesc:  { fontSize: 12, color: "#8A6030", textAlign: "right", marginTop: 4 },
+  itemPrice: { fontSize: 15, fontWeight: "900", color: "#F0A500", textAlign: "right", marginTop: 8 },
+  empty:     { textAlign: "center", color: "#8A6030", marginTop: 40, fontSize: 14 },
+});
