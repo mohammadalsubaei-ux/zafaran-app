@@ -1,15 +1,26 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Alert, StatusBar } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, StatusBar, TextInput } from "react-native";
 import { useFonts, Tajawal_900Black, Tajawal_700Bold, Tajawal_400Regular } from "@expo-google-fonts/tajawal";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 
+const CATS = [
+  { id: "all", label: "الكل", emoji: "🍽️" },
+  { id: "rice", label: "أرز", emoji: "🍛" },
+  { id: "stew", label: "مرق", emoji: "🫕" },
+  { id: "salad", label: "سلطة", emoji: "🥗" },
+  { id: "other", label: "أخرى", emoji: "🍴" },
+];
+
 export default function HomeScreen() {
   const [chefs, setChefs] = useState([]);
+  const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [search, setSearch] = useState("");
+  const [cat, setCat] = useState("all");
   const router = useRouter();
 
   const [fontsLoaded] = useFonts({ Tajawal_900Black, Tajawal_700Bold, Tajawal_400Regular });
@@ -20,68 +31,85 @@ export default function HomeScreen() {
     });
     fetch(`${API}/api/chefs`)
       .then(r => r.json())
-      .then(j => { if (j.success) setChefs(j.data); })
+      .then(j => {
+        if (j.success) {
+          setChefs(j.data);
+          setFiltered(j.data);
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 
-  const handleLogout = () => {
-    Alert.alert("خروج", "تبي تطلع من حسابك؟", [
-      { text: "لا", style: "cancel" },
-      { text: "نعم", style: "destructive", onPress: () => {
-        AsyncStorage.removeItem("user").then(() => {
-          router.replace("/login");
-        });
-      }},
-    ], { cancelable: true });
-  };
+useEffect(() => {
+    if (!search) {
+      setFiltered(chefs);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      const res = await fetch(`${API}/api/chefs/search?q=${search}`);
+      const json = await res.json();
+      if (json.success) setFiltered(json.data);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search, chefs]);
 
   if (!fontsLoaded) return <View style={s.safe}><ActivityIndicator color="#F0A500" style={{ marginTop: 100 }} /></View>;
 
   return (
     <SafeAreaView style={s.safe}>
       <StatusBar barStyle="light-content" />
-      
+
+      {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity style={s.logoutBtn} onPress={handleLogout}>
-          <Text style={s.logoutText}>خروج 🚪</Text>
-        </TouchableOpacity>
-        <View style={s.headerCenter}>
-          <Text style={s.title}>زعفران 🍲</Text>
-          <Text style={s.sub}>أهلاً {user?.full_name?.split(" ")[0]} 👋</Text>
-        </View>
         <View style={s.locationBadge}>
-          <Text style={s.locationText}>📍 القصيم</Text>
+          <Text style={s.locationText}>📍 القصيم ▾</Text>
         </View>
+        <Text style={s.title}>زعفران 🍲</Text>
+        <Text style={s.greet}>أهلاً {user?.full_name?.split(" ")[0]} 👋</Text>
       </View>
 
-      <View style={s.btnsRow}>
-        <TouchableOpacity style={s.actionBtn} onPress={() => router.push("/orders")}>
-          <Text style={s.actionBtnIco}>📦</Text>
-          <Text style={s.actionBtnTxt}>طلباتي</Text>
-        </TouchableOpacity>
-        {user?.role === "chef" && (
-          <TouchableOpacity style={[s.actionBtn, s.chefActionBtn]} onPress={() => router.push("/dashboard")}>
-            <Text style={s.actionBtnIco}>👩‍🍳</Text>
-            <Text style={s.actionBtnTxt}>لوحة الطباخة</Text>
-          </TouchableOpacity>
-        )}
-        {user?.role === "driver" && (
-          <TouchableOpacity style={[s.actionBtn, s.chefActionBtn]} onPress={() => router.push("/driver")}>
-            <Text style={s.actionBtnIco}>🚗</Text>
-            <Text style={s.actionBtnTxt}>لوحة المندوب</Text>
-          </TouchableOpacity>
-        )}
+      {/* Search */}
+      <View style={s.searchWrap}>
+        <Text style={s.searchIco}>🔍</Text>
+        <TextInput
+          style={s.searchInput}
+          placeholder="ابحث عن طباخة أو حي..."
+          placeholderTextColor="#5A3A18"
+          value={search}
+          onChangeText={setSearch}
+          textAlign="right"
+        />
       </View>
 
+      {/* Categories */}
+      <FlatList
+        horizontal
+        inverted
+        data={CATS}
+        keyExtractor={i => i.id}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={s.catsList}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[s.catBtn, cat === item.id && s.catBtnActive]}
+            onPress={() => setCat(item.id)}
+          >
+            <Text style={s.catEmoji}>{item.emoji}</Text>
+            <Text style={[s.catLabel, cat === item.id && s.catLabelActive]}>{item.label}</Text>
+          </TouchableOpacity>
+        )}
+      />
+
+      {/* Chefs */}
       <View style={s.secHd}>
         <Text style={s.secTitle}>الطباخات المتاحة 👩‍🍳</Text>
-        <Text style={s.secSub}>{chefs.length} طباخة</Text>
+        <Text style={s.secSub}>{filtered.length} طباخة</Text>
       </View>
 
       {loading
         ? <ActivityIndicator color="#F0A500" style={{ marginTop: 40 }} size="large" />
         : <FlatList
-            data={chefs}
+            data={filtered}
             keyExtractor={i => i.id}
             contentContainerStyle={{ padding: 16, paddingTop: 0 }}
             renderItem={({ item }) => (
@@ -106,6 +134,7 @@ export default function HomeScreen() {
                 </View>
               </TouchableOpacity>
             )}
+            ListEmptyComponent={<Text style={s.empty}>ما في طباخات متاحة</Text>}
           />
       }
     </SafeAreaView>
@@ -114,21 +143,22 @@ export default function HomeScreen() {
 
 const s = StyleSheet.create({
   safe:           { flex: 1, backgroundColor: "#0E0700" },
-  header:         { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", padding: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.1)" },
-  headerCenter:   { alignItems: "center" },
-  title:          { fontSize: 26, fontWeight: "900", color: "#F0A500", fontFamily: "Tajawal_900Black" },
-  sub:            { fontSize: 11, color: "#8A6030", marginTop: 2, fontFamily: "Tajawal_400Regular" },
-  logoutBtn:      { padding: 8 },
-  logoutText:     { fontSize: 12, color: "#E53935", fontWeight: "700", fontFamily: "Tajawal_700Bold" },
-  locationBadge:  { backgroundColor: "rgba(240,165,0,0.1)", borderWidth: 1, borderColor: "rgba(240,165,0,0.2)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 50 },
+  header:         { alignItems: "center", padding: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.1)" },
+  title:          { fontSize: 28, fontWeight: "900", color: "#F0A500", fontFamily: "Tajawal_900Black" },
+  greet:          { fontSize: 12, color: "#8A6030", marginTop: 2, fontFamily: "Tajawal_400Regular" },
+  locationBadge:  { position: "absolute", right: 16, top: 16, backgroundColor: "rgba(240,165,0,0.1)", borderWidth: 1, borderColor: "rgba(240,165,0,0.2)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 50 },
   locationText:   { fontSize: 11, color: "#C97D20", fontWeight: "700", fontFamily: "Tajawal_700Bold" },
-  btnsRow:        { flexDirection: "row-reverse", gap: 10, padding: 16, paddingBottom: 8 },
-  actionBtn:      { flex: 1, backgroundColor: "#1C1000", borderRadius: 14, padding: 14, alignItems: "center", borderWidth: 1, borderColor: "rgba(240,165,0,0.15)", flexDirection: "row-reverse", justifyContent: "center", gap: 8 },
-  chefActionBtn:  { borderColor: "rgba(240,165,0,0.4)", backgroundColor: "rgba(240,165,0,0.08)" },
-  actionBtnIco:   { fontSize: 18 },
-  actionBtnTxt:   { color: "#F0A500", fontSize: 14, fontWeight: "800", fontFamily: "Tajawal_700Bold" },
-  secHd:          { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12 },
-  secTitle:       { fontSize: 16, fontWeight: "800", color: "#FDF0DC", fontFamily: "Tajawal_700Bold" },
+  searchWrap:     { flexDirection: "row-reverse", alignItems: "center", margin: 12, backgroundColor: "#1C1000", borderRadius: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)", paddingHorizontal: 14 },
+  searchIco:      { fontSize: 16, marginLeft: 8 },
+  searchInput:    { flex: 1, height: 44, color: "#FDF0DC", fontSize: 14, fontFamily: "Tajawal_400Regular" },
+  catsList:       { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
+  catBtn:         { alignItems: "center", backgroundColor: "#1C1000", borderRadius: 14, padding: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)", minWidth: 70 },
+  catBtnActive:   { backgroundColor: "rgba(240,165,0,0.12)", borderColor: "rgba(240,165,0,0.4)" },
+  catEmoji:       { fontSize: 22, marginBottom: 4 },
+  catLabel:       { fontSize: 11, color: "#8A6030", fontWeight: "700", fontFamily: "Tajawal_700Bold" },
+  catLabelActive: { color: "#F0A500" },
+  secHd:          { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 8 },
+  secTitle:       { fontSize: 15, fontWeight: "800", color: "#FDF0DC", fontFamily: "Tajawal_700Bold" },
   secSub:         { fontSize: 12, color: "#8A6030", fontFamily: "Tajawal_400Regular" },
   card:           { backgroundColor: "#1C1000", borderRadius: 18, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
   cardTop:        { flexDirection: "row-reverse", alignItems: "center", gap: 12 },
@@ -144,4 +174,5 @@ const s = StyleSheet.create({
   closed:         { backgroundColor: "rgba(229,57,53,0.12)" },
   badgeText:      { fontSize: 10, fontWeight: "800", fontFamily: "Tajawal_700Bold" },
   arrow:          { fontSize: 18, color: "#5A3A18" },
+  empty:          { textAlign: "center", color: "#8A6030", marginTop: 40, fontSize: 14 },
 });

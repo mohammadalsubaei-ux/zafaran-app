@@ -1,0 +1,4 @@
+cd C:\Users\H\Downloads\zafaran\zafaran-app
+git add .
+git commit -m "وصف التغيير"
+git push
