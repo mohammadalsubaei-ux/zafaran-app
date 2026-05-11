@@ -1,17 +1,11 @@
 import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
-import React, { useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React from 'react';
+import { useLang } from '@/context/LanguageContext';
 import i18n from '@/i18n';
 
 export default function TabLayout() {
-  const [lang, setLang] = useState(i18n.locale);
-
-  useEffect(() => {
-    AsyncStorage.getItem("lang").then(l => {
-      if (l) { i18n.locale = l; setLang(l); }
-    });
-  }, []);
+  const { lang } = useLang();
 
   return (
     <Tabs
