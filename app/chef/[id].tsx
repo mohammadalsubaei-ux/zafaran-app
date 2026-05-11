@@ -11,7 +11,7 @@ export default function ChefScreen() {
   const router = useRouter();
   const [chef, setChef] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const { items, addItem, clearCart, total, totalItems, chef_id } = useCart();
+  const { items, addItem, updateQty, clearCart, total, totalItems, chef_id } = useCart();
   const [fontsLoaded] = useFonts({ Tajawal_900Black, Tajawal_700Bold, Tajawal_400Regular });
 
   useEffect(() => {
@@ -22,7 +22,6 @@ export default function ChefScreen() {
   }, [id]);
 
   const handleAddItem = (item: any) => {
-    // لو السلة فيها وجبات من طباخة ثانية
     if (chef_id && chef_id !== chef?.id) {
       Alert.alert(
         "سلة جديدة؟",
@@ -58,14 +57,12 @@ export default function ChefScreen() {
         contentContainerStyle={{ paddingBottom: totalItems > 0 ? 100 : 32 }}
         ListHeaderComponent={
           <View>
-            {/* Header */}
             <View style={s.header}>
               <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
                 <Text style={s.backText}>→</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Chef Info */}
             <View style={s.chefCard}>
               <View style={s.avatarWrap}>
                 <Text style={s.avatarEmoji}>👩‍🍳</Text>
@@ -99,7 +96,6 @@ export default function ChefScreen() {
               )}
             </View>
 
-            {/* Menu Title */}
             <View style={s.menuHd}>
               <Text style={s.menuTitle}>🍽️ القائمة</Text>
               <Text style={s.menuCount}>{chef?.menu?.length || 0} وجبة</Text>
@@ -110,29 +106,33 @@ export default function ChefScreen() {
           const qty = getItemQty(item.id);
           return (
             <View style={[s.card, !chef?.is_open && s.cardDisabled]}>
-              <View style={s.cardContent}>
-                <View style={s.itemEmoji}>
-                  <Text style={{ fontSize: 32 }}>🍽️</Text>
-                </View>
-                <View style={s.itemInfo}>
-                  <Text style={s.itemName}>{item.name}</Text>
-                  <Text style={s.itemDesc} numberOfLines={2}>{item.description}</Text>
-                  <View style={s.itemFooter}>
-                    <Text style={s.itemPrice}>{item.price} ريال</Text>
-                    {item.prep_minutes && (
-                      <Text style={s.itemTime}>⏱️ {item.prep_minutes} دقيقة</Text>
-                    )}
+              {/* تفاصيل الوجبة */}
+              <TouchableOpacity
+                onPress={() => router.push(`/item/${item.id}?name=${encodeURIComponent(item.name)}&price=${item.price}&description=${encodeURIComponent(item.description || "")}&chef_id=${chef?.id}&chef_name=${encodeURIComponent(chef?.users?.full_name || "")}`)}
+              >
+                <View style={s.cardContent}>
+                  <View style={s.itemEmoji}>
+                    <Text style={{ fontSize: 32 }}>🍽️</Text>
+                  </View>
+                  <View style={s.itemInfo}>
+                    <Text style={s.itemName}>{item.name}</Text>
+                    <Text style={s.itemDesc} numberOfLines={2}>{item.description}</Text>
+                    <View style={s.itemFooter}>
+                      <Text style={s.itemPrice}>{item.price} ريال</Text>
+                      {item.prep_minutes && (
+                        <Text style={s.itemTime}>⏱️ {item.prep_minutes} دقيقة</Text>
+                      )}
+                    </View>
                   </View>
                 </View>
-              </View>
+              </TouchableOpacity>
 
+              {/* أزرار الكمية */}
               {chef?.is_open && (
                 <View style={s.qtyCtrl}>
                   {qty > 0 ? (
                     <View style={s.qtyRow}>
-                      <TouchableOpacity style={s.qtyBtn} onPress={() => {
-                        const { updateQty, removeItem } = require("@/context/CartContext");
-                      }}>
+                      <TouchableOpacity style={s.qtyBtn} onPress={() => updateQty(item.id, qty - 1)}>
                         <Text style={s.qtyBtnText}>−</Text>
                       </TouchableOpacity>
                       <Text style={s.qtyNum}>{qty}</Text>
@@ -158,7 +158,6 @@ export default function ChefScreen() {
         }
       />
 
-      {/* Cart Bar */}
       {totalItems > 0 && (
         <TouchableOpacity style={s.cartBar} onPress={() => router.push("/cart")}>
           <View style={s.cartBadge}>
@@ -203,7 +202,7 @@ const s = StyleSheet.create({
   itemFooter:   { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", marginTop: 8 },
   itemPrice:    { fontSize: 15, fontWeight: "900", color: "#F0A500", fontFamily: "Tajawal_700Bold" },
   itemTime:     { fontSize: 11, color: "#5A3A18", fontFamily: "Tajawal_400Regular" },
-  qtyCtrl:      { alignItems: "flex-start" },
+  qtyCtrl:      { alignItems: "flex-end" },
   qtyRow:       { flexDirection: "row-reverse", alignItems: "center", gap: 12, backgroundColor: "rgba(240,165,0,0.08)", borderRadius: 12, padding: 6, paddingHorizontal: 12 },
   qtyBtn:       { width: 28, height: 28, borderRadius: 8, backgroundColor: "rgba(240,165,0,0.15)", alignItems: "center", justifyContent: "center" },
   qtyBtnText:   { fontSize: 18, fontWeight: "900", color: "#F0A500" },
