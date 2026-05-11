@@ -1,26 +1,29 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, StatusBar, TextInput } from "react-native";
+import {
+  View, Text, FlatList, TouchableOpacity, StyleSheet,
+  SafeAreaView, ActivityIndicator, StatusBar, TextInput
+} from "react-native";
 import { useFonts, Tajawal_900Black, Tajawal_700Bold, Tajawal_400Regular } from "@expo-google-fonts/tajawal";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 
 const CATS = [
-  { id: "all", label: "الكل", emoji: "🍽️" },
-  { id: "rice", label: "أرز", emoji: "🍛" },
-  { id: "stew", label: "مرق", emoji: "🫕" },
-  { id: "salad", label: "سلطة", emoji: "🥗" },
-  { id: "other", label: "أخرى", emoji: "🍴" },
+  { id: "all",   label: "الكل",    emoji: "🍽️" },
+  { id: "rice",  label: "أرز",     emoji: "🍛" },
+  { id: "stew",  label: "مرق",     emoji: "🫕" },
+  { id: "salad", label: "سلطة",    emoji: "🥗" },
+  { id: "other", label: "أخرى",    emoji: "🍴" },
 ];
 
 export default function HomeScreen() {
-  const [chefs, setChefs] = useState([]);
-  const [filtered, setFiltered] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [search, setSearch] = useState("");
-  const [cat, setCat] = useState("all");
+  const [chefs, setChefs]       = useState<any[]>([]);
+  const [filtered, setFiltered] = useState<any[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [user, setUser]         = useState<any>(null);
+  const [search, setSearch]     = useState("");
+  const [cat, setCat]           = useState("all");
   const router = useRouter();
 
   const [fontsLoaded] = useFonts({ Tajawal_900Black, Tajawal_700Bold, Tajawal_400Regular });
@@ -40,20 +43,24 @@ export default function HomeScreen() {
       .finally(() => setLoading(false));
   }, []);
 
-useEffect(() => {
+  useEffect(() => {
     if (!search) {
       setFiltered(chefs);
       return;
     }
     const timer = setTimeout(async () => {
-      const res = await fetch(`${API}/api/chefs/search?q=${search}`);
+      const res  = await fetch(`${API}/api/chefs/search?q=${search}`);
       const json = await res.json();
       if (json.success) setFiltered(json.data);
     }, 500);
     return () => clearTimeout(timer);
   }, [search, chefs]);
 
-  if (!fontsLoaded) return <View style={s.safe}><ActivityIndicator color="#F0A500" style={{ marginTop: 100 }} /></View>;
+  if (!fontsLoaded) return (
+    <View style={s.safe}>
+      <ActivityIndicator color="#F0A500" style={{ marginTop: 100 }} />
+    </View>
+  );
 
   return (
     <SafeAreaView style={s.safe}>
@@ -100,12 +107,13 @@ useEffect(() => {
         )}
       />
 
-      {/* Chefs */}
+      {/* Section Header */}
       <View style={s.secHd}>
         <Text style={s.secTitle}>الطباخات المتاحة 👩‍🍳</Text>
         <Text style={s.secSub}>{filtered.length} طباخة</Text>
       </View>
 
+      {/* Chefs List */}
       {loading
         ? <ActivityIndicator color="#F0A500" style={{ marginTop: 40 }} size="large" />
         : <FlatList
@@ -115,7 +123,11 @@ useEffect(() => {
             renderItem={({ item }) => (
               <TouchableOpacity style={s.card} onPress={() => router.push(`/chef/${item.id}`)}>
                 <View style={s.cardTop}>
-                  <View style={[s.avatar, { backgroundColor: item.is_open ? "rgba(240,165,0,0.1)" : "rgba(100,100,100,0.1)" }]}>
+                  <View style={[s.avatar, {
+                    backgroundColor: item.is_open
+                      ? "rgba(240,165,0,0.1)"
+                      : "rgba(100,100,100,0.1)"
+                  }]}>
                     <Text style={s.avatarEmoji}>👩‍🍳</Text>
                   </View>
                   <View style={s.cardInfo}>
@@ -134,7 +146,9 @@ useEffect(() => {
                 </View>
               </TouchableOpacity>
             )}
-            ListEmptyComponent={<Text style={s.empty}>ما في طباخات متاحة</Text>}
+            ListEmptyComponent={
+              <Text style={s.empty}>ما في طباخات متاحة</Text>
+            }
           />
       }
     </SafeAreaView>
