@@ -1,9 +1,9 @@
 import { View, Text, StyleSheet } from "react-native";
 
-export default function PastriesScreen() {
+export default function SweetsScreen() {
   return (
     <View style={s.safe}>
-      <Text style={s.title}>🥐 فطائر</Text>
+      <Text style={s.title}>🍰 حلويات</Text>
       <Text style={s.sub}>قريباً...</Text>
     </View>
   );
