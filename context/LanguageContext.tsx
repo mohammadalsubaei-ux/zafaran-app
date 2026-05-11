@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-
 type LanguageContextType = {
   lang: string;
   toggleLang: () => Promise<void>;
@@ -17,13 +16,12 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     AsyncStorage.getItem("lang").then(l => {
-      if (l) { i18n.locale = l; setLang(l); }
+      if (l) setLang(l);
     });
   }, []);
 
   const toggleLang = async () => {
     const newLang = lang === "ar" ? "en" : "ar";
-    i18n.locale = newLang;
     setLang(newLang);
     await AsyncStorage.setItem("lang", newLang);
   };
