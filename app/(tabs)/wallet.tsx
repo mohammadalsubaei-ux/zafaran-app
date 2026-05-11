@@ -56,7 +56,7 @@ export default function WalletScreen() {
   return (
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
           <Text style={s.back}>→ رجوع</Text>
         </TouchableOpacity>
         <Text style={s.title}>محفظتي 💰</Text>

@@ -26,22 +26,29 @@ export default function TabLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: "طباخين", tabBarIcon: () => <Text style={{ fontSize: 22 }}>🍲</Text> }}
+        options={{ title: "الطبخ", tabBarIcon: () => <Text style={{ fontSize: 22 }}>🍲</Text> }}
+      />
+      <Tabs.Screen
+        name="sweets"
+        options={{ title: "الحلويات", tabBarIcon: () => <Text style={{ fontSize: 22 }}>🍰</Text> }}
+      />
+      <Tabs.Screen
+        name="pastries"
+        options={{ title: "المعجنات", tabBarIcon: () => <Text style={{ fontSize: 22 }}>🥐</Text> }}
       />
       <Tabs.Screen
         name="orders"
         options={{ title: "طلباتي", tabBarIcon: () => <Text style={{ fontSize: 22 }}>📦</Text> }}
       />
       <Tabs.Screen
-        name="wallet"
-        options={{ title: "محفظتي", tabBarIcon: () => <Text style={{ fontSize: 22 }}>💰</Text> }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{ title: "حسابي", tabBarIcon: () => <Text style={{ fontSize: 22 }}>👤</Text> }}
       />
-      <Tabs.Screen name="explore"  options={{ href: null }} />
-      <Tabs.Screen name="chef"     options={{ href: null }} />
+
+      {/* مخفية */}
+      <Tabs.Screen name="wallet"  options={{ href: null }} />
+      <Tabs.Screen name="explore" options={{ href: null }} />
+      <Tabs.Screen name="chef"    options={{ href: null }} />
     </Tabs>
   );
 }
