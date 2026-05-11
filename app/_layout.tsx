@@ -20,7 +20,6 @@ export default function RootLayout() {
             <Stack.Screen name="orders/index"    options={{ headerShown: false }} />
             <Stack.Screen name="dashboard/index" options={{ headerShown: false }} />
             <Stack.Screen name="driver/index"    options={{ headerShown: false }} />
-            <Stack.Screen name="wallet"          options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="light" />
         </CartProvider>
