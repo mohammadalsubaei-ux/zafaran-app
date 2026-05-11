@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import i18n from "@/i18n";
+
 
 type LanguageContextType = {
   lang: string;
@@ -13,7 +13,7 @@ const LanguageContext = createContext<LanguageContextType>({
 });
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLang] = useState(i18n.locale);
+  const [lang, setLang] = useState("ar");
 
   useEffect(() => {
     AsyncStorage.getItem("lang").then(l => {
