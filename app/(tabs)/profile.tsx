@@ -27,13 +27,12 @@ export default function ProfileScreen() {
   };
 
   const getRoleInfo = () => {
-    if (user?.role === "chef") return { label: "طباخة", emoji: "👩‍🍳", color: "#F0A500" };
-    if (user?.role === "driver") return { label: "مندوب توصيل", emoji: "🚗", color: "#2196F3" };
-    return { label: "عميل", emoji: "👤", color: "#4CAF50" };
+    if (user?.role === "chef")   return { label: "طباخة",         emoji: "👩‍🍳", color: "#F0A500" };
+    if (user?.role === "driver") return { label: "مندوب توصيل",   emoji: "🚗",   color: "#2196F3" };
+    return                               { label: "عميل",          emoji: "👤",   color: "#4CAF50" };
   };
 
   const roleInfo = getRoleInfo();
-
   if (!fontsLoaded) return null;
 
   return (
@@ -57,7 +56,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Actions */}
+        {/* الخدمات */}
         <View style={s.section}>
           <Text style={s.sectionTitle}>الخدمات</Text>
 
@@ -83,16 +82,17 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           )}
 
-         <TouchableOpacity style={s.menuItem} onPress={() => router.push("/wallet")}>
-  <Text style={s.menuArrow}>←</Text>
-  <View style={s.menuInfo}>
-    <Text style={s.menuLabel}>محفظتي</Text>
-    <Text style={s.menuSub}>رصيدك وسجل معاملاتك</Text>
-  </View>
-  <Text style={s.menuEmoji}>💰</Text>
-</TouchableOpacity>
+          <TouchableOpacity style={s.menuItem} onPress={() => router.push("/(tabs)/wallet")}>
+            <Text style={s.menuArrow}>←</Text>
+            <View style={s.menuInfo}>
+              <Text style={s.menuLabel}>محفظتي</Text>
+              <Text style={s.menuSub}>رصيدك وسجل معاملاتك</Text>
+            </View>
+            <Text style={s.menuEmoji}>💰</Text>
+          </TouchableOpacity>
         </View>
 
+        {/* الإعدادات */}
         <View style={s.section}>
           <Text style={s.sectionTitle}>الإعدادات</Text>
 
@@ -124,6 +124,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* عن التطبيق */}
         <View style={s.section}>
           <Text style={s.sectionTitle}>عن التطبيق</Text>
 
@@ -153,13 +154,12 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Logout */}
+        {/* تسجيل الخروج */}
         <TouchableOpacity style={s.logoutBtn} onPress={handleLogout}>
           <Text style={s.logoutText}>تسجيل الخروج 🚪</Text>
         </TouchableOpacity>
 
         <Text style={s.footer}>زعفران · أكل بيتي · طعم أصيل</Text>
-
       </ScrollView>
     </SafeAreaView>
   );

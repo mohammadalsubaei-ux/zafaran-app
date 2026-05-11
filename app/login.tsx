@@ -1,15 +1,19 @@
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, ScrollView } from "react-native";
+import {
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator,
+  Alert, ScrollView
+} from "react-native";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 
 export default function LoginScreen() {
-  const [step, setStep] = useState<"role" | "login" | "register">("role");
-  const [role, setRole] = useState("");
-  const [phone, setPhone] = useState("");
-  const [name, setName] = useState("");
+  const [step, setStep]     = useState<"role" | "login" | "register">("role");
+  const [role, setRole]     = useState("");
+  const [phone, setPhone]   = useState("");
+  const [name, setName]     = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -21,10 +25,10 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/users/login`, {
-        method: "POST",
+      const res  = await fetch(`${API}/api/users/login`, {
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: cleanPhone }),
+        body:    JSON.stringify({ phone: cleanPhone }),
       });
       const json = await res.json();
       if (json.success) {
@@ -52,10 +56,10 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/users/register`, {
-        method: "POST",
+      const res  = await fetch(`${API}/api/users/register`, {
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: cleanPhone, full_name: name.trim(), role }),
+        body:    JSON.stringify({ phone: cleanPhone, full_name: name.trim(), role }),
       });
       const json = await res.json();
       if (json.success) {
@@ -178,7 +182,11 @@ export default function LoginScreen() {
             />
           </View>
 
-          <TouchableOpacity style={s.btn} onPress={step === "login" ? handleLogin : handleRegister} disabled={loading}>
+          <TouchableOpacity
+            style={s.btn}
+            onPress={step === "login" ? handleLogin : handleRegister}
+            disabled={loading}
+          >
             {loading
               ? <ActivityIndicator color="#1C0F00" />
               : <Text style={s.btnText}>{step === "login" ? "دخول 🚀" : "تسجيل ✨"}</Text>

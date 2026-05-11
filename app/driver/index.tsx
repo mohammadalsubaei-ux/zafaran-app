@@ -2,29 +2,26 @@ import { useEffect, useState } from "react";
 import { View, Text, FlatList, StyleSheet, SafeAreaView, ActivityIndicator, TouchableOpacity, Alert, Linking } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold } from "@expo-google-fonts/almarai";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 
 const STATUS: any = {
   ready:      { label: "جاهز للتوصيل 🎁", color: "#9C27B0" },
-  delivering: { label: "في الطريق 🚗", color: "#03A9F4" },
-  delivered:  { label: "تم التسليم ✅", color: "#4CAF50" },
+  delivering: { label: "في الطريق 🚗",    color: "#03A9F4" },
+  delivered:  { label: "تم التسليم ✅",   color: "#4CAF50" },
 };
 
 export default function DriverScreen() {
-  const [readyOrders, setReadyOrders] = useState([]);
-  const [myOrders, setMyOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isAvailable, setIsAvailable] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [readyOrders, setReadyOrders]   = useState<any[]>([]);
+  const [myOrders, setMyOrders]         = useState<any[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [isAvailable, setIsAvailable]   = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    AsyncStorage.getItem("user").then(u => {
-      if (u) setUser(JSON.parse(u));
-    });
-    loadOrders();
-  }, []);
+  const [fontsLoaded] = useFonts({ Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold });
+
+  useEffect(() => { loadOrders(); }, []);
 
   const loadOrders = () => {
     setLoading(true);
@@ -32,22 +29,19 @@ export default function DriverScreen() {
       fetch(`${API}/api/orders?status=ready`).then(r => r.json()),
       fetch(`${API}/api/orders?status=delivering`).then(r => r.json()),
     ]).then(([ready, delivering]) => {
-      if (ready.success) setReadyOrders(ready.data);
+      if (ready.success)      setReadyOrders(ready.data);
       if (delivering.success) setMyOrders(delivering.data);
     }).finally(() => setLoading(false));
   };
 
   const updateStatus = async (orderId: string, status: string) => {
-    const res = await fetch(`${API}/api/orders/${orderId}/status`, {
-      method: "PATCH",
+    const res  = await fetch(`${API}/api/orders/${orderId}/status`, {
+      method:  "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body:    JSON.stringify({ status }),
     });
     const json = await res.json();
-    if (json.success) {
-      Alert.alert("✅ تم التحديث");
-      loadOrders();
-    }
+    if (json.success) { Alert.alert("✅ تم التحديث"); loadOrders(); }
   };
 
   const openMap = (lat: number, lng: number) => {
@@ -55,6 +49,8 @@ export default function DriverScreen() {
   };
 
   const allOrders = [...myOrders, ...readyOrders];
+
+  if (!fontsLoaded) return null;
 
   return (
     <SafeAreaView style={s.safe}>
@@ -68,6 +64,7 @@ export default function DriverScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* زر التوفر */}
       <View style={s.availRow}>
         <View>
           <Text style={s.availTitle}>أنا متاح للتوصيل</Text>
@@ -110,10 +107,7 @@ export default function DriverScreen() {
                 <Text style={s.total}>💰 {item.total} ريال</Text>
 
                 {item.delivery_lat && item.delivery_lng && (
-                  <TouchableOpacity
-                    style={s.mapBtn}
-                    onPress={() => openMap(item.delivery_lat, item.delivery_lng)}
-                  >
+                  <TouchableOpacity style={s.mapBtn} onPress={() => openMap(item.delivery_lat, item.delivery_lng)}>
                     <Text style={s.mapBtnText}>🗺️ افتح الخريطة</Text>
                   </TouchableOpacity>
                 )}
@@ -130,7 +124,12 @@ export default function DriverScreen() {
                 )}
               </View>
             )}
-            ListEmptyComponent={<Text style={s.empty}>ما في طلبات حالياً</Text>}
+            ListEmptyComponent={
+              <View style={s.emptyWrap}>
+                <Text style={s.emptyEmoji}>🚗</Text>
+                <Text style={s.empty}>ما في طلبات حالياً</Text>
+              </View>
+            }
           />
       }
     </SafeAreaView>
@@ -138,33 +137,35 @@ export default function DriverScreen() {
 }
 
 const s = StyleSheet.create({
-  safe:          { flex: 1, backgroundColor: "#140B00" },
+  safe:          { flex: 1, backgroundColor: "#0E0700" },
   header:        { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.12)" },
-  title:         { fontSize: 18, fontWeight: "900", color: "#FDF0DC" },
-  back:          { color: "#F0A500", fontSize: 15, fontWeight: "700" },
-  refresh:       { color: "#F0A500", fontSize: 13, fontWeight: "700" },
+  title:         { fontSize: 18, fontWeight: "900", color: "#FDF0DC", fontFamily: "Almarai_800ExtraBold" },
+  back:          { color: "#F0A500", fontSize: 15, fontWeight: "700", fontFamily: "Almarai_700Bold" },
+  refresh:       { color: "#F0A500", fontSize: 13, fontWeight: "700", fontFamily: "Almarai_700Bold" },
   availRow:      { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", margin: 16, backgroundColor: "#1C1000", borderRadius: 16, padding: 16, borderWidth: 1, borderColor: "rgba(240,165,0,0.12)" },
-  availTitle:    { fontSize: 14, fontWeight: "800", color: "#FDF0DC", textAlign: "right" },
-  availSub:      { fontSize: 11, color: "#8A6030", textAlign: "right", marginTop: 3 },
+  availTitle:    { fontSize: 14, fontWeight: "800", color: "#FDF0DC", textAlign: "right", fontFamily: "Almarai_700Bold" },
+  availSub:      { fontSize: 11, color: "#8A6030", textAlign: "right", marginTop: 3, fontFamily: "Almarai_400Regular" },
   toggle:        { width: 50, height: 28, borderRadius: 14, backgroundColor: "#333", padding: 3 },
   toggleOn:      { backgroundColor: "#F0A500" },
   toggleThumb:   { width: 22, height: 22, borderRadius: 11, backgroundColor: "#fff" },
   toggleThumbOn: { transform: [{ translateX: 22 }] },
-  secTitle:      { fontSize: 15, fontWeight: "800", color: "#FDF0DC", paddingHorizontal: 16, marginBottom: 8 },
+  secTitle:      { fontSize: 15, fontWeight: "800", color: "#FDF0DC", paddingHorizontal: 16, marginBottom: 8, fontFamily: "Almarai_700Bold" },
   card:          { backgroundColor: "#1C1000", borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "rgba(240,165,0,0.12)" },
   cardActive:    { borderColor: "rgba(3,169,244,0.4)", backgroundColor: "#0D1A1F" },
   cardRow:       { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-  orderId:       { fontSize: 13, fontWeight: "800", color: "#FDF0DC" },
+  orderId:       { fontSize: 13, fontWeight: "800", color: "#FDF0DC", fontFamily: "Almarai_700Bold" },
   badge:         { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 50 },
-  badgeText:     { fontSize: 11, fontWeight: "800" },
-  customerName:  { fontSize: 14, fontWeight: "800", color: "#FDF0DC", textAlign: "right", marginBottom: 3 },
-  customerPhone: { fontSize: 12, color: "#F0A500", textAlign: "right", marginBottom: 4 },
-  address:       { fontSize: 12, color: "#8A6030", textAlign: "right", marginBottom: 4 },
-  total:         { fontSize: 15, fontWeight: "900", color: "#F0A500", textAlign: "right", marginBottom: 10 },
+  badgeText:     { fontSize: 11, fontWeight: "800", fontFamily: "Almarai_700Bold" },
+  customerName:  { fontSize: 14, fontWeight: "800", color: "#FDF0DC", textAlign: "right", marginBottom: 3, fontFamily: "Almarai_700Bold" },
+  customerPhone: { fontSize: 12, color: "#F0A500", textAlign: "right", marginBottom: 4, fontFamily: "Almarai_400Regular" },
+  address:       { fontSize: 12, color: "#8A6030", textAlign: "right", marginBottom: 4, fontFamily: "Almarai_400Regular" },
+  total:         { fontSize: 15, fontWeight: "900", color: "#F0A500", textAlign: "right", marginBottom: 10, fontFamily: "Almarai_800ExtraBold" },
   mapBtn:        { backgroundColor: "rgba(33,150,243,0.15)", borderRadius: 12, padding: 10, alignItems: "center", borderWidth: 1, borderColor: "rgba(33,150,243,0.3)", marginBottom: 8 },
-  mapBtnText:    { color: "#2196F3", fontSize: 13, fontWeight: "800" },
+  mapBtnText:    { color: "#2196F3", fontSize: 13, fontWeight: "800", fontFamily: "Almarai_700Bold" },
   btnAcc:        { backgroundColor: "rgba(240,165,0,0.15)", borderRadius: 12, padding: 12, alignItems: "center", borderWidth: 1, borderColor: "rgba(240,165,0,0.3)", marginBottom: 6 },
   btnDone:       { backgroundColor: "rgba(76,175,80,0.15)", borderRadius: 12, padding: 12, alignItems: "center", borderWidth: 1, borderColor: "rgba(76,175,80,0.3)" },
-  btnText:       { color: "#FDF0DC", fontSize: 13, fontWeight: "800" },
-  empty:         { textAlign: "center", color: "#8A6030", marginTop: 40, fontSize: 14 },
+  btnText:       { color: "#FDF0DC", fontSize: 13, fontWeight: "800", fontFamily: "Almarai_700Bold" },
+  emptyWrap:     { alignItems: "center", marginTop: 60 },
+  emptyEmoji:    { fontSize: 48, marginBottom: 12 },
+  empty:         { textAlign: "center", color: "#8A6030", marginTop: 10, fontSize: 14, fontFamily: "Almarai_400Regular" },
 });
