@@ -18,9 +18,9 @@ const CATS = [
 ];
 
 const GENDERS = [
-  { id: "all",    label: "الكل",    emoji: "👥" },
-  { id: "female", label: "طباخات",  emoji: "👩‍🍳" },
-  { id: "male",   label: "طهاة",    emoji: "👨‍🍳" },
+  { id: "all",    label: "الكل",   emoji: "👥" },
+  { id: "female", label: "طباخات", emoji: "👩‍🍳" },
+  { id: "male",   label: "طهاة",   emoji: "👨‍🍳" },
 ];
 
 export default function HomeScreen() {
@@ -62,7 +62,7 @@ export default function HomeScreen() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const handleCat = (id: string) => { setCat(id); loadChefs(id, gender); };
+  const handleCat    = (id: string) => { setCat(id);    loadChefs(id, gender); };
   const handleGender = (id: string) => { setGender(id); loadChefs(cat, id); };
 
   if (!fontsLoaded) return (
@@ -75,7 +75,7 @@ export default function HomeScreen() {
     <SafeAreaView style={s.safe}>
       <StatusBar barStyle="light-content" />
 
-      {/* Header */}
+      {/* ━━━ الهيدر الثابت ━━━ */}
       <View style={s.header}>
         <View style={s.locationBadge}>
           <Text style={s.locationText}>📍 القصيم ▾</Text>
@@ -111,7 +111,7 @@ export default function HomeScreen() {
         ))}
       </View>
 
-      {/* Categories - ScrollView بدل FlatList */}
+      {/* Categories - ثابتة */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -130,19 +130,19 @@ export default function HomeScreen() {
         ))}
       </ScrollView>
 
-      {/* Section Header */}
+      {/* Section Header - ثابت */}
       <View style={s.secHd}>
         <Text style={s.secTitle}>{sectionTitle}</Text>
         <Text style={s.secSub}>{chefs.length} نتيجة</Text>
       </View>
 
-      {/* Chefs List */}
+      {/* ━━━ قائمة الطهاة فقط تتمرر ━━━ */}
       {loading
         ? <ActivityIndicator color="#F0A500" style={{ marginTop: 40 }} size="large" />
         : <FlatList
             data={chefs}
             keyExtractor={i => i.id}
-            contentContainerStyle={{ padding: 16, paddingTop: 0 }}
+            contentContainerStyle={s.listContent}
             renderItem={({ item }) => {
               const isMale = item.users?.gender === "male";
               return (
@@ -186,37 +186,38 @@ export default function HomeScreen() {
 
 const s = StyleSheet.create({
   safe:              { flex: 1, backgroundColor: "#0E0700" },
-  header:            { alignItems: "center", padding: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.1)" },
-  title:             { fontSize: 28, fontWeight: "900", color: "#F0A500", fontFamily: "Almarai_800ExtraBold" },
-  greet:             { fontSize: 12, color: "#8A6030", marginTop: 2, fontFamily: "Almarai_400Regular" },
-  locationBadge:     { position: "absolute", right: 16, top: 16, backgroundColor: "rgba(240,165,0,0.1)", borderWidth: 1, borderColor: "rgba(240,165,0,0.2)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 50 },
+  header:            { alignItems: "center", paddingTop: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.1)" },
+  title:             { fontSize: 26, fontWeight: "900", color: "#F0A500", fontFamily: "Almarai_800ExtraBold" },
+  greet:             { fontSize: 11, color: "#8A6030", marginTop: 2, fontFamily: "Almarai_400Regular" },
+  locationBadge:     { position: "absolute", right: 16, top: 12, backgroundColor: "rgba(240,165,0,0.1)", borderWidth: 1, borderColor: "rgba(240,165,0,0.2)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 50 },
   locationText:      { fontSize: 11, color: "#C97D20", fontWeight: "700", fontFamily: "Almarai_700Bold" },
-  searchWrap:        { flexDirection: "row-reverse", alignItems: "center", margin: 12, backgroundColor: "#1C1000", borderRadius: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)", paddingHorizontal: 14 },
+  searchWrap:        { flexDirection: "row-reverse", alignItems: "center", marginHorizontal: 12, marginVertical: 8, backgroundColor: "#1C1000", borderRadius: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)", paddingHorizontal: 14 },
   searchIco:         { fontSize: 16, marginLeft: 8 },
-  searchInput:       { flex: 1, height: 44, color: "#FDF0DC", fontSize: 14, fontFamily: "Almarai_400Regular" },
-  genderRow:         { flexDirection: "row-reverse", paddingHorizontal: 12, gap: 8, marginBottom: 4 },
-  genderBtn:         { flex: 1, flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#1C1000", borderRadius: 12, paddingVertical: 8, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
+  searchInput:       { flex: 1, height: 40, color: "#FDF0DC", fontSize: 14, fontFamily: "Almarai_400Regular" },
+  genderRow:         { flexDirection: "row-reverse", paddingHorizontal: 12, gap: 8, marginBottom: 6 },
+  genderBtn:         { flex: 1, flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#1C1000", borderRadius: 12, paddingVertical: 7, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
   genderBtnActive:   { backgroundColor: "rgba(240,165,0,0.12)", borderColor: "rgba(240,165,0,0.4)" },
-  genderEmoji:       { fontSize: 16 },
-  genderLabel:       { fontSize: 12, color: "#8A6030", fontWeight: "700", fontFamily: "Almarai_700Bold" },
+  genderEmoji:       { fontSize: 15 },
+  genderLabel:       { fontSize: 11, color: "#8A6030", fontWeight: "700", fontFamily: "Almarai_700Bold" },
   genderLabelActive: { color: "#F0A500" },
-  catsScroll:        { flexGrow: 0, height: 90 },
-  catsList:          { paddingHorizontal: 12, paddingVertical: 8, gap: 8, alignItems: "center" },
-  catBtn:            { alignItems: "center", backgroundColor: "#1C1000", borderRadius: 14, padding: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)", minWidth: 70 },
+  catsScroll:        { flexGrow: 0, maxHeight: 85 },
+  catsList:          { paddingHorizontal: 12, paddingVertical: 6, gap: 8, alignItems: "center" },
+  catBtn:            { alignItems: "center", backgroundColor: "#1C1000", borderRadius: 14, padding: 8, paddingHorizontal: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)", minWidth: 65 },
   catBtnActive:      { backgroundColor: "rgba(240,165,0,0.12)", borderColor: "rgba(240,165,0,0.4)" },
-  catEmoji:          { fontSize: 22, marginBottom: 4 },
-  catLabel:          { fontSize: 11, color: "#8A6030", fontWeight: "700", fontFamily: "Almarai_700Bold" },
+  catEmoji:          { fontSize: 20, marginBottom: 3 },
+  catLabel:          { fontSize: 10, color: "#8A6030", fontWeight: "700", fontFamily: "Almarai_700Bold" },
   catLabelActive:    { color: "#F0A500" },
-  secHd:             { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 8 },
-  secTitle:          { fontSize: 15, fontWeight: "800", color: "#FDF0DC", fontFamily: "Almarai_700Bold" },
-  secSub:            { fontSize: 12, color: "#8A6030", fontFamily: "Almarai_400Regular" },
-  card:              { backgroundColor: "#1C1000", borderRadius: 18, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
+  secHd:             { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.06)" },
+  secTitle:          { fontSize: 14, fontWeight: "800", color: "#FDF0DC", fontFamily: "Almarai_700Bold" },
+  secSub:            { fontSize: 11, color: "#8A6030", fontFamily: "Almarai_400Regular" },
+  listContent:       { padding: 12, paddingTop: 8 },
+  card:              { backgroundColor: "#1C1000", borderRadius: 18, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
   cardTop:           { flexDirection: "row-reverse", alignItems: "center", gap: 12 },
-  avatar:            { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  avatarEmoji:       { fontSize: 28 },
+  avatar:            { width: 52, height: 52, borderRadius: 14, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  avatarEmoji:       { fontSize: 26 },
   cardInfo:          { flex: 1 },
   chefName:          { fontSize: 15, fontWeight: "800", color: "#FDF0DC", textAlign: "right", marginBottom: 3, fontFamily: "Almarai_700Bold" },
-  chefCity:          { fontSize: 11, color: "#8A6030", textAlign: "right", marginBottom: 6, fontFamily: "Almarai_400Regular" },
+  chefCity:          { fontSize: 11, color: "#8A6030", textAlign: "right", marginBottom: 5, fontFamily: "Almarai_400Regular" },
   cardRow:           { flexDirection: "row-reverse", alignItems: "center", gap: 8 },
   rating:            { fontSize: 12, color: "#F0A500", fontWeight: "700" },
   badge:             { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 50 },
