@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  SafeAreaView, ActivityIndicator, StatusBar, TextInput, ScrollView
+  SafeAreaView, ActivityIndicator, TextInput, ScrollView
 } from "react-native";
 import { useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold } from "@expo-google-fonts/almarai";
 
@@ -26,7 +26,6 @@ const GENDERS = [
 export default function HomeScreen() {
   const [chefs, setChefs]     = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser]       = useState<any>(null);
   const [search, setSearch]   = useState("");
   const [cat, setCat]         = useState("all");
   const [gender, setGender]   = useState("all");
@@ -47,10 +46,7 @@ export default function HomeScreen() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    AsyncStorage.getItem("user").then(u => { if (u) setUser(JSON.parse(u)); });
-    loadChefs();
-  }, []);
+  useEffect(() => { loadChefs(); }, []);
 
   useEffect(() => {
     if (!search) { loadChefs(); return; }
@@ -72,17 +68,7 @@ export default function HomeScreen() {
   const sectionTitle = gender === "female" ? "الطباخات 👩‍🍳" : gender === "male" ? "الطهاة 👨‍🍳" : "الطهاة والطباخات 👥";
 
   return (
-    <SafeAreaView style={s.safe}>
-      <StatusBar barStyle="light-content" />
-
-      {/* ━━━ الهيدر الثابت ━━━ */}
-      <View style={s.header}>
-        <View style={s.locationBadge}>
-          <Text style={s.locationText}>📍 القصيم ▾</Text>
-        </View>
-        <Text style={s.title}>زعفران 🍲</Text>
-        <Text style={s.greet}>أهلاً {user?.full_name?.split(" ")[0]} 👋</Text>
-      </View>
+    <View style={s.safe}>
 
       {/* Search */}
       <View style={s.searchWrap}>
@@ -111,7 +97,7 @@ export default function HomeScreen() {
         ))}
       </View>
 
-      {/* Categories - ثابتة */}
+      {/* Categories */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -130,13 +116,13 @@ export default function HomeScreen() {
         ))}
       </ScrollView>
 
-      {/* Section Header - ثابت */}
+      {/* Section Header */}
       <View style={s.secHd}>
         <Text style={s.secTitle}>{sectionTitle}</Text>
         <Text style={s.secSub}>{chefs.length} نتيجة</Text>
       </View>
 
-      {/* ━━━ قائمة الطهاة فقط تتمرر ━━━ */}
+      {/* Chefs List */}
       {loading
         ? <ActivityIndicator color="#F0A500" style={{ marginTop: 40 }} size="large" />
         : <FlatList
@@ -180,17 +166,12 @@ export default function HomeScreen() {
             }
           />
       }
-    </SafeAreaView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
   safe:              { flex: 1, backgroundColor: "#0E0700" },
-  header:            { alignItems: "center", paddingTop: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.1)" },
-  title:             { fontSize: 26, fontWeight: "900", color: "#F0A500", fontFamily: "Almarai_800ExtraBold" },
-  greet:             { fontSize: 11, color: "#8A6030", marginTop: 2, fontFamily: "Almarai_400Regular" },
-  locationBadge:     { position: "absolute", right: 16, top: 12, backgroundColor: "rgba(240,165,0,0.1)", borderWidth: 1, borderColor: "rgba(240,165,0,0.2)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 50 },
-  locationText:      { fontSize: 11, color: "#C97D20", fontWeight: "700", fontFamily: "Almarai_700Bold" },
   searchWrap:        { flexDirection: "row-reverse", alignItems: "center", marginHorizontal: 12, marginVertical: 8, backgroundColor: "#1C1000", borderRadius: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)", paddingHorizontal: 14 },
   searchIco:         { fontSize: 16, marginLeft: 8 },
   searchInput:       { flex: 1, height: 40, color: "#FDF0DC", fontSize: 14, fontFamily: "Almarai_400Regular" },
