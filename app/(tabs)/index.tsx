@@ -5,16 +5,16 @@ import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   SafeAreaView, ActivityIndicator, StatusBar, TextInput
 } from "react-native";
-import { useFonts, Tajawal_900Black, Tajawal_700Bold, Tajawal_400Regular } from "@expo-google-fonts/tajawal";
+import { useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold } from "@expo-google-fonts/almarai";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 
 const CATS = [
-  { id: "all",   label: "الكل",    emoji: "🍽️" },
-  { id: "rice",  label: "أرز",     emoji: "🍛" },
-  { id: "stew",  label: "مرق",     emoji: "🫕" },
-  { id: "salad", label: "سلطة",    emoji: "🥗" },
-  { id: "other", label: "أخرى",    emoji: "🍴" },
+  { id: "all",   label: "الكل",   emoji: "🍽️" },
+  { id: "rice",  label: "أرز",    emoji: "🍛" },
+  { id: "stew",  label: "مرق",    emoji: "🫕" },
+  { id: "salad", label: "سلطة",   emoji: "🥗" },
+  { id: "other", label: "أخرى",   emoji: "🍴" },
 ];
 
 export default function HomeScreen() {
@@ -26,7 +26,7 @@ export default function HomeScreen() {
   const [cat, setCat]           = useState("all");
   const router = useRouter();
 
-  const [fontsLoaded] = useFonts({ Tajawal_900Black, Tajawal_700Bold, Tajawal_400Regular });
+  const [fontsLoaded] = useFonts({ Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold });
 
   useEffect(() => {
     AsyncStorage.getItem("user").then(u => {
@@ -35,19 +35,13 @@ export default function HomeScreen() {
     fetch(`${API}/api/chefs`)
       .then(r => r.json())
       .then(j => {
-        if (j.success) {
-          setChefs(j.data);
-          setFiltered(j.data);
-        }
+        if (j.success) { setChefs(j.data); setFiltered(j.data); }
       })
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
-    if (!search) {
-      setFiltered(chefs);
-      return;
-    }
+    if (!search) { setFiltered(chefs); return; }
     const timer = setTimeout(async () => {
       const res  = await fetch(`${API}/api/chefs/search?q=${search}`);
       const json = await res.json();
@@ -124,9 +118,7 @@ export default function HomeScreen() {
               <TouchableOpacity style={s.card} onPress={() => router.push(`/chef/${item.id}`)}>
                 <View style={s.cardTop}>
                   <View style={[s.avatar, {
-                    backgroundColor: item.is_open
-                      ? "rgba(240,165,0,0.1)"
-                      : "rgba(100,100,100,0.1)"
+                    backgroundColor: item.is_open ? "rgba(240,165,0,0.1)" : "rgba(100,100,100,0.1)"
                   }]}>
                     <Text style={s.avatarEmoji}>👩‍🍳</Text>
                   </View>
@@ -146,9 +138,7 @@ export default function HomeScreen() {
                 </View>
               </TouchableOpacity>
             )}
-            ListEmptyComponent={
-              <Text style={s.empty}>ما في طباخات متاحة</Text>
-            }
+            ListEmptyComponent={<Text style={s.empty}>ما في طباخات متاحة</Text>}
           />
       }
     </SafeAreaView>
@@ -158,35 +148,35 @@ export default function HomeScreen() {
 const s = StyleSheet.create({
   safe:           { flex: 1, backgroundColor: "#0E0700" },
   header:         { alignItems: "center", padding: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.1)" },
-  title:          { fontSize: 28, fontWeight: "900", color: "#F0A500", fontFamily: "Tajawal_900Black" },
-  greet:          { fontSize: 12, color: "#8A6030", marginTop: 2, fontFamily: "Tajawal_400Regular" },
+  title:          { fontSize: 28, fontWeight: "900", color: "#F0A500", fontFamily: "Almarai_800ExtraBold" },
+  greet:          { fontSize: 12, color: "#8A6030", marginTop: 2, fontFamily: "Almarai_400Regular" },
   locationBadge:  { position: "absolute", right: 16, top: 16, backgroundColor: "rgba(240,165,0,0.1)", borderWidth: 1, borderColor: "rgba(240,165,0,0.2)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 50 },
-  locationText:   { fontSize: 11, color: "#C97D20", fontWeight: "700", fontFamily: "Tajawal_700Bold" },
+  locationText:   { fontSize: 11, color: "#C97D20", fontWeight: "700", fontFamily: "Almarai_700Bold" },
   searchWrap:     { flexDirection: "row-reverse", alignItems: "center", margin: 12, backgroundColor: "#1C1000", borderRadius: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)", paddingHorizontal: 14 },
   searchIco:      { fontSize: 16, marginLeft: 8 },
-  searchInput:    { flex: 1, height: 44, color: "#FDF0DC", fontSize: 14, fontFamily: "Tajawal_400Regular" },
+  searchInput:    { flex: 1, height: 44, color: "#FDF0DC", fontSize: 14, fontFamily: "Almarai_400Regular" },
   catsList:       { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
   catBtn:         { alignItems: "center", backgroundColor: "#1C1000", borderRadius: 14, padding: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)", minWidth: 70 },
   catBtnActive:   { backgroundColor: "rgba(240,165,0,0.12)", borderColor: "rgba(240,165,0,0.4)" },
   catEmoji:       { fontSize: 22, marginBottom: 4 },
-  catLabel:       { fontSize: 11, color: "#8A6030", fontWeight: "700", fontFamily: "Tajawal_700Bold" },
+  catLabel:       { fontSize: 11, color: "#8A6030", fontWeight: "700", fontFamily: "Almarai_700Bold" },
   catLabelActive: { color: "#F0A500" },
   secHd:          { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 8 },
-  secTitle:       { fontSize: 15, fontWeight: "800", color: "#FDF0DC", fontFamily: "Tajawal_700Bold" },
-  secSub:         { fontSize: 12, color: "#8A6030", fontFamily: "Tajawal_400Regular" },
+  secTitle:       { fontSize: 15, fontWeight: "800", color: "#FDF0DC", fontFamily: "Almarai_700Bold" },
+  secSub:         { fontSize: 12, color: "#8A6030", fontFamily: "Almarai_400Regular" },
   card:           { backgroundColor: "#1C1000", borderRadius: 18, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
   cardTop:        { flexDirection: "row-reverse", alignItems: "center", gap: 12 },
   avatar:         { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   avatarEmoji:    { fontSize: 28 },
   cardInfo:       { flex: 1 },
-  chefName:       { fontSize: 15, fontWeight: "800", color: "#FDF0DC", textAlign: "right", marginBottom: 3, fontFamily: "Tajawal_700Bold" },
-  chefCity:       { fontSize: 11, color: "#8A6030", textAlign: "right", marginBottom: 6, fontFamily: "Tajawal_400Regular" },
+  chefName:       { fontSize: 15, fontWeight: "800", color: "#FDF0DC", textAlign: "right", marginBottom: 3, fontFamily: "Almarai_700Bold" },
+  chefCity:       { fontSize: 11, color: "#8A6030", textAlign: "right", marginBottom: 6, fontFamily: "Almarai_400Regular" },
   cardRow:        { flexDirection: "row-reverse", alignItems: "center", gap: 8 },
   rating:         { fontSize: 12, color: "#F0A500", fontWeight: "700" },
   badge:          { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 50 },
   open:           { backgroundColor: "rgba(76,175,80,0.12)" },
   closed:         { backgroundColor: "rgba(229,57,53,0.12)" },
-  badgeText:      { fontSize: 10, fontWeight: "800", fontFamily: "Tajawal_700Bold" },
+  badgeText:      { fontSize: 10, fontWeight: "800", fontFamily: "Almarai_700Bold" },
   arrow:          { fontSize: 18, color: "#5A3A18" },
   empty:          { textAlign: "center", color: "#8A6030", marginTop: 40, fontSize: 14 },
 });
