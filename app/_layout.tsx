@@ -1,24 +1,27 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { CartProvider } from '@/context/CartContext';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="chef/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="item/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="orders/index" options={{ headerShown: false }} />
-        <Stack.Screen name="dashboard/index" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
+    <ThemeProvider value={DarkTheme}>
+      <CartProvider>
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="chef/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="item/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="cart" options={{ headerShown: false }} />
+          <Stack.Screen name="orders/index" options={{ headerShown: false }} />
+          <Stack.Screen name="dashboard/index" options={{ headerShown: false }} />
+          <Stack.Screen name="driver/index" options={{ headerShown: false }} />
+          <Stack.Screen name="wallet" options={{ headerShown: false }} />
+        </Stack>
+        <StatusBar style="light" />
+      </CartProvider>
     </ThemeProvider>
   );
 }
