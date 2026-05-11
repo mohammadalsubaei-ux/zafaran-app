@@ -1,10 +1,21 @@
 import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import i18n from '@/i18n';
 
 export default function TabLayout() {
+  const [lang, setLang] = useState(i18n.locale);
+
+  useEffect(() => {
+    AsyncStorage.getItem("lang").then(l => {
+      if (l) { i18n.locale = l; setLang(l); }
+    });
+  }, []);
+
   return (
     <Tabs
+      key={lang}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -26,23 +37,23 @@ export default function TabLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: "الطبخ", tabBarIcon: () => <Text style={{ fontSize: 22 }}>🍲</Text> }}
+        options={{ title: i18n.t("cooking"), tabBarIcon: () => <Text style={{ fontSize: 22 }}>🍲</Text> }}
       />
       <Tabs.Screen
         name="sweets"
-        options={{ title: "الحلويات", tabBarIcon: () => <Text style={{ fontSize: 22 }}>🍰</Text> }}
+        options={{ title: i18n.t("sweets"), tabBarIcon: () => <Text style={{ fontSize: 22 }}>🍰</Text> }}
       />
       <Tabs.Screen
         name="pastries"
-        options={{ title: "المعجنات", tabBarIcon: () => <Text style={{ fontSize: 22 }}>🥐</Text> }}
+        options={{ title: i18n.t("pastries"), tabBarIcon: () => <Text style={{ fontSize: 22 }}>🥐</Text> }}
       />
       <Tabs.Screen
         name="orders"
-        options={{ title: "طلباتي", tabBarIcon: () => <Text style={{ fontSize: 22 }}>📦</Text> }}
+        options={{ title: i18n.t("orders"), tabBarIcon: () => <Text style={{ fontSize: 22 }}>📦</Text> }}
       />
       <Tabs.Screen
         name="profile"
-        options={{ title: "حسابي", tabBarIcon: () => <Text style={{ fontSize: 22 }}>👤</Text> }}
+        options={{ title: i18n.t("account"), tabBarIcon: () => <Text style={{ fontSize: 22 }}>👤</Text> }}
       />
 
       {/* مخفية */}
