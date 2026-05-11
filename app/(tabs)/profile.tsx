@@ -3,12 +3,77 @@ import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
 import { useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold } from "@expo-google-fonts/almarai";
-import i18n from "@/i18n";
 import { useLang } from "@/context/LanguageContext";
+
+const T: any = {
+  ar: {
+    myAccount:    "حسابي",
+    services:     "الخدمات",
+    chefDash:     "لوحة الطباخة",
+    chefDashSub:  "إدارة طلباتك ووجباتك",
+    driverDash:   "لوحة المندوب",
+    driverDashSub:"إدارة توصيلاتك",
+    myWallet:     "محفظتي",
+    myWalletSub:  "رصيدك وسجل معاملاتك",
+    settings:     "الإعدادات",
+    language:     "اللغة",
+    languageVal:  "العربية 🇸🇦",
+    langSwitch:   "EN",
+    region:       "المنطقة",
+    regionVal:    "القصيم، المملكة العربية السعودية",
+    notifications:"الإشعارات",
+    notifVal:     "مفعّلة",
+    about:        "عن التطبيق",
+    privacy:      "سياسة الخصوصية",
+    terms:        "الشروط والأحكام",
+    version:      "إصدار التطبيق",
+    logout:       "تسجيل الخروج 🚪",
+    logoutTitle:  "خروج",
+    logoutMsg:    "تبي تطلع من حسابك؟",
+    yes:          "نعم",
+    no:           "لا",
+    footer:       "زعفران · أكل بيتي · طعم أصيل",
+    customer:     "عميل",
+    chefRole:     "طباخة",
+    driver:       "مندوب توصيل",
+  },
+  en: {
+    myAccount:    "My Account",
+    services:     "Services",
+    chefDash:     "Chef Dashboard",
+    chefDashSub:  "Manage your orders and meals",
+    driverDash:   "Driver Dashboard",
+    driverDashSub:"Manage your deliveries",
+    myWallet:     "My Wallet",
+    myWalletSub:  "Balance and transaction history",
+    settings:     "Settings",
+    language:     "Language",
+    languageVal:  "English 🇺🇸",
+    langSwitch:   "ع",
+    region:       "Region",
+    regionVal:    "Al-Qassim, Saudi Arabia",
+    notifications:"Notifications",
+    notifVal:     "Enabled",
+    about:        "About",
+    privacy:      "Privacy Policy",
+    terms:        "Terms & Conditions",
+    version:      "App Version",
+    logout:       "Logout 🚪",
+    logoutTitle:  "Logout",
+    logoutMsg:    "Are you sure you want to logout?",
+    yes:          "Yes",
+    no:           "No",
+    footer:       "Zafaran · Home Food · Authentic Taste",
+    customer:     "Customer",
+    chefRole:     "Chef",
+    driver:       "Delivery Driver",
+  },
+};
 
 export default function ProfileScreen() {
   const [user, setUser] = useState<any>(null);
   const { lang, toggleLang } = useLang();
+  const t = T[lang] || T.ar;
   const router = useRouter();
 
   const [fontsLoaded] = useFonts({ Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold });
@@ -20,18 +85,18 @@ export default function ProfileScreen() {
   }, []);
 
   const handleLogout = () => {
-    Alert.alert(i18n.t("logoutTitle"), i18n.t("logoutMsg"), [
-      { text: i18n.t("no"), style: "cancel" },
-      { text: i18n.t("yes"), style: "destructive", onPress: () => {
+    Alert.alert(t.logoutTitle, t.logoutMsg, [
+      { text: t.no, style: "cancel" },
+      { text: t.yes, style: "destructive", onPress: () => {
         AsyncStorage.removeItem("user").then(() => router.replace("/login"));
       }},
     ], { cancelable: true });
   };
 
   const getRoleInfo = () => {
-    if (user?.role === "chef")   return { label: i18n.t("chefRole"), emoji: "👩‍🍳", color: "#F0A500" };
-    if (user?.role === "driver") return { label: i18n.t("driver"),   emoji: "🚗",   color: "#2196F3" };
-    return                               { label: i18n.t("customer"), emoji: "👤",   color: "#4CAF50" };
+    if (user?.role === "chef")   return { label: t.chefRole, emoji: "👩‍🍳", color: "#F0A500" };
+    if (user?.role === "driver") return { label: t.driver,   emoji: "🚗",   color: "#2196F3" };
+    return                               { label: t.customer, emoji: "👤",   color: "#4CAF50" };
   };
 
   const roleInfo = getRoleInfo();
@@ -42,7 +107,7 @@ export default function ProfileScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
 
         <View style={s.header}>
-          <Text style={s.headerTitle}>{i18n.t("myAccount")}</Text>
+          <Text style={s.headerTitle}>{t.myAccount}</Text>
         </View>
 
         <View style={s.profileCard}>
@@ -58,14 +123,14 @@ export default function ProfileScreen() {
 
         {/* الخدمات */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>{i18n.t("services")}</Text>
+          <Text style={s.sectionTitle}>{t.services}</Text>
 
           {user?.role === "chef" && (
             <TouchableOpacity style={s.menuItem} onPress={() => router.push("/dashboard")}>
               <Text style={s.menuArrow}>←</Text>
               <View style={s.menuInfo}>
-                <Text style={s.menuLabel}>{i18n.t("chefDash")}</Text>
-                <Text style={s.menuSub}>{i18n.t("chefDashSub")}</Text>
+                <Text style={s.menuLabel}>{t.chefDash}</Text>
+                <Text style={s.menuSub}>{t.chefDashSub}</Text>
               </View>
               <Text style={s.menuEmoji}>👩‍🍳</Text>
             </TouchableOpacity>
@@ -75,8 +140,8 @@ export default function ProfileScreen() {
             <TouchableOpacity style={s.menuItem} onPress={() => router.push("/driver")}>
               <Text style={s.menuArrow}>←</Text>
               <View style={s.menuInfo}>
-                <Text style={s.menuLabel}>{i18n.t("driverDash")}</Text>
-                <Text style={s.menuSub}>{i18n.t("driverDashSub")}</Text>
+                <Text style={s.menuLabel}>{t.driverDash}</Text>
+                <Text style={s.menuSub}>{t.driverDashSub}</Text>
               </View>
               <Text style={s.menuEmoji}>🚗</Text>
             </TouchableOpacity>
@@ -85,8 +150,8 @@ export default function ProfileScreen() {
           <TouchableOpacity style={s.menuItem} onPress={() => router.push("/(tabs)/wallet")}>
             <Text style={s.menuArrow}>←</Text>
             <View style={s.menuInfo}>
-              <Text style={s.menuLabel}>{i18n.t("myWallet")}</Text>
-              <Text style={s.menuSub}>{i18n.t("myWalletSub")}</Text>
+              <Text style={s.menuLabel}>{t.myWallet}</Text>
+              <Text style={s.menuSub}>{t.myWalletSub}</Text>
             </View>
             <Text style={s.menuEmoji}>💰</Text>
           </TouchableOpacity>
@@ -94,24 +159,24 @@ export default function ProfileScreen() {
 
         {/* الإعدادات */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>{i18n.t("settings")}</Text>
+          <Text style={s.sectionTitle}>{t.settings}</Text>
 
           <TouchableOpacity style={s.menuItem} onPress={toggleLang}>
             <Text style={s.menuArrow}>←</Text>
             <View style={s.menuInfo}>
-              <Text style={s.menuLabel}>{i18n.t("language")}</Text>
-              <Text style={s.menuSub}>{lang === "ar" ? "العربية 🇸🇦" : "English 🇺🇸"}</Text>
+              <Text style={s.menuLabel}>{t.language}</Text>
+              <Text style={s.menuSub}>{t.languageVal}</Text>
             </View>
             <View style={s.langBadge}>
-              <Text style={s.langBadgeText}>{lang === "ar" ? "EN" : "ع"}</Text>
+              <Text style={s.langBadgeText}>{t.langSwitch}</Text>
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity style={s.menuItem}>
             <Text style={s.menuArrow}>←</Text>
             <View style={s.menuInfo}>
-              <Text style={s.menuLabel}>{i18n.t("region2")}</Text>
-              <Text style={s.menuSub}>{i18n.t("regionVal")}</Text>
+              <Text style={s.menuLabel}>{t.region}</Text>
+              <Text style={s.menuSub}>{t.regionVal}</Text>
             </View>
             <Text style={s.menuEmoji}>📍</Text>
           </TouchableOpacity>
@@ -119,8 +184,8 @@ export default function ProfileScreen() {
           <TouchableOpacity style={s.menuItem}>
             <Text style={s.menuArrow}>←</Text>
             <View style={s.menuInfo}>
-              <Text style={s.menuLabel}>{i18n.t("notifications")}</Text>
-              <Text style={s.menuSub}>{i18n.t("notifVal")}</Text>
+              <Text style={s.menuLabel}>{t.notifications}</Text>
+              <Text style={s.menuSub}>{t.notifVal}</Text>
             </View>
             <Text style={s.menuEmoji}>🔔</Text>
           </TouchableOpacity>
@@ -128,12 +193,12 @@ export default function ProfileScreen() {
 
         {/* عن التطبيق */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>{i18n.t("about")}</Text>
+          <Text style={s.sectionTitle}>{t.about}</Text>
 
           <TouchableOpacity style={s.menuItem}>
             <Text style={s.menuArrow}>←</Text>
             <View style={s.menuInfo}>
-              <Text style={s.menuLabel}>{i18n.t("privacy")}</Text>
+              <Text style={s.menuLabel}>{t.privacy}</Text>
             </View>
             <Text style={s.menuEmoji}>🔒</Text>
           </TouchableOpacity>
@@ -141,7 +206,7 @@ export default function ProfileScreen() {
           <TouchableOpacity style={s.menuItem}>
             <Text style={s.menuArrow}>←</Text>
             <View style={s.menuInfo}>
-              <Text style={s.menuLabel}>{i18n.t("terms")}</Text>
+              <Text style={s.menuLabel}>{t.terms}</Text>
             </View>
             <Text style={s.menuEmoji}>📄</Text>
           </TouchableOpacity>
@@ -149,7 +214,7 @@ export default function ProfileScreen() {
           <View style={s.menuItem}>
             <Text style={s.menuArrow}></Text>
             <View style={s.menuInfo}>
-              <Text style={s.menuLabel}>{i18n.t("version")}</Text>
+              <Text style={s.menuLabel}>{t.version}</Text>
               <Text style={s.menuSub}>v1.0.0</Text>
             </View>
             <Text style={s.menuEmoji}>🍲</Text>
@@ -157,10 +222,10 @@ export default function ProfileScreen() {
         </View>
 
         <TouchableOpacity style={s.logoutBtn} onPress={handleLogout}>
-          <Text style={s.logoutText}>{i18n.t("logout")}</Text>
+          <Text style={s.logoutText}>{t.logout}</Text>
         </TouchableOpacity>
 
-        <Text style={s.footer}>{i18n.t("footer")}</Text>
+        <Text style={s.footer}>{t.footer}</Text>
       </ScrollView>
     </SafeAreaView>
   );
