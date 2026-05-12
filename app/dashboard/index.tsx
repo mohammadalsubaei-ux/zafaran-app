@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { View, Text, FlatList, StyleSheet, SafeAreaView, ActivityIndicator, TouchableOpacity, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -7,13 +7,13 @@ import { useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold } f
 const API = "https://zafaran-backend-production.up.railway.app";
 
 const STATUS: any = {
-  pending:    { label: "بانتظار القبول", color: "#F0A500" },
-  accepted:   { label: "تم القبول",      color: "#2196F3" },
-  preparing:  { label: "قيد التحضير 🔥", color: "#FF6600" },
-  ready:      { label: "جاهز للتوصيل",  color: "#9C27B0" },
-  delivering: { label: "في الطريق 🚗",  color: "#03A9F4" },
-  delivered:  { label: "تم التسليم ✅",  color: "#4CAF50" },
-  cancelled:  { label: "ملغي ❌",        color: "#E53935" },
+  pending:    { label: "ط¨ط§ظ†طھط¸ط§ط± ط§ظ„ظ‚ط¨ظˆظ„", color: "#F0A500" },
+  accepted:   { label: "طھظ… ط§ظ„ظ‚ط¨ظˆظ„",      color: "#2196F3" },
+  preparing:  { label: "ظ‚ظٹط¯ ط§ظ„طھط­ط¶ظٹط± ًں”¥", color: "#FF6600" },
+  ready:      { label: "ط¬ط§ظ‡ط² ظ„ظ„طھظˆطµظٹظ„",  color: "#9C27B0" },
+  delivering: { label: "ظپظٹ ط§ظ„ط·ط±ظٹظ‚ ًںڑ—",  color: "#03A9F4" },
+  delivered:  { label: "طھظ… ط§ظ„طھط³ظ„ظٹظ… âœ…",  color: "#4CAF50" },
+  cancelled:  { label: "ظ…ظ„ط؛ظٹ â‌Œ",        color: "#E53935" },
 };
 
 export default function DashboardScreen() {
@@ -54,38 +54,38 @@ export default function DashboardScreen() {
       body:    JSON.stringify({ status }),
     });
     const json = await res.json();
-    if (json.success) { Alert.alert("✅ تم التحديث"); load(); }
+    if (json.success) { Alert.alert("âœ… طھظ… ط§ظ„طھط­ط¯ظٹط«"); load(); }
   };
 
   const getActions = (status: string, id: string) => {
     if (status === "pending") return (
       <View style={s.btns}>
         <TouchableOpacity style={s.btnAcc} onPress={() => updateStatus(id, "accepted")}>
-          <Text style={s.btnText}>✅ قبول</Text>
+          <Text style={s.btnText}>âœ… ظ‚ط¨ظˆظ„</Text>
         </TouchableOpacity>
         <TouchableOpacity style={s.btnRej} onPress={() => updateStatus(id, "cancelled")}>
-          <Text style={s.btnTextRej}>❌ رفض</Text>
+          <Text style={s.btnTextRej}>â‌Œ ط±ظپط¶</Text>
         </TouchableOpacity>
       </View>
     );
     if (status === "accepted") return (
       <TouchableOpacity style={s.btnAcc} onPress={() => updateStatus(id, "preparing")}>
-        <Text style={s.btnText}>🔥 بدأ التحضير</Text>
+        <Text style={s.btnText}>ًں”¥ ط¨ط¯ط£ ط§ظ„طھط­ط¶ظٹط±</Text>
       </TouchableOpacity>
     );
     if (status === "preparing") return (
       <TouchableOpacity style={s.btnAcc} onPress={() => updateStatus(id, "ready")}>
-        <Text style={s.btnText}>✔ الطلب جاهز</Text>
+        <Text style={s.btnText}>âœ” ط§ظ„ط·ظ„ط¨ ط¬ط§ظ‡ط²</Text>
       </TouchableOpacity>
     );
     if (status === "ready") return (
       <TouchableOpacity style={s.btnAcc} onPress={() => updateStatus(id, "delivering")}>
-        <Text style={s.btnText}>🚗 خرج للتوصيل</Text>
+        <Text style={s.btnText}>ًںڑ— ط®ط±ط¬ ظ„ظ„طھظˆطµظٹظ„</Text>
       </TouchableOpacity>
     );
     if (status === "delivering") return (
       <TouchableOpacity style={s.btnAcc} onPress={() => updateStatus(id, "delivered")}>
-        <Text style={s.btnText}>✅ تم التسليم</Text>
+        <Text style={s.btnText}>âœ… طھظ… ط§ظ„طھط³ظ„ظٹظ…</Text>
       </TouchableOpacity>
     );
     return null;
@@ -97,11 +97,11 @@ export default function DashboardScreen() {
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={s.back}>→ رجوع</Text>
+          <Text style={s.back}>â†’ ط±ط¬ظˆط¹</Text>
         </TouchableOpacity>
-        <Text style={s.title}>لوحة الطباخة 👩‍🍳</Text>
+        <Text style={s.title}>ظ„ظˆط­ط© ط§ظ„ط·ط¨ط§ط®ط© ًں‘©â€چًںچ³</Text>
         <TouchableOpacity onPress={load}>
-          <Text style={s.refresh}>تحديث</Text>
+          <Text style={s.refresh}>طھط­ط¯ظٹط«</Text>
         </TouchableOpacity>
       </View>
 
@@ -121,16 +121,16 @@ export default function DashboardScreen() {
                     </Text>
                   </View>
                 </View>
-                <Text style={s.customer}>👤 {item.users?.full_name}</Text>
-                <Text style={s.address}>📍 {item.delivery_address}</Text>
-                <Text style={s.total}>💰 {item.total} ريال</Text>
+                <Text style={s.customer}>ًں‘¤ {item.users?.full_name}</Text>
+                <Text style={s.address}>ًں“چ {item.delivery_address}</Text>
+                <Text style={s.total}>ًں’° {item.total} ط±ظٹط§ظ„</Text>
                 {getActions(item.status, item.id)}
               </View>
             )}
             ListEmptyComponent={
               <View style={s.emptyWrap}>
-                <Text style={s.emptyEmoji}>📦</Text>
-                <Text style={s.empty}>ما في طلبات حالياً</Text>
+                <Text style={s.emptyEmoji}>ًں“¦</Text>
+                <Text style={s.empty}>ظ…ط§ ظپظٹ ط·ظ„ط¨ط§طھ ط­ط§ظ„ظٹط§ظ‹</Text>
               </View>
             }
           />

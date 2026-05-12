@@ -9,7 +9,7 @@ const T: any = {
   ar: {
     myAccount:    "حسابي",
     services:     "الخدمات",
-    chefDash:     "لوحة الطباخة",
+    chefDash:     "لوحة الشيف",
     chefDashSub:  "إدارة طلباتك ووجباتك",
     driverDash:   "لوحة المندوب",
     driverDashSub:"إدارة توصيلاتك",
@@ -36,7 +36,7 @@ const T: any = {
     no:           "لا",
     footer:       "زعفران · أكل بيتي · طعم أصيل",
     customer:     "عميل",
-    chefRole:     "طباخة",
+    chefRole:     "شيف",
     driver:       "مندوب توصيل",
   },
   en: {
@@ -98,7 +98,7 @@ export default function ProfileScreen() {
   };
 
   const getRoleInfo = () => {
-    if (user?.role === "chef")   return { label: t.chefRole, emoji: "👩‍🍳", color: "#F0A500" };
+    if (user?.role === "chef")   return { label: user?.gender === "female" ? t.chefRole + "ة" : t.chefRole, emoji: "👨‍🍳", color: "#F0A500" };
     if (user?.role === "driver") return { label: t.driver,   emoji: "🚗",   color: "#2196F3" };
     return                               { label: t.customer, emoji: "👤",   color: "#4CAF50" };
   };
