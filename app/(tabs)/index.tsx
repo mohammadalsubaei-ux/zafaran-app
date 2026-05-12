@@ -1,6 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
-import { useRouter, useFocusEffect } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   ActivityIndicator, TextInput, ScrollView
@@ -17,31 +16,20 @@ export default function HomeScreen() {
   const [search, setSearch]   = useState("");
   const [cat, setCat]         = useState("all");
   const [gender, setGender]   = useState("all");
-  const [city, setCity]       = useState("");
   const { lang }              = useLang();
   const router = useRouter();
 
   const [fontsLoaded] = useFonts({ Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold });
 
-  // تحديث المدينة من العنوان المحدد
-  useFocusEffect(
-    useCallback(() => {
-      AsyncStorage.getItem("selected_city").then(c => {
-        const selectedCity = c || "";
-        setCity(selectedCity);
-        loadChefs(cat, gender, selectedCity);
-      });
-    }, [])
-  );
+  useEffect(() => { loadChefs(); }, []);
 
-  const loadChefs = (category = cat, gen = gender, selectedCity = city) => {
+  const loadChefs = (category = cat, gen = gender) => {
     setLoading(true);
     let url = `${API}/api/chefs`;
     const params: string[] = [];
-    if (category !== "all")  params.push(`category=${category}`);
-    if (gen !== "all")       params.push(`gender=${gen}`);
-    if (selectedCity)        params.push(`city=${encodeURIComponent(selectedCity)}`);
-    if (params.length > 0)   url += `?${params.join("&")}`;
+    if (category !== "all") params.push(`category=${category}`);
+    if (gen !== "all")      params.push(`gender=${gen}`);
+    if (params.length > 0)  url += `?${params.join("&")}`;
 
     fetch(url)
       .then(r => r.json())
@@ -59,17 +47,17 @@ export default function HomeScreen() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const handleCat    = (id: string) => { setCat(id);    loadChefs(id, gender, city); };
-  const handleGender = (id: string) => { setGender(id); loadChefs(cat, id, city); };
+  const handleCat    = (id: string) => { setCat(id);    loadChefs(id, gender); };
+  const handleGender = (id: string) => { setGender(id); loadChefs(cat, id); };
 
   if (!fontsLoaded) return (
     <View style={s.safe}><ActivityIndicator color="#F0A500" style={{ marginTop: 100 }} /></View>
   );
 
   const sectionTitle =
-    gender === "female" ? (lang === "ar" ? "الطباخات 👩‍🍳" : "Female Chefs 👩‍🍳") :
-    gender === "male"   ? (lang === "ar" ? "الطهاة 👨‍🍳"   : "Male Chefs 👨‍🍳") :
-                          (lang === "ar" ? "الطهاة والطباخات 👥" : "All Chefs 👥");
+    gender === "female" ? "الشيفات 👩‍🍳" :
+    gender === "male"   ? "الشيفين 👨‍🍳" :
+                          "أهل المطابخ 👥";
 
   return (
     <View style={s.safe}>
@@ -79,7 +67,7 @@ export default function HomeScreen() {
         <Text style={s.searchIco}>🔍</Text>
         <TextInput
           style={s.searchInput}
-          placeholder={lang === "ar" ? "ابحث عن طباخة أو حي..." : "Search chef or area..."}
+          placeholder={lang === "ar" ? "ابحث عن شيف أو حي..." : "Search chef or area..."}
           placeholderTextColor="#5A3A18"
           value={search}
           onChangeText={setSearch}
@@ -96,7 +84,7 @@ export default function HomeScreen() {
             onPress={() => handleGender(g.id)}
           >
             <Text style={[s.genderLabel, gender === g.id && s.genderLabelActive]}>
-              {g.label[lang as "ar" | "en"] || g.label.ar}
+              {g.label.ar}
             </Text>
           </TouchableOpacity>
         ))}
@@ -118,14 +106,8 @@ export default function HomeScreen() {
               style={[s.catBtn, isActive && s.catBtnActive]}
               onPress={() => handleCat(item.id)}
             >
-              <Icon
-                size={22}
-                color={isActive ? "#F0A500" : "#5A3A18"}
-                strokeWidth={1.8}
-              />
-              <Text style={[s.catLabel, isActive && s.catLabelActive]}>
-                {item.label[lang as "ar" | "en"] || item.label.ar}
-              </Text>
+              <Icon size={22} color={isActive ? "#F0A500" : "#5A3A18"} strokeWidth={1.8}/>
+              <Text style={[s.catLabel, isActive && s.catLabelActive]}>{item.label.ar}</Text>
             </TouchableOpacity>
           );
         })}
@@ -134,10 +116,7 @@ export default function HomeScreen() {
       {/* Section Header */}
       <View style={s.secHd}>
         <Text style={s.secTitle}>{sectionTitle}</Text>
-        <View style={s.secRight}>
-          {city ? <Text style={s.cityTag}>📍 {city}</Text> : null}
-          <Text style={s.secSub}>{chefs.length} {lang === "ar" ? "نتيجة" : "results"}</Text>
-        </View>
+        <Text style={s.secSub}>{chefs.length} {lang === "ar" ? "نتيجة" : "results"}</Text>
       </View>
 
       {/* Chefs List */}
@@ -152,9 +131,7 @@ export default function HomeScreen() {
               return (
                 <TouchableOpacity style={s.card} onPress={() => router.push(`/chef/${item.id}`)}>
                   <View style={s.cardTop}>
-                    <View style={[s.avatar, {
-                      backgroundColor: item.is_open ? "rgba(240,165,0,0.1)" : "rgba(100,100,100,0.1)"
-                    }]}>
+                    <View style={[s.avatar, { backgroundColor: item.is_open ? "rgba(240,165,0,0.1)" : "rgba(100,100,100,0.1)" }]}>
                       <Text style={s.avatarEmoji}>{isMale ? "👨‍🍳" : "👩‍🍳"}</Text>
                     </View>
                     <View style={s.cardInfo}>
@@ -164,9 +141,7 @@ export default function HomeScreen() {
                         <Text style={s.rating}>⭐ {item.rating_avg}</Text>
                         <View style={[s.badge, item.is_open ? s.open : s.closed]}>
                           <Text style={[s.badgeText, { color: item.is_open ? "#4CAF50" : "#E53935" }]}>
-                            {item.is_open
-                              ? (isMale ? "● مفتوح" : "● مفتوحة")
-                              : (isMale ? "● مغلق"  : "● مغلقة")}
+                            {item.is_open ? "● مفتوح" : "● مغلق"}
                           </Text>
                         </View>
                       </View>
@@ -179,9 +154,7 @@ export default function HomeScreen() {
             ListEmptyComponent={
               <View style={s.emptyWrap}>
                 <Text style={s.emptyEmoji}>🍽️</Text>
-                <Text style={s.empty}>
-                  {lang === "ar" ? `ما في نتائج في ${city || "هذه المنطقة"}` : `No results in ${city || "this area"}`}
-                </Text>
+                <Text style={s.empty}>ما في نتائج</Text>
               </View>
             }
           />
@@ -208,8 +181,6 @@ const s = StyleSheet.create({
   catLabelActive:    { color: "#F0A500" },
   secHd:             { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.06)" },
   secTitle:          { fontSize: 14, fontWeight: "800", color: "#FDF0DC", fontFamily: "Almarai_700Bold" },
-  secRight:          { flexDirection: "row", alignItems: "center", gap: 8 },
-  cityTag:           { fontSize: 10, color: "#F0A500", fontFamily: "Almarai_400Regular", backgroundColor: "rgba(240,165,0,0.1)", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20 },
   secSub:            { fontSize: 11, color: "#8A6030", fontFamily: "Almarai_400Regular" },
   listContent:       { padding: 12, paddingTop: 8 },
   card:              { backgroundColor: "#1C1000", borderRadius: 18, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
