@@ -48,6 +48,6 @@ export const CATEGORIES = [
 
 export const GENDERS = [
   { id: "all",    label: { ar: "الكل",    en: "All" } },
-  { id: "female", label: { ar: "طباخات",  en: "Chefs" } },
-  { id: "male",   label: { ar: "طهاة",    en: "Cooks" } },
+  { id: "female", label: { ar: "طباخات",  en: "������" } },
+  { id: "male",   label: { ar: "طهاة",    en: "�����" } },
 ];
