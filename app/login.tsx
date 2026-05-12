@@ -91,14 +91,12 @@ export default function LoginScreen() {
           style={[s.genderBtn, gender === "male" && s.genderBtnActive]}
           onPress={() => setGender("male")}
         >
-          <Text style={s.genderEmoji}>👨‍🍳</Text>
           <Text style={[s.genderLabel, gender === "male" && s.genderLabelActive]}>ذكر</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.genderBtn, gender === "female" && s.genderBtnActive]}
           onPress={() => setGender("female")}
         >
-          <Text style={s.genderEmoji}>👩‍🍳</Text>
           <Text style={[s.genderLabel, gender === "female" && s.genderLabelActive]}>أنثى</Text>
         </TouchableOpacity>
       </View>
