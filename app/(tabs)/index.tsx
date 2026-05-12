@@ -1,27 +1,15 @@
-import { useEffect, useState } from "react";
-import { useRouter } from "expo-router";
+import { useEffect, useState, useCallback } from "react";
+import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  SafeAreaView, ActivityIndicator, TextInput, ScrollView
+  ActivityIndicator, TextInput, ScrollView
 } from "react-native";
 import { useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold } from "@expo-google-fonts/almarai";
+import { CATEGORIES, GENDERS } from "@/constants/categories";
+import { useLang } from "@/context/LanguageContext";
 
 const API = "https://zafaran-backend-production.up.railway.app";
-
-const CATS = [
-  { id: "all",   label: "الكل",  emoji: "🍽️" },
-  { id: "rice",  label: "أرز",   emoji: "🍛" },
-  { id: "stew",  label: "مرق",   emoji: "🫕" },
-  { id: "salad", label: "سلطة",  emoji: "🥗" },
-  { id: "other", label: "أخرى",  emoji: "🍴" },
-];
-
-const GENDERS = [
-  { id: "all",    label: "الكل",   emoji: "👥" },
-  { id: "female", label: "طباخات", emoji: "👩‍🍳" },
-  { id: "male",   label: "طهاة",   emoji: "👨‍🍳" },
-];
 
 export default function HomeScreen() {
   const [chefs, setChefs]     = useState<any[]>([]);
@@ -29,24 +17,37 @@ export default function HomeScreen() {
   const [search, setSearch]   = useState("");
   const [cat, setCat]         = useState("all");
   const [gender, setGender]   = useState("all");
+  const [city, setCity]       = useState("");
+  const { lang }              = useLang();
   const router = useRouter();
 
   const [fontsLoaded] = useFonts({ Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold });
 
-  const loadChefs = (category = cat, gen = gender) => {
+  // تحديث المدينة من العنوان المحدد
+  useFocusEffect(
+    useCallback(() => {
+      AsyncStorage.getItem("selected_city").then(c => {
+        const selectedCity = c || "";
+        setCity(selectedCity);
+        loadChefs(cat, gender, selectedCity);
+      });
+    }, [])
+  );
+
+  const loadChefs = (category = cat, gen = gender, selectedCity = city) => {
     setLoading(true);
     let url = `${API}/api/chefs`;
     const params: string[] = [];
-    if (category !== "all") params.push(`category=${category}`);
-    if (gen !== "all")      params.push(`gender=${gen}`);
-    if (params.length > 0)  url += `?${params.join("&")}`;
+    if (category !== "all")  params.push(`category=${category}`);
+    if (gen !== "all")       params.push(`gender=${gen}`);
+    if (selectedCity)        params.push(`city=${encodeURIComponent(selectedCity)}`);
+    if (params.length > 0)   url += `?${params.join("&")}`;
+
     fetch(url)
       .then(r => r.json())
       .then(j => { if (j.success) setChefs(j.data); })
       .finally(() => setLoading(false));
   };
-
-  useEffect(() => { loadChefs(); }, []);
 
   useEffect(() => {
     if (!search) { loadChefs(); return; }
@@ -58,14 +59,17 @@ export default function HomeScreen() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const handleCat    = (id: string) => { setCat(id);    loadChefs(id, gender); };
-  const handleGender = (id: string) => { setGender(id); loadChefs(cat, id); };
+  const handleCat    = (id: string) => { setCat(id);    loadChefs(id, gender, city); };
+  const handleGender = (id: string) => { setGender(id); loadChefs(cat, id, city); };
 
   if (!fontsLoaded) return (
     <View style={s.safe}><ActivityIndicator color="#F0A500" style={{ marginTop: 100 }} /></View>
   );
 
-  const sectionTitle = gender === "female" ? "الطباخات 👩‍🍳" : gender === "male" ? "الطهاة 👨‍🍳" : "الطهاة والطباخات 👥";
+  const sectionTitle =
+    gender === "female" ? (lang === "ar" ? "الطباخات 👩‍🍳" : "Female Chefs 👩‍🍳") :
+    gender === "male"   ? (lang === "ar" ? "الطهاة 👨‍🍳"   : "Male Chefs 👨‍🍳") :
+                          (lang === "ar" ? "الطهاة والطباخات 👥" : "All Chefs 👥");
 
   return (
     <View style={s.safe}>
@@ -75,7 +79,7 @@ export default function HomeScreen() {
         <Text style={s.searchIco}>🔍</Text>
         <TextInput
           style={s.searchInput}
-          placeholder="ابحث عن طباخة أو حي..."
+          placeholder={lang === "ar" ? "ابحث عن طباخة أو حي..." : "Search chef or area..."}
           placeholderTextColor="#5A3A18"
           value={search}
           onChangeText={setSearch}
@@ -91,8 +95,9 @@ export default function HomeScreen() {
             style={[s.genderBtn, gender === g.id && s.genderBtnActive]}
             onPress={() => handleGender(g.id)}
           >
-            <Text style={s.genderEmoji}>{g.emoji}</Text>
-            <Text style={[s.genderLabel, gender === g.id && s.genderLabelActive]}>{g.label}</Text>
+            <Text style={[s.genderLabel, gender === g.id && s.genderLabelActive]}>
+              {g.label[lang as "ar" | "en"] || g.label.ar}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -104,22 +109,35 @@ export default function HomeScreen() {
         contentContainerStyle={s.catsList}
         style={s.catsScroll}
       >
-        {[...CATS].reverse().map(item => (
-          <TouchableOpacity
-            key={item.id}
-            style={[s.catBtn, cat === item.id && s.catBtnActive]}
-            onPress={() => handleCat(item.id)}
-          >
-            <Text style={s.catEmoji}>{item.emoji}</Text>
-            <Text style={[s.catLabel, cat === item.id && s.catLabelActive]}>{item.label}</Text>
-          </TouchableOpacity>
-        ))}
+        {CATEGORIES.map(item => {
+          const Icon = item.icon;
+          const isActive = cat === item.id;
+          return (
+            <TouchableOpacity
+              key={item.id}
+              style={[s.catBtn, isActive && s.catBtnActive]}
+              onPress={() => handleCat(item.id)}
+            >
+              <Icon
+                size={22}
+                color={isActive ? "#F0A500" : "#5A3A18"}
+                strokeWidth={1.8}
+              />
+              <Text style={[s.catLabel, isActive && s.catLabelActive]}>
+                {item.label[lang as "ar" | "en"] || item.label.ar}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
       {/* Section Header */}
       <View style={s.secHd}>
         <Text style={s.secTitle}>{sectionTitle}</Text>
-        <Text style={s.secSub}>{chefs.length} نتيجة</Text>
+        <View style={s.secRight}>
+          {city ? <Text style={s.cityTag}>📍 {city}</Text> : null}
+          <Text style={s.secSub}>{chefs.length} {lang === "ar" ? "نتيجة" : "results"}</Text>
+        </View>
       </View>
 
       {/* Chefs List */}
@@ -161,7 +179,9 @@ export default function HomeScreen() {
             ListEmptyComponent={
               <View style={s.emptyWrap}>
                 <Text style={s.emptyEmoji}>🍽️</Text>
-                <Text style={s.empty}>ما في نتائج</Text>
+                <Text style={s.empty}>
+                  {lang === "ar" ? `ما في نتائج في ${city || "هذه المنطقة"}` : `No results in ${city || "this area"}`}
+                </Text>
               </View>
             }
           />
@@ -174,22 +194,22 @@ const s = StyleSheet.create({
   safe:              { flex: 1, backgroundColor: "#0E0700" },
   searchWrap:        { flexDirection: "row-reverse", alignItems: "center", marginHorizontal: 12, marginVertical: 8, backgroundColor: "#1C1000", borderRadius: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)", paddingHorizontal: 14 },
   searchIco:         { fontSize: 16, marginLeft: 8 },
-  searchInput:       { flex: 1, height: 40, color: "#FDF0DC", fontSize: 14, fontFamily: "Almarai_400Regular" },
+  searchInput:       { flex: 1, height: 44, color: "#FDF0DC", fontSize: 14, fontFamily: "Almarai_400Regular" },
   genderRow:         { flexDirection: "row-reverse", paddingHorizontal: 12, gap: 8, marginBottom: 6 },
-  genderBtn:         { flex: 1, flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#1C1000", borderRadius: 12, paddingVertical: 7, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
+  genderBtn:         { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#1C1000", borderRadius: 12, paddingVertical: 8, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
   genderBtnActive:   { backgroundColor: "rgba(240,165,0,0.12)", borderColor: "rgba(240,165,0,0.4)" },
-  genderEmoji:       { fontSize: 15 },
-  genderLabel:       { fontSize: 11, color: "#8A6030", fontWeight: "700", fontFamily: "Almarai_700Bold" },
+  genderLabel:       { fontSize: 12, color: "#8A6030", fontWeight: "700", fontFamily: "Almarai_700Bold" },
   genderLabelActive: { color: "#F0A500" },
   catsScroll:        { flexGrow: 0, maxHeight: 85 },
   catsList:          { paddingHorizontal: 12, paddingVertical: 6, gap: 8, alignItems: "center" },
-  catBtn:            { alignItems: "center", backgroundColor: "#1C1000", borderRadius: 14, padding: 8, paddingHorizontal: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)", minWidth: 65 },
+  catBtn:            { alignItems: "center", backgroundColor: "#1C1000", borderRadius: 14, padding: 8, paddingHorizontal: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)", minWidth: 70, gap: 4 },
   catBtnActive:      { backgroundColor: "rgba(240,165,0,0.12)", borderColor: "rgba(240,165,0,0.4)" },
-  catEmoji:          { fontSize: 20, marginBottom: 3 },
   catLabel:          { fontSize: 10, color: "#8A6030", fontWeight: "700", fontFamily: "Almarai_700Bold" },
   catLabelActive:    { color: "#F0A500" },
   secHd:             { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.06)" },
   secTitle:          { fontSize: 14, fontWeight: "800", color: "#FDF0DC", fontFamily: "Almarai_700Bold" },
+  secRight:          { flexDirection: "row", alignItems: "center", gap: 8 },
+  cityTag:           { fontSize: 10, color: "#F0A500", fontFamily: "Almarai_400Regular", backgroundColor: "rgba(240,165,0,0.1)", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20 },
   secSub:            { fontSize: 11, color: "#8A6030", fontFamily: "Almarai_400Regular" },
   listContent:       { padding: 12, paddingTop: 8 },
   card:              { backgroundColor: "#1C1000", borderRadius: 18, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
