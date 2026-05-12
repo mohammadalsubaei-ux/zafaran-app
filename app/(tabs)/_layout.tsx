@@ -28,36 +28,52 @@ function BowlSVG() {
 }
 
 function ZafaranHeader() {
-  const [user, setUser]             = useState<any>(null);
-  const [city, setCity]             = useState("القصيم");
-  const [showCities, setShowCities] = useState(false);
-  const [cities, setCities]         = useState<any[]>([]);
-  const [loadingCities, setLoadingCities] = useState(false);
-  const { lang, toggleLang }        = useLang();
+  const [addresses, setAddresses]   = useState<any[]>([]);
+  const [currentAddr, setCurrentAddr] = useState<any>(null);
+  const [showAddresses, setShowAddresses] = useState(false);
+  const [loading, setLoading]       = useState(false);
+  const { lang }                    = useLang();
 
   useEffect(() => {
-    AsyncStorage.getItem("user").then(u => { if (u) setUser(JSON.parse(u)); });
-    AsyncStorage.getItem("selected_city").then(c => { if (c) setCity(c); });
+    loadAddresses();
   }, []);
 
-  const loadCities = async () => {
-    setLoadingCities(true);
+  const loadAddresses = async () => {
+    const u = await AsyncStorage.getItem("user");
+    if (!u) return;
+    const user = JSON.parse(u);
+
+    setLoading(true);
     try {
-      const res  = await fetch(`${API}/api/cities`);
+      const res  = await fetch(`${API}/api/addresses/${user.id}`);
       const json = await res.json();
-      if (json.success) setCities(json.data);
+      if (json.success && json.data.length > 0) {
+        setAddresses(json.data);
+        // العنوان الافتراضي
+        const def = json.data.find((a: any) => a.is_default) || json.data[0];
+        setCurrentAddr(def);
+        await AsyncStorage.setItem("last_address", def.address);
+        await AsyncStorage.setItem("last_address_lat", String(def.lat || ""));
+        await AsyncStorage.setItem("last_address_lng", String(def.lng || ""));
+      } else {
+        // لا يوجد عناوين
+        const savedAddr = await AsyncStorage.getItem("last_address");
+        if (savedAddr) setCurrentAddr({ label: "موقعي", address: savedAddr });
+      }
     } finally {
-      setLoadingCities(false);
+      setLoading(false);
     }
   };
 
-  const selectCity = async (cityName: string) => {
-    setCity(cityName);
-    await AsyncStorage.setItem("selected_city", cityName);
-    setShowCities(false);
+  const selectAddress = async (addr: any) => {
+    setCurrentAddr(addr);
+    setShowAddresses(false);
+    await AsyncStorage.setItem("last_address", addr.address);
+    await AsyncStorage.setItem("last_address_lat", String(addr.lat || ""));
+    await AsyncStorage.setItem("last_address_lng", String(addr.lng || ""));
   };
 
-  const firstName = user?.full_name?.split(" ")[0] || "";
+  const LABELS: any = { "منزل": "🏠", "عمل": "💼", "استراحة": "⭐", "أخرى": "📍" };
 
   return (
     <>
@@ -65,56 +81,62 @@ function ZafaranHeader() {
         {/* يمين — اللوقو */}
         <View style={h.logoWrap}>
           <BowlSVG />
-          <View style={h.logoText}>
-            <Text style={h.logoName}>زعفران</Text>
-            <Text style={h.logoSlogan}>أكل بيتي · طعم أصيل</Text>
-          </View>
+          <Text style={h.logoName}>زعفران</Text>
         </View>
 
-        {/* يسار — الترحيب والمدينة واللغة */}
-        <View style={h.greetWrap}>
-          <View style={h.greetRow}>
-            <Text style={h.greetText}>
-              {firstName ? `أهلاً ${firstName} 👋` : "أهلاً بك 👋"}
+        {/* يسار — العنوان */}
+        <TouchableOpacity
+          style={h.addressBtn}
+          onPress={() => { setShowAddresses(true); loadAddresses(); }}
+        >
+          <Text style={h.addressIcon}>📍</Text>
+          <View style={h.addressTextWrap}>
+            <Text style={h.addressLabel} numberOfLines={1}>
+              {currentAddr?.label || "حدد موقعك"}
             </Text>
-            <TouchableOpacity style={h.langBtn} onPress={toggleLang}>
-              <Text style={h.langText}>{lang === "ar" ? "EN" : "ع"}</Text>
-            </TouchableOpacity>
+            <Text style={h.addressValue} numberOfLines={1}>
+              {currentAddr?.address ? currentAddr.address.slice(0, 20) + "..." : "اضغط لاختيار العنوان"}
+            </Text>
           </View>
-          <TouchableOpacity
-            style={h.cityBtn}
-            onPress={() => { setShowCities(true); loadCities(); }}
-          >
-            <Text style={h.cityText}>📍 {city} ▾</Text>
-          </TouchableOpacity>
-        </View>
+          <Text style={h.chevron}>▾</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Modal اختيار المدينة */}
-      <Modal visible={showCities} transparent animationType="slide">
+      {/* Modal العناوين */}
+      <Modal visible={showAddresses} transparent animationType="slide">
         <View style={h.modalOverlay}>
           <View style={h.modalBox}>
             <View style={h.modalHeader}>
-              <Text style={h.modalTitle}>اختر مدينتك</Text>
-              <TouchableOpacity onPress={() => setShowCities(false)}>
+              <Text style={h.modalTitle}>عنوان التوصيل</Text>
+              <TouchableOpacity onPress={() => setShowAddresses(false)}>
                 <Text style={h.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
-            {loadingCities
+
+            {loading
               ? <ActivityIndicator color="#F0A500" style={{ marginTop: 20 }} />
+              : addresses.length === 0
+              ? <View style={h.emptyWrap}>
+                  <Text style={h.emptyText}>ما عندك عناوين محفوظة</Text>
+                  <Text style={h.emptyHint}>أضف عنواناً من شاشة حسابي</Text>
+                </View>
               : <FlatList
-                  data={cities}
-                  keyExtractor={i => i.id.toString()}
+                  data={addresses}
+                  keyExtractor={i => i.id}
                   renderItem={({ item }) => (
                     <TouchableOpacity
-                      style={[h.cityItem, city === item.name_ar && h.cityItemActive]}
-                      onPress={() => selectCity(item.name_ar)}
+                      style={[h.addrItem, currentAddr?.id === item.id && h.addrItemActive]}
+                      onPress={() => selectAddress(item)}
                     >
-                      <Text style={[h.cityItemText, city === item.name_ar && h.cityItemTextActive]}>
-                        {item.name_ar}
-                      </Text>
-                      <Text style={h.cityRegion}>{item.region}</Text>
-                      {city === item.name_ar && <Text style={h.cityCheck}>✓</Text>}
+                      <Text style={h.addrEmoji}>{LABELS[item.label] || "📍"}</Text>
+                      <View style={h.addrInfo}>
+                        <Text style={[h.addrLabel, currentAddr?.id === item.id && h.addrLabelActive]}>
+                          {item.label}
+                          {item.is_default && <Text style={h.defaultTag}> · افتراضي</Text>}
+                        </Text>
+                        <Text style={h.addrText} numberOfLines={1}>{item.address}</Text>
+                      </View>
+                      {currentAddr?.id === item.id && <Text style={h.checkMark}>✓</Text>}
                     </TouchableOpacity>
                   )}
                 />
@@ -169,27 +191,30 @@ export default function TabLayout() {
 }
 
 const h = StyleSheet.create({
-  container:          { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.1)", backgroundColor: "#0E0700" },
-  logoWrap:           { flexDirection: "row-reverse", alignItems: "center", gap: 8 },
-  logoText:           { flexDirection: "column", alignItems: "flex-end" },
-  logoName:           { fontSize: 22, fontWeight: "900", color: "#F0A500", fontFamily: "Almarai_800ExtraBold", lineHeight: 24 },
-  logoSlogan:         { fontSize: 8, color: "#8A6030", fontFamily: "Almarai_400Regular", letterSpacing: 2 },
-  greetWrap:          { alignItems: "flex-start" },
-  greetRow:           { flexDirection: "row", alignItems: "center", gap: 8 },
-  greetText:          { fontSize: 13, fontWeight: "700", color: "#FDF0DC", fontFamily: "Almarai_700Bold" },
-  langBtn:            { backgroundColor: "rgba(240,165,0,0.15)", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1, borderColor: "rgba(240,165,0,0.3)" },
-  langText:           { fontSize: 11, color: "#F0A500", fontWeight: "900", fontFamily: "Almarai_700Bold" },
-  cityBtn:            { backgroundColor: "rgba(240,165,0,0.1)", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: "rgba(240,165,0,0.2)", marginTop: 4 },
-  cityText:           { fontSize: 11, color: "#F0A500", fontFamily: "Almarai_700Bold" },
-  modalOverlay:       { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
-  modalBox:           { backgroundColor: "#1C1000", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: "70%", borderWidth: 1, borderColor: "rgba(240,165,0,0.15)" },
-  modalHeader:        { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", marginBottom: 16, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.1)", paddingBottom: 12 },
-  modalTitle:         { fontSize: 18, fontWeight: "900", color: "#FDF0DC", fontFamily: "Almarai_800ExtraBold" },
-  modalClose:         { fontSize: 18, color: "#8A6030", padding: 4 },
-  cityItem:           { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.06)" },
-  cityItemActive:     { backgroundColor: "rgba(240,165,0,0.08)" },
-  cityItemText:       { fontSize: 16, color: "#FDF0DC", fontFamily: "Almarai_700Bold" },
-  cityItemTextActive: { color: "#F0A500" },
-  cityRegion:         { fontSize: 11, color: "#5A3A18", fontFamily: "Almarai_400Regular", flex: 1, textAlign: "center" },
-  cityCheck:          { fontSize: 16, color: "#F0A500", fontWeight: "900" },
+  container:      { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.1)", backgroundColor: "#0E0700" },
+  logoWrap:       { flexDirection: "row-reverse", alignItems: "center", gap: 8 },
+  logoName:       { fontSize: 24, fontWeight: "900", color: "#F0A500", fontFamily: "Almarai_800ExtraBold" },
+  addressBtn:     { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(240,165,0,0.08)", borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)", maxWidth: 180 },
+  addressIcon:    { fontSize: 14 },
+  addressTextWrap:{ flex: 1 },
+  addressLabel:   { fontSize: 11, color: "#F0A500", fontFamily: "Almarai_700Bold", fontWeight: "700" },
+  addressValue:   { fontSize: 10, color: "#8A6030", fontFamily: "Almarai_400Regular" },
+  chevron:        { fontSize: 10, color: "#F0A500" },
+  modalOverlay:   { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
+  modalBox:       { backgroundColor: "#1C1000", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: "60%", borderWidth: 1, borderColor: "rgba(240,165,0,0.15)" },
+  modalHeader:    { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", marginBottom: 16, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.1)", paddingBottom: 12 },
+  modalTitle:     { fontSize: 18, fontWeight: "900", color: "#FDF0DC", fontFamily: "Almarai_800ExtraBold" },
+  modalClose:     { fontSize: 18, color: "#8A6030", padding: 4 },
+  addrItem:       { flexDirection: "row-reverse", alignItems: "center", gap: 12, paddingVertical: 14, paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.06)" },
+  addrItemActive: { backgroundColor: "rgba(240,165,0,0.06)", borderRadius: 12 },
+  addrEmoji:      { fontSize: 24 },
+  addrInfo:       { flex: 1 },
+  addrLabel:      { fontSize: 15, color: "#FDF0DC", fontFamily: "Almarai_700Bold", textAlign: "right" },
+  addrLabelActive:{ color: "#F0A500" },
+  defaultTag:     { fontSize: 11, color: "#8A6030" },
+  addrText:       { fontSize: 11, color: "#8A6030", fontFamily: "Almarai_400Regular", textAlign: "right", marginTop: 2 },
+  checkMark:      { fontSize: 18, color: "#F0A500", fontWeight: "900" },
+  emptyWrap:      { alignItems: "center", padding: 30 },
+  emptyText:      { fontSize: 15, color: "#FDF0DC", fontFamily: "Almarai_700Bold", marginBottom: 8 },
+  emptyHint:      { fontSize: 12, color: "#8A6030", fontFamily: "Almarai_400Regular" },
 });
