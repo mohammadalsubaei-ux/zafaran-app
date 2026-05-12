@@ -15,6 +15,8 @@ const T: any = {
     driverDashSub:"إدارة توصيلاتك",
     myWallet:     "محفظتي",
     myWalletSub:  "رصيدك وسجل معاملاتك",
+    myAddresses:  "عناويني",
+    myAddressesSub:"عناوين التوصيل المحفوظة",
     settings:     "الإعدادات",
     language:     "اللغة",
     languageVal:  "العربية 🇸🇦",
@@ -46,6 +48,8 @@ const T: any = {
     driverDashSub:"Manage your deliveries",
     myWallet:     "My Wallet",
     myWalletSub:  "Balance and transaction history",
+    myAddresses:  "My Addresses",
+    myAddressesSub:"Saved delivery addresses",
     settings:     "Settings",
     language:     "Language",
     languageVal:  "English 🇺🇸",
@@ -154,6 +158,15 @@ export default function ProfileScreen() {
               <Text style={s.menuSub}>{t.myWalletSub}</Text>
             </View>
             <Text style={s.menuEmoji}>💰</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={s.menuItem} onPress={() => router.push("/addresses")}>
+            <Text style={s.menuArrow}>←</Text>
+            <View style={s.menuInfo}>
+              <Text style={s.menuLabel}>{t.myAddresses}</Text>
+              <Text style={s.menuSub}>{t.myAddressesSub}</Text>
+            </View>
+            <Text style={s.menuEmoji}>📍</Text>
           </TouchableOpacity>
         </View>
 
