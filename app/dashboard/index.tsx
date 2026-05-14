@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View, Text, FlatList, StyleSheet, SafeAreaView,
   ActivityIndicator, TouchableOpacity, Alert, Modal
@@ -10,21 +10,21 @@ import { useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold } f
 const API = "https://zafaran-backend-production.up.railway.app";
 
 const STATUS: any = {
-  pending:       { label: "ط¨ط§ظ†طھط¸ط§ط± ط§ظ„ظ‚ط¨ظˆظ„", color: "#F0A500" },
-  pending_time:  { label: "ط¨ط§ظ†طھط¸ط§ط± طھط£ظƒظٹط¯ ط§ظ„ظˆظ‚طھ", color: "#FF9800" },
-  time_confirmed:{ label: "طھظ… طھط£ظƒظٹط¯ ط§ظ„ظˆظ‚طھ", color: "#8BC34A" },
-  accepted:      { label: "طھظ… ط§ظ„ظ‚ط¨ظˆظ„",      color: "#2196F3" },
-  preparing:     { label: "ظ‚ظٹط¯ ط§ظ„طھط­ط¶ظٹط± ًں”¥", color: "#FF6600" },
-  ready:         { label: "ط¬ط§ظ‡ط² ظ„ظ„طھظˆطµظٹظ„",  color: "#9C27B0" },
-  delivering:    { label: "ظپظٹ ط§ظ„ط·ط±ظٹظ‚ ًںڑ—",  color: "#03A9F4" },
-  delivered:     { label: "طھظ… ط§ظ„طھط³ظ„ظٹظ… âœ…", color: "#4CAF50" },
-  cancelled:     { label: "ظ…ظ„ط؛ظٹ â‌Œ",       color: "#E53935" },
+  pending:       { label: "بانتظار القبول", color: "#F0A500" },
+  pending_time:  { label: "بانتظار تأكيد الوقت", color: "#FF9800" },
+  time_confirmed:{ label: "تم تأكيد الوقت", color: "#8BC34A" },
+  accepted:      { label: "تم القبول",      color: "#2196F3" },
+  preparing:     { label: "قيد التحضير 🔥", color: "#FF6600" },
+  ready:         { label: "جاهز للتوصيل",  color: "#9C27B0" },
+  delivering:    { label: "في الطريق 🚗",  color: "#03A9F4" },
+  delivered:     { label: "تم التسليم ✅", color: "#4CAF50" },
+  cancelled:     { label: "ملغي ❌",       color: "#E53935" },
 };
 
 const CHEF_STATUS = [
-  { id: "open",         label: "ظ…ظپطھظˆط­",         desc: "ظٹط³طھظ‚ط¨ظ„ ط·ظ„ط¨ط§طھ ظپظˆط±ظٹط©",          color: "#4CAF50" },
-  { id: "preorder_only",label: "ط­ط¬ط² ظ…ط³ط¨ظ‚ ظپظ‚ط·",  desc: "ظ„ظ„ط¨ظˆظپظٹظ‡ط§طھ ظˆط§ظ„ظ…ط·ط§ط¨ط® ط§ظ„ظƒط¨ظٹط±ط©", color: "#F0A500" },
-  { id: "unavailable",  label: "ط؛ظٹط± ظ…طھط§ط­",       desc: "ظٹط®طھظپظٹ ظ…ظ† ط§ظ„ظ‚ط§ط¦ظ…ط© ظƒظ„ظٹط§ظ‹",     color: "#E53935" },
+  { id: "open",         label: "مفتوح",         desc: "يستقبل طلبات فورية",          color: "#4CAF50" },
+  { id: "preorder_only",label: "حجز مسبق فقط",  desc: "للبوفيهات والمطابخ الكبيرة", color: "#F0A500" },
+  { id: "unavailable",  label: "غير متاح",       desc: "يختفي من القائمة كلياً",     color: "#E53935" },
 ];
 
 export default function DashboardScreen() {
@@ -78,7 +78,7 @@ export default function DashboardScreen() {
     if (json.success) {
       setChefStatus(newStatus);
       setShowStatus(false);
-      Alert.alert("âœ… طھظ… ط§ظ„طھط­ط¯ظٹط«", `ط­ط§ظ„طھظƒ ط§ظ„ط¢ظ†: ${CHEF_STATUS.find(s => s.id === newStatus)?.label}`);
+      Alert.alert("✅ تم التحديث", `حالتك الآن: ${CHEF_STATUS.find(s => s.id === newStatus)?.label}`);
     }
   };
 
@@ -88,7 +88,7 @@ export default function DashboardScreen() {
       body: JSON.stringify({ status }),
     });
     const json = await res.json();
-    if (json.success) { Alert.alert("âœ… طھظ… ط§ظ„طھط­ط¯ظٹط«"); load(); }
+    if (json.success) { Alert.alert("✅ تم التحديث"); load(); }
   };
 
   const activeOrders  = orders.filter(o => !["delivered", "cancelled"].includes(o.status));
@@ -100,28 +100,28 @@ export default function DashboardScreen() {
   const getActions = (status: string, id: string) => {
     if (status === "pending") return (
       <View style={s.btns}>
-        <TouchableOpacity style={s.btnAcc} onPress={() => Alert.alert("ظ‚ط¨ظˆظ„ ط§ظ„ط·ظ„ط¨", "طھط¨ظٹ طھظ‚ط¨ظ„طں", [
-          { text: "ظ„ط§", style: "cancel" },
-          { text: "ظ†ط¹ظ…", onPress: () => updateStatus(id, "accepted") }
+        <TouchableOpacity style={s.btnAcc} onPress={() => Alert.alert("قبول الطلب", "تبي تقبل؟", [
+          { text: "لا", style: "cancel" },
+          { text: "نعم", onPress: () => updateStatus(id, "accepted") }
         ])}>
-          <Text style={s.btnText}>âœ… ظ‚ط¨ظˆظ„</Text>
+          <Text style={s.btnText}>✅ قبول</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={s.btnRej} onPress={() => Alert.alert("ط±ظپط¶ ط§ظ„ط·ظ„ط¨", "طھط¨ظٹ طھط±ظپط¶طں", [
-          { text: "ظ„ط§", style: "cancel" },
-          { text: "ظ†ط¹ظ…", style: "destructive", onPress: () => updateStatus(id, "cancelled") }
+        <TouchableOpacity style={s.btnRej} onPress={() => Alert.alert("رفض الطلب", "تبي ترفض؟", [
+          { text: "لا", style: "cancel" },
+          { text: "نعم", style: "destructive", onPress: () => updateStatus(id, "cancelled") }
         ])}>
-          <Text style={s.btnTextRej}>â‌Œ ط±ظپط¶</Text>
+          <Text style={s.btnTextRej}>❌ رفض</Text>
         </TouchableOpacity>
       </View>
     );
     if (status === "accepted") return (
       <TouchableOpacity style={s.btnAcc} onPress={() => updateStatus(id, "preparing")}>
-        <Text style={s.btnText}>ًں”¥ ط¨ط¯ط£ ط§ظ„طھط­ط¶ظٹط±</Text>
+        <Text style={s.btnText}>🔥 بدأ التحضير</Text>
       </TouchableOpacity>
     );
     if (status === "preparing") return (
       <TouchableOpacity style={s.btnAcc} onPress={() => updateStatus(id, "ready")}>
-        <Text style={s.btnText}>âœ… ط§ظ„ط·ظ„ط¨ ط¬ط§ظ‡ط² â€” ط£ط¨ظ„ط؛ ط§ظ„ظ…ظ†ط¯ظˆط¨</Text>
+        <Text style={s.btnText}>✅ الطلب جاهز — أبلغ المندوب</Text>
       </TouchableOpacity>
     );
     return null;
@@ -132,59 +132,66 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView style={s.safe}>
 
-      {/* ط§ظ„ظ‡ظٹط¯ط± */}
+      {/* الهيدر */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={s.back}>â†’ ط±ط¬ظˆط¹</Text>
+          <Text style={s.back}>→ رجوع</Text>
         </TouchableOpacity>
-        <Text style={s.title}>ظ„ظˆط­ط© ط§ظ„ط´ظٹظپ ًں‘¨â€چًںچ³</Text>
+        <Text style={s.title}>لوحة الشيف 👨‍🍳</Text>
         <TouchableOpacity onPress={load}>
-          <Text style={s.refresh}>طھط­ط¯ظٹط«</Text>
+          <Text style={s.refresh}>تحديث</Text>
         </TouchableOpacity>
       </View>
 
-      {/* ط­ط§ظ„ط© ط§ظ„ظ…ط·ط¨ط® */}
+      {/* حالة المطبخ */}
       <TouchableOpacity
         style={[s.statusBar, { borderColor: currentStatus.color + "44" }]}
         onPress={() => setShowStatus(true)}
       >
         <View>
-          <Text style={s.statusTitle}>ط­ط§ظ„ط© ظ…ط·ط¨ط®ظٹ</Text>
+          <Text style={s.statusTitle}>حالة مطبخي</Text>
           <Text style={[s.statusVal, { color: currentStatus.color }]}>
-            â—ڈ {currentStatus.label}
+            ● {currentStatus.label}
           </Text>
           <Text style={s.statusDesc}>{currentStatus.desc}</Text>
         </View>
-        <Text style={[s.statusChange, { color: currentStatus.color }]}>طھط؛ظٹظٹط± â–¾</Text>
+        <Text style={[s.statusChange, { color: currentStatus.color }]}>تغيير ▾</Text>
       </TouchableOpacity>
 
-      {/* ط¥ط­طµط§ط¦ظٹط§طھ */}
+      {/* زر وجباتي */}
+      <TouchableOpacity style={s.menuBtn} onPress={() => router.push("/menu")}>
+        <Text style={s.menuBtnText}>🍲 إدارة وجباتي</Text>
+      </TouchableOpacity>
+
+
+
+      {/* إحصائيات */}
       <View style={s.statsRow}>
         <View style={s.statCard}>
           <Text style={s.statNum}>{activeOrders.length}</Text>
-          <Text style={s.statLabel}>ظ†ط´ط·ط©</Text>
+          <Text style={s.statLabel}>نشطة</Text>
         </View>
         <View style={s.statCard}>
           <Text style={s.statNum}>{historyOrders.filter(o => o.status === "delivered").length}</Text>
-          <Text style={s.statLabel}>ظ…ظƒطھظ…ظ„ط©</Text>
+          <Text style={s.statLabel}>مكتملة</Text>
         </View>
         <View style={s.statCard}>
-          <Text style={s.statNum}>{chef?.rating_avg || "â€”"}</Text>
-          <Text style={s.statLabel}>ط§ظ„طھظ‚ظٹظٹظ… â­گ</Text>
+          <Text style={s.statNum}>{chef?.rating_avg || "—"}</Text>
+          <Text style={s.statLabel}>التقييم ⭐</Text>
         </View>
       </View>
 
-      {/* ط§ظ„طھط§ط¨ط§طھ */}
+      {/* التابات */}
       <View style={s.tabRow}>
         <TouchableOpacity style={[s.tabBtn, tab === "active" && s.tabBtnActive]} onPress={() => setTab("active")}>
-          <Text style={[s.tabText, tab === "active" && s.tabTextActive]}>ط§ظ„ظ†ط´ط·ط© ({activeOrders.length})</Text>
+          <Text style={[s.tabText, tab === "active" && s.tabTextActive]}>النشطة ({activeOrders.length})</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[s.tabBtn, tab === "history" && s.tabBtnActive]} onPress={() => setTab("history")}>
-          <Text style={[s.tabText, tab === "history" && s.tabTextActive]}>ط§ظ„ط³ط¬ظ„ ({historyOrders.length})</Text>
+          <Text style={[s.tabText, tab === "history" && s.tabTextActive]}>السجل ({historyOrders.length})</Text>
         </TouchableOpacity>
       </View>
 
-      {/* ط§ظ„ط·ظ„ط¨ط§طھ */}
+      {/* الطلبات */}
       {loading
         ? <ActivityIndicator color="#F0A500" style={{ marginTop: 40 }} size="large" />
         : <FlatList
@@ -201,34 +208,34 @@ export default function DashboardScreen() {
                     </Text>
                   </View>
                 </View>
-                <Text style={s.customer}>ًں‘¤ {item.users?.full_name}</Text>
-                <Text style={s.phone}>ًں“‍ {item.users?.phone}</Text>
-                <Text style={s.address}>ًں“چ {item.delivery_address}</Text>
+                <Text style={s.customer}>👤 {item.users?.full_name}</Text>
+                <Text style={s.phone}>📞 {item.users?.phone}</Text>
+                <Text style={s.address}>📍 {item.delivery_address}</Text>
                 {item.order_items?.map((oi: any) => (
-                  <Text key={oi.id} style={s.orderItem}>â€¢ {oi.name} أ— {oi.quantity} â€” {oi.subtotal} ط±ظٹط§ظ„</Text>
+                  <Text key={oi.id} style={s.orderItem}>• {oi.name} × {oi.quantity} — {oi.subtotal} ريال</Text>
                 ))}
                 <View style={s.totalRow}>
-                  <Text style={s.total}>ًں’° {item.total} ط±ظٹط§ظ„</Text>
-                  <Text style={s.delivery}>طھظˆطµظٹظ„: {item.delivery_fee} ط±ظٹط§ظ„</Text>
+                  <Text style={s.total}>💰 {item.total} ريال</Text>
+                  <Text style={s.delivery}>توصيل: {item.delivery_fee} ريال</Text>
                 </View>
-                {item.notes ? <Text style={s.notes}>ًں“‌ {item.notes}</Text> : null}
+                {item.notes ? <Text style={s.notes}>📝 {item.notes}</Text> : null}
                 {getActions(item.status, item.id)}
               </View>
             )}
             ListEmptyComponent={
               <View style={s.emptyWrap}>
-                <Text style={s.emptyEmoji}>{tab === "active" ? "ًں“¦" : "ًں“‹"}</Text>
-                <Text style={s.empty}>{tab === "active" ? "ظ…ط§ ظپظٹ ط·ظ„ط¨ط§طھ ظ†ط´ط·ط©" : "ظ…ط§ ظپظٹ ط³ط¬ظ„ ط¨ط¹ط¯"}</Text>
+                <Text style={s.emptyEmoji}>{tab === "active" ? "📦" : "📋"}</Text>
+                <Text style={s.empty}>{tab === "active" ? "ما في طلبات نشطة" : "ما في سجل بعد"}</Text>
               </View>
             }
           />
       }
 
-      {/* Modal طھط؛ظٹظٹط± ط§ظ„ط­ط§ظ„ط© */}
+      {/* Modal تغيير الحالة */}
       <Modal visible={showStatus} transparent animationType="slide">
         <View style={s.modalOverlay}>
           <View style={s.modalBox}>
-            <Text style={s.modalTitle}>ط§ط®طھط± ط­ط§ظ„ط© ظ…ط·ط¨ط®ظƒ</Text>
+            <Text style={s.modalTitle}>اختر حالة مطبخك</Text>
             {CHEF_STATUS.map(st => (
               <TouchableOpacity
                 key={st.id}
@@ -236,14 +243,14 @@ export default function DashboardScreen() {
                 onPress={() => changeStatus(st.id)}
               >
                 <View>
-                  <Text style={[s.statusOptionLabel, { color: st.color }]}>â—ڈ {st.label}</Text>
+                  <Text style={[s.statusOptionLabel, { color: st.color }]}>● {st.label}</Text>
                   <Text style={s.statusOptionDesc}>{st.desc}</Text>
                 </View>
-                {chefStatus === st.id && <Text style={{ color: st.color, fontSize: 18 }}>âœ“</Text>}
+                {chefStatus === st.id && <Text style={{ color: st.color, fontSize: 18 }}>✓</Text>}
               </TouchableOpacity>
             ))}
             <TouchableOpacity style={s.modalClose} onPress={() => setShowStatus(false)}>
-              <Text style={s.modalCloseText}>ط¥ظ„ط؛ط§ط،</Text>
+              <Text style={s.modalCloseText}>إلغاء</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -300,7 +307,8 @@ const s = StyleSheet.create({
   statusOption:      { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", padding: 16, borderRadius: 14, marginBottom: 10, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)", backgroundColor: "#251400" },
   statusOptionLabel: { fontSize: 15, fontWeight: "800", textAlign: "right", fontFamily: "Almarai_700Bold", marginBottom: 4 },
   statusOptionDesc:  { fontSize: 11, color: "#8A6030", textAlign: "right", fontFamily: "Almarai_400Regular" },
+  menuBtn:           { marginHorizontal: 16, marginBottom: 12, backgroundColor: "rgba(240,165,0,0.1)", borderRadius: 14, padding: 14, alignItems: "center", borderWidth: 1, borderColor: "rgba(240,165,0,0.25)" },
+  menuBtnText:       { color: "#F0A500", fontSize: 15, fontWeight: "900", fontFamily: "Almarai_800ExtraBold" },
   modalClose:        { backgroundColor: "rgba(229,57,53,0.1)", borderRadius: 14, padding: 14, alignItems: "center", marginTop: 8, borderWidth: 1, borderColor: "rgba(229,57,53,0.2)" },
   modalCloseText:    { color: "#E53935", fontSize: 14, fontWeight: "700", fontFamily: "Almarai_700Bold" },
 });
-
