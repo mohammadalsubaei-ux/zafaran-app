@@ -158,6 +158,8 @@ export default function TabLayout() {
       </SafeAreaView>
 
       <Tabs
+  initialRouteName="index"
+  screenOptions={{
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
