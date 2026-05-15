@@ -31,13 +31,13 @@ export default function ChefScreen() {
           { text: "لا", style: "cancel" },
           { text: "نعم", style: "destructive", onPress: () => {
             clearCart();
-            addItem({ id: item.id, name: item.name, price: item.price, quantity: 1, chef_id: chef?.id, chef_name: chef?.users?.full_name });
+            addItem({ id: item.id, name: item.name, price: item.price, quantity: 1, chef_id: chef?.id, chef_name: chef?.users?.full_name, image_url: item.image_url || "" });
           }},
         ]
       );
       return;
     }
-    addItem({ id: item.id, name: item.name, price: item.price, quantity: 1, chef_id: chef?.id, chef_name: chef?.users?.full_name });
+    addItem({ id: item.id, name: item.name, price: item.price, quantity: 1, chef_id: chef?.id, chef_name: chef?.users?.full_name, image_url: item.image_url || "" });
   };
 
   const getItemQty = (itemId: string) => items.find(i => i.id === itemId)?.quantity || 0;

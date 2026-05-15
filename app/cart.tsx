@@ -1,4 +1,4 @@
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, Alert, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, Alert, ActivityIndicator, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -10,11 +10,11 @@ const API = "https://zafaran-backend-production.up.railway.app";
 
 export default function CartScreen() {
   const { items, updateQty, clearCart, total, totalItems, chef_id } = useCart();
-  const [loading, setLoading]         = useState(false);
-  const [address, setAddress]         = useState("");
-  const [lat, setLat]                 = useState<number | null>(null);
-  const [lng, setLng]                 = useState<number | null>(null);
-  const [locLoading, setLocLoading]   = useState(false);
+  const [loading, setLoading]           = useState(false);
+  const [address, setAddress]           = useState("");
+  const [lat, setLat]                   = useState<number | null>(null);
+  const [lng, setLng]                   = useState<number | null>(null);
+  const [locLoading, setLocLoading]     = useState(false);
   const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">("delivery");
   const router = useRouter();
 
@@ -85,7 +85,6 @@ export default function CartScreen() {
 
   return (
     <SafeAreaView style={s.safe}>
-      {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={s.back}>→ رجوع</Text>
@@ -113,7 +112,10 @@ export default function CartScreen() {
         renderItem={({ item }) => (
           <View style={s.card}>
             <View style={s.cardRight}>
-              <Text style={s.itemEmoji}>🍽️</Text>
+              {item.image_url
+                ? <Image source={{ uri: item.image_url }} style={s.itemImg}/>
+                : <Text style={s.itemEmoji}>🍽️</Text>
+              }
               <View>
                 <Text style={s.itemName}>{item.name}</Text>
                 <Text style={s.itemPrice}>{item.price} ريال</Text>
@@ -132,7 +134,6 @@ export default function CartScreen() {
         )}
         ListFooterComponent={
           <View>
-            {/* طريقة الاستلام */}
             <View style={s.section}>
               <Text style={s.sectionTitle}>🚗 طريقة الاستلام</Text>
               <View style={s.deliveryRow}>
@@ -155,7 +156,6 @@ export default function CartScreen() {
               </View>
             </View>
 
-            {/* الموقع */}
             {deliveryType === "delivery" && (
               <View style={s.section}>
                 <Text style={s.sectionTitle}>📍 عنوان التوصيل</Text>
@@ -169,7 +169,6 @@ export default function CartScreen() {
               </View>
             )}
 
-            {/* الملخص */}
             <View style={s.section}>
               <Text style={s.sectionTitle}>📋 ملخص الطلب</Text>
               <View style={s.summaryRow}>
@@ -189,7 +188,6 @@ export default function CartScreen() {
         }
       />
 
-      {/* زر الطلب */}
       <View style={s.footer}>
         <TouchableOpacity style={s.orderBtn} onPress={handleOrder} disabled={loading}>
           {loading
@@ -212,6 +210,7 @@ const s = StyleSheet.create({
   chefName:            { fontSize: 14, fontWeight: "800", color: "#F0A500", textAlign: "right", fontFamily: "Almarai_700Bold" },
   card:                { backgroundColor: "#1C1000", borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)", flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between" },
   cardRight:           { flexDirection: "row-reverse", alignItems: "center", gap: 10, flex: 1 },
+  itemImg:             { width: 50, height: 50, borderRadius: 10 },
   itemEmoji:           { fontSize: 28 },
   itemName:            { fontSize: 14, fontWeight: "800", color: "#FDF0DC", textAlign: "right", fontFamily: "Almarai_700Bold" },
   itemPrice:           { fontSize: 13, color: "#F0A500", fontWeight: "700", textAlign: "right", marginTop: 3, fontFamily: "Almarai_400Regular" },
