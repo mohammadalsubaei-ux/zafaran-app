@@ -1,13 +1,12 @@
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Alert } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Alert, Image } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCart } from "@/context/CartContext";
 import { useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold } from "@expo-google-fonts/almarai";
 
 export default function ItemScreen() {
-  const { id, name, price, description, chef_id, chef_name } = useLocalSearchParams();
+  const { id, name, price, description, chef_id, chef_name, image_url } = useLocalSearchParams();
   const { addItem, items, chef_id: cartChefId, clearCart } = useCart();
   const router = useRouter();
-
   const [fontsLoaded] = useFonts({ Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold });
 
   const qty = items.find(i => i.id === id)?.quantity || 0;
@@ -16,7 +15,7 @@ export default function ItemScreen() {
     if (cartChefId && cartChefId !== chef_id) {
       Alert.alert(
         "سلة جديدة؟",
-        "عندك وجبات من طباخة ثانية — تبي تمسحها وتبدأ من هنا؟",
+        "عندك وجبات من شيفة ثانية — تبي تمسحها وتبدأ من هنا؟",
         [
           { text: "لا", style: "cancel" },
           { text: "نعم", style: "destructive", onPress: () => {
@@ -34,6 +33,8 @@ export default function ItemScreen() {
 
   if (!fontsLoaded) return null;
 
+  const imgUrl = image_url ? decodeURIComponent(String(image_url)) : null;
+
   return (
     <SafeAreaView style={s.safe}>
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
@@ -41,10 +42,17 @@ export default function ItemScreen() {
           <Text style={s.backText}>→ رجوع</Text>
         </TouchableOpacity>
 
+        {/* صورة الوجبة */}
+        {imgUrl
+          ? <Image source={{ uri: imgUrl }} style={s.heroImage}/>
+          : <View style={s.heroEmoji}>
+              <Text style={s.emoji}>🍽️</Text>
+            </View>
+        }
+
         <View style={s.hero}>
-          <Text style={s.emoji}>🍽️</Text>
           <Text style={s.name}>{name}</Text>
-          <Text style={s.desc}>{description}</Text>
+          {description ? <Text style={s.desc}>{description}</Text> : null}
           <Text style={s.price}>{price} ريال</Text>
         </View>
 
@@ -73,8 +81,10 @@ const s = StyleSheet.create({
   safe:         { flex: 1, backgroundColor: "#0E0700" },
   back:         { padding: 16 },
   backText:     { color: "#F0A500", fontSize: 16, fontWeight: "700", fontFamily: "Almarai_700Bold" },
+  heroImage:    { width: "100%", height: 250, resizeMode: "cover" },
+  heroEmoji:    { alignItems: "center", paddingTop: 20 },
+  emoji:        { fontSize: 80, marginBottom: 8 },
   hero:         { alignItems: "center", padding: 24 },
-  emoji:        { fontSize: 80, marginBottom: 16 },
   name:         { fontSize: 24, fontWeight: "900", color: "#FDF0DC", marginBottom: 8, fontFamily: "Almarai_800ExtraBold", textAlign: "center" },
   desc:         { fontSize: 14, color: "#8A6030", textAlign: "center", lineHeight: 22, marginBottom: 12, fontFamily: "Almarai_400Regular" },
   price:        { fontSize: 22, fontWeight: "900", color: "#F0A500", fontFamily: "Almarai_800ExtraBold" },
