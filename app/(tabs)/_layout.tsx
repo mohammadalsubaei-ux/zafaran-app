@@ -159,29 +159,29 @@ export default function TabLayout() {
 
       <Tabs
   initialRouteName="index"
-  screenOptions={{
         screenOptions={{
           headerShown: false,
-          tabBarStyle: {
-            backgroundColor: "transparent",
-            borderTopWidth: 0,
-            height: 78,
-            paddingBottom: 10,
-            paddingTop: 8,
-            paddingHorizontal: 8,
-            marginHorizontal: 12,
-            marginBottom: 14,
-            borderRadius: 30,
-            position: "absolute",
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 0.4,
-            shadowRadius: 16,
-            elevation: 20,
-            borderWidth: 1,
-            borderColor: "rgba(242,178,51,0.12)",
-            overflow: "hidden",
-          },
+       tabBarStyle: {
+  backgroundColor: "transparent",
+  borderTopWidth: 0,
+  height: 78,
+  paddingBottom: 10,
+  paddingTop: 8,
+  paddingHorizontal: 8,
+  marginHorizontal: 12,
+  marginBottom: 14,
+  borderRadius: 30,
+  position: "absolute",
+  flexDirection: "row-reverse",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: -4 },
+  shadowOpacity: 0.4,
+  shadowRadius: 16,
+  elevation: 20,
+  borderWidth: 1,
+  borderColor: "rgba(242,178,51,0.12)",
+  overflow: "hidden",
+},
           tabBarBackground: () => (
             <BlurView
               intensity={60}
