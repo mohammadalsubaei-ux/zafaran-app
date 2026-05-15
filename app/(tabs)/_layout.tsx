@@ -232,11 +232,11 @@ export default function TabLayout() {
             tabBarIcon: ({ color }) => <User size={22} color={color} strokeWidth={1.8}/>,
           }}
         />
-        <Tabs.Screen name="wallet"   options={{ href: null }} />
-        <Tabs.Screen name="sweets"   options={{ href: null }} />
-        <Tabs.Screen name="pastries" options={{ href: null }} />
-        <Tabs.Screen name="explore"  options={{ href: null }} />
-        <Tabs.Screen name="chef"     options={{ href: null }} />
+        <Tabs.Screen name="profile"   options={{ href: null }} />
+        <Tabs.Screen name="favorites"   options={{ href: null }} />
+        <Tabs.Screen name="orders" options={{ href: null }} />
+        <Tabs.Screen name="categories"  options={{ href: null }} />
+        <Tabs.Screen name="index"     options={{ href: null }} />
       </Tabs>
     </View>
   );
