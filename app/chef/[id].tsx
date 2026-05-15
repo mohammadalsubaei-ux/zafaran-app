@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Alert } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Alert, Image } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold } from "@expo-google-fonts/almarai";
 import { useCart } from "@/context/CartContext";
@@ -9,7 +9,7 @@ const API = "https://zafaran-backend-production.up.railway.app";
 export default function ChefScreen() {
   const { id } = useLocalSearchParams();
   const router  = useRouter();
-  const [chef, setChef]     = useState<any>(null);
+  const [chef, setChef]       = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { items, addItem, updateQty, clearCart, total, totalItems, chef_id } = useCart();
 
@@ -26,7 +26,7 @@ export default function ChefScreen() {
     if (chef_id && chef_id !== chef?.id) {
       Alert.alert(
         "سلة جديدة؟",
-        "عندك وجبات من طباخة ثانية — تبي تمسحها وتبدأ من هنا؟",
+        "عندك وجبات من شيفة ثانية — تبي تمسحها وتبدأ من هنا؟",
         [
           { text: "لا", style: "cancel" },
           { text: "نعم", style: "destructive", onPress: () => {
@@ -41,6 +41,8 @@ export default function ChefScreen() {
   };
 
   const getItemQty = (itemId: string) => items.find(i => i.id === itemId)?.quantity || 0;
+
+  const isMale = chef?.users?.gender === "male";
 
   if (loading || !fontsLoaded) return (
     <View style={s.loadingWrap}>
@@ -64,7 +66,7 @@ export default function ChefScreen() {
 
             <View style={s.chefCard}>
               <View style={s.avatarWrap}>
-                <Text style={s.avatarEmoji}>👩‍🍳</Text>
+                <Text style={s.avatarEmoji}>{isMale ? "👨‍🍳" : "👩‍🍳"}</Text>
               </View>
               <Text style={s.chefName}>{chef?.users?.full_name}</Text>
               <Text style={s.chefCity}>📍 {chef?.city} · {chef?.neighborhood}</Text>
@@ -82,7 +84,7 @@ export default function ChefScreen() {
                 <View style={s.statDivider} />
                 <View style={s.statItem}>
                   <Text style={[s.statVal, { color: chef?.is_open ? "#4CAF50" : "#E53935" }]}>
-                    {chef?.is_open ? "مفتوحة" : "مغلقة"}
+                    {chef?.is_open ? (isMale ? "مفتوح" : "مفتوحة") : (isMale ? "مغلق" : "مغلقة")}
                   </Text>
                   <Text style={s.statLabel}>الحالة</Text>
                 </View>
@@ -90,7 +92,7 @@ export default function ChefScreen() {
 
               {!chef?.is_open && (
                 <View style={s.closedBanner}>
-                  <Text style={s.closedText}>⚠️ الطباخة مغلقة حالياً</Text>
+                  <Text style={s.closedText}>⚠️ {isMale ? "الشيف مغلق حالياً" : "الشيفة مغلقة حالياً"}</Text>
                 </View>
               )}
             </View>
@@ -106,21 +108,34 @@ export default function ChefScreen() {
           return (
             <View style={[s.card, !chef?.is_open && s.cardDisabled]}>
               <TouchableOpacity
-                onPress={() => router.push(`/item/${item.id}?name=${encodeURIComponent(item.name)}&price=${item.price}&description=${encodeURIComponent(item.description || "")}&chef_id=${chef?.id}&chef_name=${encodeURIComponent(chef?.users?.full_name || "")}`)}
+                onPress={() => router.push(`/item/${item.id}?name=${encodeURIComponent(item.name)}&price=${item.price}&description=${encodeURIComponent(item.description || "")}&image_url=${encodeURIComponent(item.image_url || "")}&chef_id=${chef?.id}&chef_name=${encodeURIComponent(chef?.users?.full_name || "")}`)}
               >
                 <View style={s.cardContent}>
-                  <View style={s.itemEmoji}>
-                    <Text style={{ fontSize: 32 }}>🍽️</Text>
-                  </View>
+                  {/* صورة الوجبة */}
+                  {item.image_url
+                    ? <Image source={{ uri: item.image_url }} style={s.itemImg}/>
+                    : <View style={s.itemEmoji}>
+                        <Text style={{ fontSize: 32 }}>🍽️</Text>
+                      </View>
+                  }
                   <View style={s.itemInfo}>
                     <Text style={s.itemName}>{item.name}</Text>
-                    <Text style={s.itemDesc} numberOfLines={2}>{item.description}</Text>
+                    {item.description ? (
+                      <Text style={s.itemDesc} numberOfLines={2}>{item.description}</Text>
+                    ) : null}
                     <View style={s.itemFooter}>
                       <Text style={s.itemPrice}>{item.price} ريال</Text>
-                      {item.prep_minutes && (
-                        <Text style={s.itemTime}>⏱️ {item.prep_minutes} دقيقة</Text>
+                      {item.prep_minutes > 0 && (
+                        <Text style={s.itemTime}>
+                          ⏱️ {Math.floor(item.prep_minutes / 60) > 0 ? `${Math.floor(item.prep_minutes / 60)} ساعة` : ""} {item.prep_minutes % 60 > 0 ? `${item.prep_minutes % 60} دقيقة` : ""}
+                        </Text>
                       )}
                     </View>
+                    {item.status === "preorder" && (
+                      <View style={s.preorderBadge}>
+                        <Text style={s.preorderText}>📅 حجز مسبق</Text>
+                      </View>
+                    )}
                   </View>
                 </View>
               </TouchableOpacity>
@@ -169,49 +184,52 @@ export default function ChefScreen() {
 }
 
 const s = StyleSheet.create({
-  safe:          { flex: 1, backgroundColor: "#0E0700" },
-  loadingWrap:   { flex: 1, backgroundColor: "#0E0700", alignItems: "center", justifyContent: "center" },
-  header:        { padding: 16 },
-  backBtn:       { width: 40, height: 40, borderRadius: 12, backgroundColor: "#1C1000", borderWidth: 1, borderColor: "rgba(240,165,0,0.15)", alignItems: "center", justifyContent: "center" },
-  backText:      { color: "#F0A500", fontSize: 18, fontWeight: "700" },
-  chefCard:      { margin: 16, marginTop: 0, backgroundColor: "#1C1000", borderRadius: 24, padding: 20, borderWidth: 1, borderColor: "rgba(240,165,0,0.12)", alignItems: "center" },
-  avatarWrap:    { width: 80, height: 80, borderRadius: 24, backgroundColor: "rgba(240,165,0,0.1)", borderWidth: 2, borderColor: "rgba(240,165,0,0.25)", alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  avatarEmoji:   { fontSize: 40 },
-  chefName:      { fontSize: 22, fontWeight: "900", color: "#FDF0DC", fontFamily: "Almarai_800ExtraBold", marginBottom: 6 },
-  chefCity:      { fontSize: 13, color: "#8A6030", fontFamily: "Almarai_400Regular", marginBottom: 16 },
-  statsRow:      { flexDirection: "row-reverse", width: "100%", justifyContent: "space-around" },
-  statItem:      { alignItems: "center" },
-  statVal:       { fontSize: 16, fontWeight: "900", color: "#F0A500", fontFamily: "Almarai_700Bold" },
-  statLabel:     { fontSize: 11, color: "#5A3A18", marginTop: 3, fontFamily: "Almarai_400Regular" },
-  statDivider:   { width: 1, backgroundColor: "rgba(240,165,0,0.1)" },
-  closedBanner:  { marginTop: 14, backgroundColor: "rgba(229,57,53,0.1)", borderRadius: 12, padding: 10, borderWidth: 1, borderColor: "rgba(229,57,53,0.2)", width: "100%" },
-  closedText:    { color: "#E53935", fontSize: 12, textAlign: "center", fontFamily: "Almarai_700Bold" },
-  menuHd:        { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 8 },
-  menuTitle:     { fontSize: 16, fontWeight: "800", color: "#FDF0DC", fontFamily: "Almarai_700Bold" },
-  menuCount:     { fontSize: 12, color: "#8A6030", fontFamily: "Almarai_400Regular" },
-  card:          { marginHorizontal: 16, marginBottom: 12, backgroundColor: "#1C1000", borderRadius: 18, padding: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
-  cardDisabled:  { opacity: 0.5 },
-  cardContent:   { flexDirection: "row-reverse", alignItems: "center", gap: 12, marginBottom: 10 },
-  itemEmoji:     { width: 60, height: 60, borderRadius: 16, backgroundColor: "rgba(240,165,0,0.08)", alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  itemInfo:      { flex: 1 },
-  itemName:      { fontSize: 15, fontWeight: "800", color: "#FDF0DC", textAlign: "right", fontFamily: "Almarai_700Bold", marginBottom: 4 },
-  itemDesc:      { fontSize: 12, color: "#8A6030", textAlign: "right", fontFamily: "Almarai_400Regular", lineHeight: 18 },
-  itemFooter:    { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", marginTop: 8 },
-  itemPrice:     { fontSize: 15, fontWeight: "900", color: "#F0A500", fontFamily: "Almarai_700Bold" },
-  itemTime:      { fontSize: 11, color: "#5A3A18", fontFamily: "Almarai_400Regular" },
-  qtyCtrl:       { alignItems: "flex-end" },
-  qtyRow:        { flexDirection: "row-reverse", alignItems: "center", gap: 12, backgroundColor: "rgba(240,165,0,0.08)", borderRadius: 12, padding: 6, paddingHorizontal: 12 },
-  qtyBtn:        { width: 28, height: 28, borderRadius: 8, backgroundColor: "rgba(240,165,0,0.15)", alignItems: "center", justifyContent: "center" },
-  qtyBtnText:    { fontSize: 18, fontWeight: "900", color: "#F0A500" },
-  qtyNum:        { fontSize: 16, fontWeight: "900", color: "#FDF0DC", minWidth: 24, textAlign: "center" },
-  addBtn:        { backgroundColor: "#F0A500", borderRadius: 12, paddingVertical: 8, paddingHorizontal: 16 },
-  addBtnText:    { fontSize: 13, fontWeight: "800", color: "#0E0700", fontFamily: "Almarai_700Bold" },
-  emptyWrap:     { alignItems: "center", marginTop: 60 },
-  emptyEmoji:    { fontSize: 48, marginBottom: 12 },
-  empty:         { textAlign: "center", color: "#8A6030", fontSize: 14, fontFamily: "Almarai_400Regular" },
-  cartBar:       { position: "absolute", bottom: 16, left: 16, right: 16, backgroundColor: "#F0A500", borderRadius: 18, padding: 16, flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", shadowColor: "#F0A500", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12 },
-  cartBadge:     { backgroundColor: "#0E0700", width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  cartBadgeText: { fontSize: 13, fontWeight: "900", color: "#F0A500" },
-  cartBarText:   { fontSize: 16, fontWeight: "900", color: "#0E0700", flex: 1, textAlign: "center", fontFamily: "Almarai_800ExtraBold" },
-  cartBarTotal:  { fontSize: 15, fontWeight: "900", color: "#0E0700", fontFamily: "Almarai_700Bold" },
+  safe:           { flex: 1, backgroundColor: "#0E0700" },
+  loadingWrap:    { flex: 1, backgroundColor: "#0E0700", alignItems: "center", justifyContent: "center" },
+  header:         { padding: 16 },
+  backBtn:        { width: 40, height: 40, borderRadius: 12, backgroundColor: "#1C1000", borderWidth: 1, borderColor: "rgba(240,165,0,0.15)", alignItems: "center", justifyContent: "center" },
+  backText:       { color: "#F0A500", fontSize: 18, fontWeight: "700" },
+  chefCard:       { margin: 16, marginTop: 0, backgroundColor: "#1C1000", borderRadius: 24, padding: 20, borderWidth: 1, borderColor: "rgba(240,165,0,0.12)", alignItems: "center" },
+  avatarWrap:     { width: 80, height: 80, borderRadius: 24, backgroundColor: "rgba(240,165,0,0.1)", borderWidth: 2, borderColor: "rgba(240,165,0,0.25)", alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  avatarEmoji:    { fontSize: 40 },
+  chefName:       { fontSize: 22, fontWeight: "900", color: "#FDF0DC", fontFamily: "Almarai_800ExtraBold", marginBottom: 6 },
+  chefCity:       { fontSize: 13, color: "#8A6030", fontFamily: "Almarai_400Regular", marginBottom: 16 },
+  statsRow:       { flexDirection: "row-reverse", width: "100%", justifyContent: "space-around" },
+  statItem:       { alignItems: "center" },
+  statVal:        { fontSize: 16, fontWeight: "900", color: "#F0A500", fontFamily: "Almarai_700Bold" },
+  statLabel:      { fontSize: 11, color: "#5A3A18", marginTop: 3, fontFamily: "Almarai_400Regular" },
+  statDivider:    { width: 1, backgroundColor: "rgba(240,165,0,0.1)" },
+  closedBanner:   { marginTop: 14, backgroundColor: "rgba(229,57,53,0.1)", borderRadius: 12, padding: 10, borderWidth: 1, borderColor: "rgba(229,57,53,0.2)", width: "100%" },
+  closedText:     { color: "#E53935", fontSize: 12, textAlign: "center", fontFamily: "Almarai_700Bold" },
+  menuHd:         { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 8 },
+  menuTitle:      { fontSize: 16, fontWeight: "800", color: "#FDF0DC", fontFamily: "Almarai_700Bold" },
+  menuCount:      { fontSize: 12, color: "#8A6030", fontFamily: "Almarai_400Regular" },
+  card:           { marginHorizontal: 16, marginBottom: 12, backgroundColor: "#1C1000", borderRadius: 18, padding: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
+  cardDisabled:   { opacity: 0.5 },
+  cardContent:    { flexDirection: "row-reverse", alignItems: "center", gap: 12, marginBottom: 10 },
+  itemImg:        { width: 80, height: 80, borderRadius: 14, flexShrink: 0 },
+  itemEmoji:      { width: 80, height: 80, borderRadius: 14, backgroundColor: "rgba(240,165,0,0.08)", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  itemInfo:       { flex: 1 },
+  itemName:       { fontSize: 15, fontWeight: "800", color: "#FDF0DC", textAlign: "right", fontFamily: "Almarai_700Bold", marginBottom: 4 },
+  itemDesc:       { fontSize: 12, color: "#8A6030", textAlign: "right", fontFamily: "Almarai_400Regular", lineHeight: 18 },
+  itemFooter:     { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", marginTop: 8 },
+  itemPrice:      { fontSize: 15, fontWeight: "900", color: "#F0A500", fontFamily: "Almarai_700Bold" },
+  itemTime:       { fontSize: 11, color: "#5A3A18", fontFamily: "Almarai_400Regular" },
+  preorderBadge:  { backgroundColor: "rgba(240,165,0,0.1)", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, alignSelf: "flex-end", marginTop: 4, borderWidth: 1, borderColor: "rgba(240,165,0,0.2)" },
+  preorderText:   { fontSize: 10, color: "#F0A500", fontFamily: "Almarai_700Bold" },
+  qtyCtrl:        { alignItems: "flex-end" },
+  qtyRow:         { flexDirection: "row-reverse", alignItems: "center", gap: 12, backgroundColor: "rgba(240,165,0,0.08)", borderRadius: 12, padding: 6, paddingHorizontal: 12 },
+  qtyBtn:         { width: 28, height: 28, borderRadius: 8, backgroundColor: "rgba(240,165,0,0.15)", alignItems: "center", justifyContent: "center" },
+  qtyBtnText:     { fontSize: 18, fontWeight: "900", color: "#F0A500" },
+  qtyNum:         { fontSize: 16, fontWeight: "900", color: "#FDF0DC", minWidth: 24, textAlign: "center" },
+  addBtn:         { backgroundColor: "#F0A500", borderRadius: 12, paddingVertical: 8, paddingHorizontal: 16 },
+  addBtnText:     { fontSize: 13, fontWeight: "800", color: "#0E0700", fontFamily: "Almarai_700Bold" },
+  emptyWrap:      { alignItems: "center", marginTop: 60 },
+  emptyEmoji:     { fontSize: 48, marginBottom: 12 },
+  empty:          { textAlign: "center", color: "#8A6030", fontSize: 14, fontFamily: "Almarai_400Regular" },
+  cartBar:        { position: "absolute", bottom: 16, left: 16, right: 16, backgroundColor: "#F0A500", borderRadius: 18, padding: 16, flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", shadowColor: "#F0A500", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12 },
+  cartBadge:      { backgroundColor: "#0E0700", width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  cartBadgeText:  { fontSize: 13, fontWeight: "900", color: "#F0A500" },
+  cartBarText:    { fontSize: 16, fontWeight: "900", color: "#0E0700", flex: 1, textAlign: "center", fontFamily: "Almarai_800ExtraBold" },
+  cartBarTotal:   { fontSize: 15, fontWeight: "900", color: "#0E0700", fontFamily: "Almarai_700Bold" },
 });
