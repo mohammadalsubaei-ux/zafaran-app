@@ -41,6 +41,7 @@ export default function MenuScreen() {
   const [showAdd, setShowAdd]       = useState(false);
   const [saving, setSaving]         = useState(false);
   const [uploading, setUploading]   = useState(false);
+  const [uploadMessage, setUploadMessage] = useState("");
   const [editItem, setEditItem]     = useState<any>(null);
   const [imageUri, setImageUri]     = useState<string | null>(null);
 
@@ -83,7 +84,7 @@ export default function MenuScreen() {
   const resetForm = () => {
     setName(""); setPrice(""); setCategory("rice");
     setStatus("available"); setPrepHours("0"); setPrepMinutes("0");
-    setDescription(""); setImageUri(null); setEditItem(null);
+    setDescription(""); setImageUri(null); setUploadMessage(""); setEditItem(null);
   };
 
   const openEdit = (item: any) => {
@@ -113,28 +114,53 @@ export default function MenuScreen() {
 
   // ━━━ رفع الصورة لـ Supabase ━━━
   const uploadImage = async (uri: string): Promise<string | null> => {
-  setUploading(true);
-  try {
-    const ext      = uri.split(".").pop() || "jpg";
-    const fileName = `menu_${Date.now()}.${ext}`;
-    const formData = new FormData();
-    formData.append("file", { uri, name: fileName, type: `image/${ext}` } as any);
-    const res = await fetch(`${SUPA_URL}/storage/v1/object/menu-images/${fileName}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${SUPA_KEY}`,
-      },
-      body: formData,
-    });
-    if (res.ok) {
-      return `${SUPA_URL}/storage/v1/object/public/menu-images/${fileName}`;
+    setUploading(true);
+    setUploadMessage("جاري رفع الصورة...");
+
+    try {
+      const rawExt = uri.split(".").pop()?.split("?")[0]?.toLowerCase() || "jpg";
+      const ext = ["jpg", "jpeg", "png", "webp"].includes(rawExt) ? rawExt : "jpg";
+      const mimeType = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : `image/${ext}`;
+      const fileName = `menu_${Date.now()}_${Math.floor(Math.random() * 100000)}.${ext}`;
+
+      console.log("START UPLOAD");
+      console.log("UPLOAD URI:", uri);
+      console.log("UPLOAD FILE:", fileName);
+
+      const formData = new FormData();
+      formData.append("file", {
+        uri,
+        name: fileName,
+        type: mimeType,
+      } as any);
+
+      const res = await fetch(`${SUPA_URL}/storage/v1/object/menu-images/${fileName}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${SUPA_KEY}`,
+          apikey: SUPA_KEY,
+          "x-upsert": "true",
+        },
+        body: formData,
+      });
+
+      const text = await res.text();
+      console.log("UPLOAD STATUS:", res.status);
+      console.log("UPLOAD RESPONSE:", text);
+
+      if (!res.ok) return null;
+
+      const publicUrl = `${SUPA_URL}/storage/v1/object/public/menu-images/${fileName}`;
+      console.log("FINAL IMAGE URL:", publicUrl);
+      setUploadMessage("تم رفع الصورة، جاري حفظ الوجبة...");
+      return publicUrl;
+    } catch (e) {
+      console.log("UPLOAD ERROR:", e);
+      return null;
+    } finally {
+      setUploading(false);
     }
-    const err = await res.text();
-    console.log("Upload error:", err);
-    return null;
-  } catch { return null; }
-  finally { setUploading(false); }
-};
+  };
 
   // ━━━ حفظ الوجبة ━━━
   const saveItem = async () => {
@@ -144,13 +170,19 @@ export default function MenuScreen() {
 
     setSaving(true);
     try {
-      // رفع الصورة لو تغيرت
+      // رفع الصورة أولاً، ثم حفظ رابطها مع الوجبة
+      setUploadMessage("");
       let imageUrl = editItem?.image_url || null;
-      if (imageUri && imageUri !== editItem?.image_url && !imageUrl) {
-  Alert.alert("خطأ", "فشل رفع الصورة");
-  return;
-}
 
+      if (imageUri && imageUri !== editItem?.image_url) {
+        imageUrl = await uploadImage(imageUri);
+
+        if (!imageUrl) {
+          Alert.alert("خطأ", "فشل رفع الصورة، تأكد من الاتصال وحاول مرة ثانية");
+          return;
+        }
+      }
+      console.log("IMAGE URL BEFORE SAVE:", imageUrl);
       const totalMinutes = (parseInt(prepHours || "0") * 60) + parseInt(prepMinutes || "0");
 
       const body = {
@@ -162,7 +194,7 @@ export default function MenuScreen() {
         prep_hours:   status === "preorder" ? parseInt(prepHours || "0") : 0,
         prep_minutes: status === "preorder" ? totalMinutes : 0,
         description:  description.trim(),
-        image_url:    imageUrl,
+        image_url:    imageUrl || "",
         is_available: status !== "unavailable",
       };
 
@@ -180,7 +212,7 @@ export default function MenuScreen() {
         setShowAdd(false); resetForm(); loadItems();
       } else { Alert.alert("خطأ", json.message || "لم تتم العملية"); }
     } catch { Alert.alert("خطأ", "تعذر حفظ الوجبة"); }
-    finally { setSaving(false); }
+    finally { setSaving(false); setUploadMessage(""); }
   };
 
   const deleteItem = (id: string) => {
@@ -297,10 +329,17 @@ export default function MenuScreen() {
               }
             </TouchableOpacity>
             {imageUri && (
-              <TouchableOpacity style={s.removeImg} onPress={() => setImageUri(null)}>
+              <TouchableOpacity style={s.removeImg} onPress={() => setImageUri(null)} disabled={saving || uploading}>
                 <Text style={s.removeImgText}>🗑️ حذف الصورة</Text>
               </TouchableOpacity>
             )}
+
+            {(saving || uploading || uploadMessage) ? (
+              <View style={s.uploadBox}>
+                {(saving || uploading) && <ActivityIndicator color="#F0A500" />}
+                <Text style={s.uploadText}>{uploadMessage || "جاري الحفظ..."}</Text>
+              </View>
+            ) : null}
 
             {/* الاسم */}
             <Text style={s.label}>اسم الوجبة *</Text>
@@ -375,7 +414,10 @@ export default function MenuScreen() {
 
             <TouchableOpacity style={s.saveBtn} onPress={saveItem} disabled={saving || uploading}>
               {saving || uploading
-                ? <ActivityIndicator color="#0E0700" />
+                ? <View style={s.saveLoadingWrap}>
+                    <ActivityIndicator color="#0E0700" />
+                    <Text style={s.saveBtnText}>{uploading ? "جاري رفع الصورة..." : "جاري الحفظ..."}</Text>
+                  </View>
                 : <Text style={s.saveBtnText}>{editItem ? "حفظ التعديلات ✅" : "إضافة الوجبة ✅"}</Text>
               }
             </TouchableOpacity>
@@ -438,6 +480,9 @@ const s = StyleSheet.create({
   pickerTitle:          { color: "#F0A500", fontSize: 12, textAlign: "center", marginTop: 10, fontFamily: "Almarai_700Bold" },
   picker:               { height: 150, color: "#FDF0DC" },
   pickerItem:           { color: "#FDF0DC", fontSize: 18, fontFamily: "Almarai_700Bold" },
+  uploadBox:            { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "rgba(240,165,0,0.08)", borderWidth: 1, borderColor: "rgba(240,165,0,0.2)", borderRadius: 12, padding: 10, marginBottom: 16 },
+  uploadText:           { color: "#F0A500", fontSize: 12, fontFamily: "Almarai_700Bold", textAlign: "center" },
+  saveLoadingWrap:      { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 8 },
   saveBtn:              { backgroundColor: "#F0A500", borderRadius: 16, padding: 16, alignItems: "center", marginTop: 8, marginBottom: 40 },
   saveBtnText:          { fontSize: 16, fontWeight: "900", color: "#0E0700", fontFamily: "Almarai_800ExtraBold" },
 });
