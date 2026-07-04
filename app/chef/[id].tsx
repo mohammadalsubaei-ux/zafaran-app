@@ -58,6 +58,7 @@ type Chef = {
   city?: string | null;
   neighborhood?: string | null;
   is_open?: boolean | null;
+  status?: "open" | "preorder" | "closed" | null;
   rating_avg?: number | string | null;
   total_orders?: number | string | null;
   users?: {
@@ -207,7 +208,9 @@ export default function ChefScreen() {
   const isMale = chef?.users?.gender === "male";
   const chefName = text(chef?.users?.full_name, isMale ? "الشيف" : "الشيفة");
   const chefLocation = [chef?.city, chef?.neighborhood].filter(Boolean).join(" · ");
-  const isOpen = Boolean(chef?.is_open);
+  const chefStatus = (chef?.status ?? (chef?.is_open ? "open" : "closed")) as "open" | "preorder" | "closed";
+  const isOpen = chefStatus === "open";
+  const isPreorderOnly = chefStatus === "preorder";
 
   const getItemQty = useCallback(
     (itemId: string) => {
@@ -237,7 +240,11 @@ export default function ChefScreen() {
       if (!chef) return;
 
       if (!isOpen) {
-        Alert.alert("الشيف مغلق", "لا يمكن إضافة وجبات من شيف مغلق حاليًا.");
+        if (isPreorderOnly) {
+          Alert.alert("حجز مسبق فقط", "هذا الشيف يستقبل حجوزات مسبقة فقط حالياً — ميزة الحجز المسبق قريباً بالتطبيق.");
+        } else {
+          Alert.alert("الشيف مغلق", "لا يمكن إضافة وجبات من شيف مغلق حاليًا.");
+        }
         return;
       }
 
@@ -277,7 +284,7 @@ export default function ChefScreen() {
 
       addItem(payload);
     },
-    [addItem, chef, chefName, chef_id, clearCart, isOpen]
+    [addItem, chef, chefName, chef_id, clearCart, isOpen, isPreorderOnly]
   );
 
   const Header = useCallback(() => {
@@ -315,17 +322,20 @@ export default function ChefScreen() {
           </View>
 
           <View style={s.statusRow}>
-            <View
-              style={[
-                s.openPill,
-                { backgroundColor: isOpen ? "rgba(76,175,80,0.1)" : "rgba(229,57,53,0.1)" },
-              ]}
-            >
-              <View style={[s.statusDot, { backgroundColor: isOpen ? "#4CAF50" : "#E53935" }]} />
-              <Text style={[s.openPillText, { color: isOpen ? "#8AF0A5" : "#FF9A9A" }]}>
-                {isOpen ? (isMale ? "مفتوح الآن" : "مفتوحة الآن") : isMale ? "مغلق حاليًا" : "مغلقة حاليًا"}
-              </Text>
-            </View>
+            {(() => {
+              const STATUS_UI: Record<string, { bg: string; dot: string; text: string; label: string }> = {
+                open:     { bg: "rgba(76,175,80,0.1)", dot: "#4CAF50", text: "#8AF0A5", label: isMale ? "مفتوح الآن" : "مفتوحة الآن" },
+                preorder: { bg: "rgba(240,165,0,0.1)", dot: "#F0A500", text: "#FFD27A", label: "حجز مسبق فقط" },
+                closed:   { bg: "rgba(229,57,53,0.1)", dot: "#E53935", text: "#FF9A9A", label: isMale ? "مغلق حاليًا" : "مغلقة حاليًا" },
+              };
+              const ui = STATUS_UI[chefStatus] ?? STATUS_UI.closed;
+              return (
+                <View style={[s.openPill, { backgroundColor: ui.bg }]}>
+                  <View style={[s.statusDot, { backgroundColor: ui.dot }]} />
+                  <Text style={[s.openPillText, { color: ui.text }]}>{ui.label}</Text>
+                </View>
+              );
+            })()}
           </View>
 
           <View style={s.statsBox}>
@@ -354,9 +364,11 @@ export default function ChefScreen() {
 
           {!isOpen ? (
             <View style={s.closedBanner}>
-              <AlertCircle size={16} color="#E53935" strokeWidth={1.8} />
-              <Text style={s.closedText}>
-                {isMale ? "الشيف مغلق حاليًا، يمكنك تصفح القائمة فقط." : "الشيفة مغلقة حاليًا، يمكنك تصفح القائمة فقط."}
+              <AlertCircle size={16} color={isPreorderOnly ? "#F0A500" : "#E53935"} strokeWidth={1.8} />
+              <Text style={[s.closedText, isPreorderOnly && { color: "#FFD27A" }]}>
+                {isPreorderOnly
+                  ? "يستقبل حجوزات مسبقة فقط حاليًا — يمكنك تصفح القائمة."
+                  : isMale ? "الشيف مغلق حاليًا، يمكنك تصفح القائمة فقط." : "الشيفة مغلقة حاليًا، يمكنك تصفح القائمة فقط."}
               </Text>
             </View>
           ) : null}
@@ -382,6 +394,7 @@ export default function ChefScreen() {
     chefName,
     isMale,
     isOpen,
+    isPreorderOnly,
     menu.length,
     onRefresh,
     router,
@@ -1093,4 +1106,4 @@ const s = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Almarai_800ExtraBold",
   },
-}); 
+});
