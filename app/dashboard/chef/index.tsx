@@ -28,11 +28,14 @@ const STATUS: any = {
   cancelled:      { label: "ملغي",                   color: "#E53935" },
 };
 
+
+
 const CHEF_STATUS = [
   { id: "open",          label: "مفتوح",          desc: "يستقبل طلبات فورية",          color: "#4CAF50" },
   { id: "preorder",      label: "حجز مسبق فقط",   desc: "للبوفيهات والمطابخ الكبيرة", color: "#F0A500" },
-  { id: "closed",        label: "غير متاح",        desc: "يختفي من القائمة كلياً",     color: "#E53935" },    color: "#E53935" },
+  { id: "closed",        label: "غير متاح",        desc: "يختفي من القائمة كلياً",     color: "#E53935" },
 ];
+
 
 const HOURS   = Array.from({ length: 15 }, (_, i) => i + 8);
 const MINUTES = ["00", "15", "30", "45"];
