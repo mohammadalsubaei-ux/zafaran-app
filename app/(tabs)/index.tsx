@@ -41,6 +41,7 @@ type Chef = {
   city?: string | null;
   neighborhood?: string | null;
   is_open?: boolean | null;
+  status?: "open" | "preorder" | "closed" | null;
   rating_avg?: number | string | null;
   total_orders?: number | string | null;
   users?: {
@@ -108,6 +109,22 @@ function formatPrice(value: unknown) {
   if (value === null || value === undefined || value === "") return "—";
   return String(value);
 }
+
+function getChefStatus(chef: Chef): "open" | "preorder" | "closed" {
+  if (chef.status === "open" || chef.status === "preorder" || chef.status === "closed") {
+    return chef.status;
+  }
+  return chef.is_open ? "open" : "closed";
+}
+
+const CHEF_STATUS_UI: Record<
+  "open" | "preorder" | "closed",
+  { bg: string; dot: string; text: string; label: string }
+> = {
+  open:     { bg: "#14351F", dot: "#4CAF50", text: "#8AF0A5", label: "متاح" },
+  preorder: { bg: "#3A2A0A", dot: "#F0A500", text: "#FFD27A", label: "حجز مسبق" },
+  closed:   { bg: "#381818", dot: "#E53935", text: "#FF9A9A", label: "مغلق" },
+};
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -329,7 +346,7 @@ export default function HomeScreen() {
           <View style={s.statCard}>
             <Award size={18} color="#F2B233" />
             <Text style={s.statValue}>
-              {chefs.filter((chef) => chef.is_open).length}
+              {chefs.filter((chef) => getChefStatus(chef) !== "closed").length}
             </Text>
             <Text style={s.statLabel}>متاح الآن</Text>
           </View>
@@ -426,6 +443,8 @@ export default function HomeScreen() {
       const city = safeText(item.city, "المدينة");
       const neighborhood = safeText(item.neighborhood, "الحي");
       const fullName = safeText(item.users?.full_name, "أسرة منتجة");
+      const statusKey = getChefStatus(item);
+      const statusUi = CHEF_STATUS_UI[statusKey];
 
       return (
         <TouchableOpacity
@@ -442,25 +461,10 @@ export default function HomeScreen() {
               <Text style={s.chefName} numberOfLines={1}>
                 {fullName}
               </Text>
-              <View
-                style={[
-                  s.statusPill,
-                  { backgroundColor: item.is_open ? "#14351F" : "#381818" },
-                ]}
-              >
-                <View
-                  style={[
-                    s.statusDot,
-                    { backgroundColor: item.is_open ? "#4CAF50" : "#E53935" },
-                  ]}
-                />
-                <Text
-                  style={[
-                    s.statusText,
-                    { color: item.is_open ? "#8AF0A5" : "#FF9A9A" },
-                  ]}
-                >
-                  {item.is_open ? "متاح" : "مغلق"}
+              <View style={[s.statusPill, { backgroundColor: statusUi.bg }]}>
+                <View style={[s.statusDot, { backgroundColor: statusUi.dot }]} />
+                <Text style={[s.statusText, { color: statusUi.text }]}>
+                  {statusUi.label}
                 </Text>
               </View>
             </View>
