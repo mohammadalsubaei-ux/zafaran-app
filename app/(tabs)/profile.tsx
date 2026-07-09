@@ -395,7 +395,7 @@ export default function ProfileScreen() {
           <TouchableOpacity
             activeOpacity={0.88}
             style={s.quickCard}
-            onPress={() => router.push("/orders" as any)}
+            onPress={() => router.push("/(tabs)/orders" as any)}
           >
             <PackageCheck size={23} color="#F2B233" />
             <Text style={s.quickTitle}>{t.orders}</Text>
@@ -434,7 +434,7 @@ export default function ProfileScreen() {
             title={t.orders}
             subtitle={t.ordersSub}
             Icon={PackageCheck}
-            onPress={() => router.push("/orders" as any)}
+            onPress={() => router.push("/(tabs)/orders" as any)}
           />
 
           <MenuItem
