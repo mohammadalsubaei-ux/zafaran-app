@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -44,6 +44,25 @@ import { useCart } from "@/context/CartContext";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 const FIXED_DELIVERY_FEE = 10;
+
+// نفس معادلة الباك إند بالضبط (Haversine + تدرّج المسافة) — لعرض تقدير دقيق للعميل
+function calcDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function calcEstimatedFee(distanceKm: number | null) {
+  if (distanceKm == null) return FIXED_DELIVERY_FEE; // احتياطي إذا ما توفرت الإحداثيات
+  if (distanceKm <= 4.99) return 10;
+  return 10 + Math.ceil(distanceKm - 4.99);
+}
 
 type DeliveryType = "delivery" | "pickup";
 type PaymentMethod = "stc_pay" | "apple_pay" | "card";
@@ -114,6 +133,23 @@ export default function CartScreen() {
   const [address, setAddress] = useState("");
   const [lat, setLat]         = useState<number | null>(null);
   const [lng, setLng]         = useState<number | null>(null);
+  const [chefLat, setChefLat] = useState<number | null>(null);
+  const [chefLng, setChefLng] = useState<number | null>(null);
+
+  // جلب إحداثيات الشيف مرة وحدة لحساب تقدير رسوم توصيل دقيق
+  useEffect(() => {
+    if (!chef_id) return;
+    fetch(`${API}/api/chefs/${chef_id}`)
+      .then(res => res.json())
+      .then(json => {
+        const chef = json?.data;
+        if (chef?.lat != null && chef?.lng != null) {
+          setChefLat(Number(chef.lat));
+          setChefLng(Number(chef.lng));
+        }
+      })
+      .catch(() => {});
+  }, [chef_id]);
 
   // حجز مسبق
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -130,8 +166,14 @@ export default function CartScreen() {
     return items.some(item => item.status === "preorder");
   }, [items]);
 
+  const estimatedDistanceKm = useMemo(() => {
+    if (deliveryType !== "delivery") return null;
+    if (lat == null || lng == null || chefLat == null || chefLng == null) return null;
+    return calcDistanceKm(chefLat, chefLng, lat, lng);
+  }, [deliveryType, lat, lng, chefLat, chefLng]);
+
   const subtotal    = Number(total || 0);
-  const deliveryFee = deliveryType === "delivery" ? FIXED_DELIVERY_FEE : 0;
+  const deliveryFee = deliveryType === "delivery" ? calcEstimatedFee(estimatedDistanceKm) : 0;
   const grandTotal  = useMemo(() => subtotal + deliveryFee, [subtotal, deliveryFee]);
 
   const chefName   = text(items?.[0]?.chef_name, "الشيف");
@@ -429,7 +471,7 @@ export default function CartScreen() {
                   onPress={() => setDeliveryType("delivery")}>
                   <Truck size={24} color={deliveryType === "delivery" ? "#F2B233" : "#6D4E2D"} />
                   <Text style={[s.deliveryTitle, deliveryType === "delivery" && s.deliveryTitleActive]}>توصيل</Text>
-                  <Text style={s.deliverySub}>+ {money(FIXED_DELIVERY_FEE)}</Text>
+                  <Text style={s.deliverySub}>+ {money(deliveryType === "delivery" ? deliveryFee : FIXED_DELIVERY_FEE)}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity activeOpacity={0.9}
                   style={[s.deliveryCard, deliveryType === "pickup" && s.deliveryCardActive]}
@@ -509,7 +551,9 @@ export default function CartScreen() {
                 <Text style={s.summaryValue}>{money(subtotal)}</Text>
               </View>
               <View style={s.summaryRow}>
-                <Text style={s.summaryLabel}>التوصيل</Text>
+                <Text style={s.summaryLabel}>
+                  التوصيل{estimatedDistanceKm != null ? ` (${estimatedDistanceKm.toFixed(1)} كم)` : ""}
+                </Text>
                 <Text style={s.summaryValue}>{money(deliveryFee)}</Text>
               </View>
               {hasPreorder && scheduledAt && (
