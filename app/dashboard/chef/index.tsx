@@ -159,9 +159,10 @@ export default function DashboardScreen() {
   const openTimeModal = (order: any, action: "confirm" | "propose") => {
     setTimeModalOrder(order);
     setTimeAction(action);
-    // إذا كان في وقت مطلوب من العميل، ابدأ به
-    if (order.requested_time) {
-      const d = new Date(order.requested_time);
+    // إذا كان في وقت مطلوب من العميل، ابدأ به (الباك إند يسميه proposed_time)
+    const requestedTime = order.proposed_time || order.requested_time
+    if (requestedTime) {
+      const d = new Date(requestedTime);
       setSelectedDate(d);
       setSelectedHour(d.getHours());
       setSelectedMinute(String(d.getMinutes()).padStart(2, "0"));
@@ -206,6 +207,63 @@ export default function DashboardScreen() {
   const currentStatus = CHEF_STATUS.find(s => s.id === chefStatus) || CHEF_STATUS[0];
 
   const getActions = (status: string, id: string, order: any) => {
+    const isPreorder = order.order_type === "preorder";
+    const negotiation = order.time_negotiation_status;
+
+    // طلب مسبق بانتظار رد الشيف الأول على الوقت
+    if (status === "pending" && isPreorder && negotiation === "pending") {
+      const requestedTime = order.proposed_time || order.requested_time;
+      return (
+        <View>
+          {requestedTime && (
+            <View style={s.requestedTimeBox}>
+              <CalendarDays size={14} color="#FF9800" strokeWidth={1.8} />
+              <Text style={s.requestedTimeText}>
+                الوقت المطلوب: {formatArabicDateTime(requestedTime)}
+              </Text>
+            </View>
+          )}
+          <View style={s.btns}>
+            <TouchableOpacity style={s.btnAcc} onPress={() => openTimeModal(order, "confirm")}>
+              <View style={s.btnInner}><CheckCircle2 size={14} color="#F0A500" /><Text style={s.btnText}>تأكيد الوقت</Text></View>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.btnProp} onPress={() => openTimeModal(order, "propose")}>
+              <View style={s.btnInner}><Clock3 size={14} color="#8BC34A" /><Text style={s.btnTextProp}>وقت بديل</Text></View>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={[s.btnRej, { marginTop: 8 }]} onPress={() => Alert.alert("رفض الحجز", "تبي ترفض طلب الحجز؟", [
+            { text: "لا", style: "cancel" },
+            { text: "نعم", style: "destructive", onPress: () => updateStatus(id, "cancelled") },
+          ])}>
+            <View style={s.btnInner}><X size={14} color="#E53935" /><Text style={s.btnTextRej}>رفض الحجز</Text></View>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    // الشيف اقترح وقت بديل — بانتظار رد العميل، ما فيه إجراء للشيف الحين
+    if (status === "pending" && isPreorder && negotiation === "chef_countered") {
+      return (
+        <View style={s.requestedTimeBox}>
+          <Clock3 size={14} color="#8BC34A" strokeWidth={1.8} />
+          <Text style={s.requestedTimeText}>
+            بانتظار رد العميل على الوقت البديل المقترح
+          </Text>
+        </View>
+      );
+    }
+
+    // العميل وافق على الوقت (أو الشيف أكده مباشرة) — بانتظار القبول الرسمي وبدء التحضير
+    if (status === "pending" && isPreorder && negotiation === "accepted") {
+      return (
+        <View style={s.btns}>
+          <TouchableOpacity style={s.btnAcc} onPress={() => updateStatus(id, "accepted")}>
+            <View style={s.btnInner}><Check size={14} color="#F0A500" /><Text style={s.btnText}>قبول وبدء التحضير</Text></View>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
     if (status === "pending") return (
       <View style={s.btns}>
         <TouchableOpacity style={s.btnAcc} onPress={() => Alert.alert("قبول الطلب", "تبي تقبل؟", [
@@ -223,42 +281,6 @@ export default function DashboardScreen() {
       </View>
     );
 
-    // حجز مسبق — بانتظار تأكيد الوقت
-    if (status === "pending_time") return (
-      <View>
-        {order.requested_time && (
-          <View style={s.requestedTimeBox}>
-            <CalendarDays size={14} color="#FF9800" strokeWidth={1.8} />
-            <Text style={s.requestedTimeText}>
-              الوقت المطلوب: {formatArabicDateTime(order.requested_time)}
-            </Text>
-          </View>
-        )}
-        <View style={s.btns}>
-          <TouchableOpacity style={s.btnAcc} onPress={() => openTimeModal(order, "confirm")}>
-            <View style={s.btnInner}><CheckCircle2 size={14} color="#F0A500" /><Text style={s.btnText}>تأكيد الوقت</Text></View>
-          </TouchableOpacity>
-          <TouchableOpacity style={s.btnProp} onPress={() => openTimeModal(order, "propose")}>
-            <View style={s.btnInner}><Clock3 size={14} color="#8BC34A" /><Text style={s.btnTextProp}>وقت بديل</Text></View>
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity style={[s.btnRej, { marginTop: 8 }]} onPress={() => Alert.alert("رفض الحجز", "تبي ترفض طلب الحجز؟", [
-          { text: "لا", style: "cancel" },
-          { text: "نعم", style: "destructive", onPress: () => updateStatus(id, "cancelled") },
-        ])}>
-          <View style={s.btnInner}><X size={14} color="#E53935" /><Text style={s.btnTextRej}>رفض الحجز</Text></View>
-        </TouchableOpacity>
-      </View>
-    );
-
-    // تم تأكيد الوقت — ينتظر القبول الرسمي
-    if (status === "time_confirmed") return (
-      <View style={s.btns}>
-        <TouchableOpacity style={s.btnAcc} onPress={() => updateStatus(id, "accepted")}>
-          <View style={s.btnInner}><Check size={14} color="#F0A500" /><Text style={s.btnText}>قبول وبدء التحضير</Text></View>
-        </TouchableOpacity>
-      </View>
-    );
 
     if (status === "accepted") return (
       <TouchableOpacity style={s.btnAcc} onPress={() => updateStatus(id, "preparing")}>
