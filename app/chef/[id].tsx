@@ -228,7 +228,8 @@ export default function ChefScreen() {
         `&description=${encodeURIComponent(text(item.description, ""))}` +
         `&image_url=${encodeURIComponent(text(item.image_url, ""))}` +
         `&chef_id=${encodeURIComponent(String(chef?.id || ""))}` +
-        `&chef_name=${encodeURIComponent(chefName)}`;
+        `&chef_name=${encodeURIComponent(chefName)}` +
+        `&status=${encodeURIComponent(text(item.status, "available"))}`;
 
       router.push(params as any);
     },

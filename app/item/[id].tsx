@@ -68,6 +68,7 @@ export default function ItemScreen() {
     const chefId = paramText(params.chef_id);
     const chefName = paramText(params.chef_name, "الشيف");
     const imageUrl = paramText(params.image_url, "");
+    const status = paramText(params.status, "available");
 
     return {
       id,
@@ -77,6 +78,7 @@ export default function ItemScreen() {
       chef_id: chefId,
       chef_name: chefName,
       image_url: imageUrl,
+      status,
     };
   }, [params]);
 
@@ -88,7 +90,7 @@ export default function ItemScreen() {
     return item.price * Math.max(qty, 1);
   }, [item.price, qty]);
 
-  const canAdd = Boolean(item.id && item.chef_id && item.price >= 0);
+  const canAdd = Boolean(item.id && item.chef_id && item.price >= 0 && item.status !== "unavailable");
 
   const goBack = useCallback(() => {
     router.back();
@@ -107,6 +109,7 @@ export default function ItemScreen() {
       chef_id: String(item.chef_id),
       chef_name: String(item.chef_name || ""),
       image_url: String(item.image_url || ""),
+      status: item.status,
     };
   }, [item]);
 
@@ -186,10 +189,20 @@ export default function ItemScreen() {
               {item.name}
             </Text>
 
-            <View style={s.statusBadge}>
-              <BadgeCheck size={13} color="#4CAF50" strokeWidth={1.8} />
-              <Text style={s.statusText}>متاحة</Text>
-            </View>
+            {(() => {
+              const STATUS_UI: Record<string, { bg: string; color: string; label: string }> = {
+                available: { bg: "rgba(76,175,80,0.12)",  color: "#4CAF50", label: "متاحة" },
+                preorder:  { bg: "rgba(240,165,0,0.12)",  color: "#F0A500", label: "حجز مسبق" },
+                unavailable: { bg: "rgba(229,57,53,0.12)", color: "#E53935", label: "غير متاحة" },
+              };
+              const ui = STATUS_UI[item.status] ?? STATUS_UI.available;
+              return (
+                <View style={[s.statusBadge, { backgroundColor: ui.bg }]}>
+                  <BadgeCheck size={13} color={ui.color} strokeWidth={1.8} />
+                  <Text style={[s.statusText, { color: ui.color }]}>{ui.label}</Text>
+                </View>
+              );
+            })()}
           </View>
 
           <View style={s.chefRow}>

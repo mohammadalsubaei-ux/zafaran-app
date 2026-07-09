@@ -316,7 +316,7 @@ export default function CartScreen() {
           isPreorder
             ? `طلبك للحجز المسبق ${orderId ? `#${orderId.slice(0, 8)}` : ""} بانتظار تأكيد الشيف للوقت.`
             : orderId ? `رقم طلبك: ${orderId.slice(0, 8)}` : "تم إرسال طلبك بنجاح",
-          [{ text: "متابعة الطلب", onPress: () => router.replace("/orders" as any) }]
+          [{ text: "متابعة الطلب", onPress: () => router.replace("/(tabs)/orders" as any) }]
         );
         return;
       }
