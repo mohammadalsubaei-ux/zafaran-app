@@ -41,6 +41,7 @@ import {
 } from "lucide-react-native";
 
 import { useCart } from "@/context/CartContext";
+import PaymentGateway, { PaymentMethod as GatewayMethod } from "@/components/PaymentGateway";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 const FIXED_DELIVERY_FEE = 10;
@@ -153,6 +154,8 @@ export default function CartScreen() {
 
   // حجز مسبق
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showPayment, setShowPayment]       = useState(false);
+  const [payingOrderId, setPayingOrderId]   = useState<string | null>(null);
   const [selectedDate, setSelectedDate]     = useState<Date | null>(null);
   const [selectedHour, setSelectedHour]     = useState<number>(12);
   const [selectedMinute, setSelectedMinute] = useState<string>("00");
@@ -310,14 +313,21 @@ export default function CartScreen() {
 
       if (json?.success) {
         const orderId = String(json?.data?.id || "");
-        clearCart();
-        Alert.alert(
-          isPreorder ? "تم إرسال طلب الحجز" : "تم إرسال الطلب",
-          isPreorder
-            ? `طلبك للحجز المسبق ${orderId ? `#${orderId.slice(0, 8)}` : ""} بانتظار تأكيد الشيف للوقت.`
-            : orderId ? `رقم طلبك: ${orderId.slice(0, 8)}` : "تم إرسال طلبك بنجاح",
-          [{ text: "متابعة الطلب", onPress: () => router.replace("/(tabs)/orders" as any) }]
-        );
+
+        if (isPreorder) {
+          // الطلب المسبق: ما يُدفع الآن — ينتظر تأكيد الشيف للوقت أولاً، والدفع يصير بعدها من شاشة الطلب
+          clearCart();
+          Alert.alert(
+            "تم إرسال طلب الحجز",
+            `طلبك للحجز المسبق ${orderId ? `#${orderId.slice(0, 8)}` : ""} بانتظار تأكيد الشيف للوقت. بتقدر تدفع بعد ما يتفق الطرفين على الموعد.`,
+            [{ text: "متابعة الطلب", onPress: () => router.replace("/(tabs)/orders" as any) }]
+          );
+          return;
+        }
+
+        // الطلب الفوري: افتح بوابة الدفع مباشرة
+        setPayingOrderId(orderId);
+        setShowPayment(true);
         return;
       }
 
@@ -328,6 +338,27 @@ export default function CartScreen() {
       setLoading(false);
     }
   }, [address, chef_id, clearCart, deliveryFee, deliveryType, grandTotal, hasPreorder, items, lat, lng, paymentMethod, router, scheduledAt, subtotal, validateOrder]);
+
+  const handlePaymentSuccess = useCallback(() => {
+    setShowPayment(false);
+    clearCart();
+    const orderId = payingOrderId;
+    setPayingOrderId(null);
+    Alert.alert(
+      "تم الطلب والدفع بنجاح",
+      orderId ? `رقم طلبك: ${orderId.slice(0, 8)}` : "تم إرسال طلبك بنجاح",
+      [{ text: "متابعة الطلب", onPress: () => router.replace("/(tabs)/orders" as any) }]
+    );
+  }, [clearCart, payingOrderId, router]);
+
+  const handlePaymentClose = useCallback(() => {
+    // فشل الدفع أو إلغاؤه: الطلب باقٍ بحالة "غير مدفوع"، يقدر يدفعه لاحقاً من شاشة الطلب
+    setShowPayment(false);
+    clearCart();
+    const orderId = payingOrderId;
+    setPayingOrderId(null);
+    router.replace(orderId ? (`/orders/${orderId}` as any) : ("/(tabs)/orders" as any));
+  }, [clearCart, payingOrderId, router]);
 
   if (!fontsLoaded) {
     return <SafeAreaView style={s.safe}><ActivityIndicator color="#F2B233" style={{ marginTop: 100 }} /></SafeAreaView>;
@@ -660,6 +691,14 @@ export default function CartScreen() {
           </View>
         </View>
       </Modal>
+
+      <PaymentGateway
+        visible={showPayment}
+        orderId={payingOrderId}
+        paymentMethod={paymentMethod as GatewayMethod}
+        onSuccess={handlePaymentSuccess}
+        onClose={handlePaymentClose}
+      />
     </SafeAreaView>
   );
 }

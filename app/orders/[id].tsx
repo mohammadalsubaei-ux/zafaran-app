@@ -14,6 +14,8 @@ import {
   Wallet, XCircle,
 } from "lucide-react-native";
 
+import PaymentGateway, { PaymentMethod as GatewayMethod } from "@/components/PaymentGateway";
+
 const API = "https://zafaran-backend-production.up.railway.app";
 const TRACKING_POLL_INTERVAL = 8000; // 8 ثواني
 
@@ -48,7 +50,9 @@ type Order = {
   notes?: string | null;
   order_type?: string | null;
   requested_time?: string | null;
+  proposed_time?: string | null;
   confirmed_time?: string | null;
+  time_negotiation_status?: "pending" | "chef_countered" | "accepted" | "rejected" | string | null;
   chefs?: {
     city?: string | null;
     neighborhood?: string | null;
@@ -199,6 +203,8 @@ export default function OrderDetailScreen() {
   const [error, setError]             = useState<string | null>(null);
   const [driverLocation, setDriverLocation] = useState<DriverLocation>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [respondLoading, setRespondLoading] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
 
   const trackingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -256,6 +262,33 @@ export default function OrderDetailScreen() {
     await loadOrder(true);
     if (order?.status === "delivering") await fetchDriverLocation();
   }, [loadOrder, order?.status, fetchDriverLocation]);
+
+  const respondToTime = useCallback(async (action: "accept" | "reject") => {
+    if (!orderId) return;
+    setRespondLoading(true);
+    try {
+      const res  = await fetch(`${API}/api/orders/${orderId}/respond-time`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const json = await res.json().catch(() => null);
+      if (json?.success) {
+        await loadOrder(true);
+      }
+    } finally {
+      setRespondLoading(false);
+    }
+  }, [orderId, loadOrder]);
+
+  const handlePaymentSuccess = useCallback(() => {
+    setShowPayment(false);
+    loadOrder(true);
+  }, [loadOrder]);
+
+  const handlePaymentClose = useCallback(() => {
+    setShowPayment(false);
+  }, []);
 
   const goBack      = useCallback(() => { router.back(); }, [router]);
   const orderItems  = useMemo(() => order?.order_items || order?.items || [], [order]);
@@ -384,24 +417,90 @@ export default function OrderDetailScreen() {
         )}
 
         {/* معلومات الحجز المسبق */}
-        {isPreorder && (order.requested_time || order.confirmed_time) && (
+        {isPreorder && (order.proposed_time || order.requested_time || order.confirmed_time) && (
           <View style={s.card}>
             <View style={s.cardTitleRow}>
               <CalendarDays size={17} color="#F2B233" strokeWidth={1.8} />
               <Text style={s.cardTitle}>وقت الحجز</Text>
             </View>
-            {order.requested_time && (
+            {(order.proposed_time || order.requested_time) && (
               <View style={s.timeRow}>
                 <Text style={s.timeLabel}>الوقت المطلوب</Text>
-                <Text style={s.timeValue}>{formatDateTime(order.requested_time)}</Text>
+                <Text style={s.timeValue}>{formatDateTime(order.proposed_time || order.requested_time || "")}</Text>
               </View>
             )}
-            {order.confirmed_time && (
+            {order.confirmed_time && order.time_negotiation_status === "accepted" && (
               <View style={[s.timeRow, { marginTop: 8 }]}>
                 <Text style={[s.timeLabel, { color: "#8BC34A" }]}>الوقت المؤكد</Text>
                 <Text style={[s.timeValue, { color: "#8BC34A" }]}>{formatDateTime(order.confirmed_time)}</Text>
               </View>
             )}
+
+            {/* الشيف اقترح وقتاً بديلاً — بانتظار رد العميل */}
+            {order.time_negotiation_status === "chef_countered" && order.confirmed_time && (
+              <View style={s.counterBox}>
+                <Text style={s.counterTitle}>الشيف اقترح وقتاً بديلاً</Text>
+                <Text style={s.counterTime}>{formatDateTime(order.confirmed_time)}</Text>
+                <Text style={s.counterSub}>وافق على الوقت الجديد أو ألغِ الطلب بدون أي رسوم</Text>
+
+                <View style={s.counterBtns}>
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    style={s.acceptBtn}
+                    disabled={respondLoading}
+                    onPress={() => respondToTime("accept")}
+                  >
+                    {respondLoading ? (
+                      <ActivityIndicator color="#17100B" size="small" />
+                    ) : (
+                      <Text style={s.acceptBtnText}>موافق على الوقت الجديد</Text>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    style={s.rejectBtn}
+                    disabled={respondLoading}
+                    onPress={() => respondToTime("reject")}
+                  >
+                    <Text style={s.rejectBtnText}>إلغاء الطلب</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* بانتظار رد الشيف على الوقت المقترح من العميل */}
+            {order.time_negotiation_status === "pending" && (
+              <View style={s.waitingBox}>
+                <Clock3 size={14} color="#F0A500" strokeWidth={1.8} />
+                <Text style={s.waitingText}>بانتظار تأكيد الشيف للوقت</Text>
+              </View>
+            )}
+
+            {/* الوقت اتفق عليه، بس الدفع لسا ما تم */}
+            {order.time_negotiation_status === "accepted" && order.payment_status !== "paid" && (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={s.payNowBtn}
+                onPress={() => setShowPayment(true)}
+              >
+                <CreditCard size={16} color="#17100B" strokeWidth={1.8} />
+                <Text style={s.payNowBtnText}>ادفع الآن لتأكيد الطلب</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* الطلب الفوري غير مدفوع (فشل أو أُلغي أثناء الدفع سابقاً) */}
+        {!isPreorder && order.payment_status !== "paid" && !isCancelled && (
+          <View style={s.card}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={s.payNowBtn}
+              onPress={() => setShowPayment(true)}
+            >
+              <CreditCard size={16} color="#17100B" strokeWidth={1.8} />
+              <Text style={s.payNowBtnText}>ادفع الآن</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -537,6 +636,14 @@ export default function OrderDetailScreen() {
           </TouchableOpacity>
         )}
       </ScrollView>
+
+      <PaymentGateway
+        visible={showPayment}
+        orderId={order.id}
+        paymentMethod={(order.payment_method as GatewayMethod) || "card"}
+        onSuccess={handlePaymentSuccess}
+        onClose={handlePaymentClose}
+      />
     </SafeAreaView>
   );
 }
@@ -572,6 +679,31 @@ const s = StyleSheet.create({
   timeRow:          { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center" },
   timeLabel:        { color: "#8A6030", fontSize: 12, fontFamily: "Almarai_400Regular" },
   timeValue:        { color: "#FDF0DC", fontSize: 13, fontFamily: "Almarai_700Bold" },
+
+  counterBox: {
+    marginTop: 12, backgroundColor: "rgba(240,165,0,0.08)", borderRadius: 16,
+    padding: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.25)",
+  },
+  counterTitle: { color: "#FFD27A", fontSize: 13, fontFamily: "Almarai_800ExtraBold", textAlign: "right" },
+  counterTime:  { color: "#FDF0DC", fontSize: 15, fontFamily: "Almarai_800ExtraBold", textAlign: "right", marginTop: 4 },
+  counterSub:   { color: "#A98961", fontSize: 11, fontFamily: "Almarai_400Regular", textAlign: "right", marginTop: 4, marginBottom: 10 },
+  counterBtns:  { flexDirection: "row-reverse", gap: 8 },
+  acceptBtn:    { flex: 1, backgroundColor: "#F2B233", borderRadius: 12, paddingVertical: 11, alignItems: "center" },
+  acceptBtnText:{ color: "#17100B", fontSize: 12, fontFamily: "Almarai_800ExtraBold" },
+  rejectBtn:    { flex: 1, backgroundColor: "rgba(229,57,53,0.12)", borderRadius: 12, paddingVertical: 11, alignItems: "center", borderWidth: 1, borderColor: "rgba(229,57,53,0.3)" },
+  rejectBtnText:{ color: "#FF9A9A", fontSize: 12, fontFamily: "Almarai_800ExtraBold" },
+
+  waitingBox: {
+    marginTop: 12, flexDirection: "row-reverse", alignItems: "center", gap: 6,
+    backgroundColor: "rgba(240,165,0,0.08)", borderRadius: 14, padding: 12,
+  },
+  waitingText: { color: "#FFD27A", fontSize: 12, fontFamily: "Almarai_700Bold" },
+
+  payNowBtn: {
+    marginTop: 12, flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: "#F2B233", borderRadius: 14, paddingVertical: 13,
+  },
+  payNowBtnText: { color: "#17100B", fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
   timeline:         { gap: 0 },
   trackItem:        { minHeight: 56, flexDirection: "row-reverse", alignItems: "center", position: "relative" },
   trackIcon:        { width: 40, height: 40, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "#17100B", borderWidth: 1, borderColor: "rgba(242,178,51,0.1)", zIndex: 2 },
