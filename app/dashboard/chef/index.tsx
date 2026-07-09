@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View, Text, FlatList, StyleSheet, SafeAreaView,
   ActivityIndicator, TouchableOpacity, Alert, Modal,
-  ScrollView, RefreshControl,
+  ScrollView, RefreshControl, Switch,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -11,7 +11,7 @@ import {
 } from "@expo-google-fonts/almarai";
 import {
   RefreshCw, ChevronDown, UtensilsCrossed, Package, ClipboardList,
-  Check, X, Flame, Star, LogOut, CalendarDays, Clock3, CheckCircle2,
+  Check, X, Flame, Star, LogOut, CalendarDays, Clock3, CheckCircle2, Coffee,
 } from "lucide-react-native";
 
 const API = "https://zafaran-backend-production.up.railway.app";
@@ -143,6 +143,20 @@ export default function DashboardScreen() {
       setChefStatus(newStatus);
       setShowStatus(false);
       Alert.alert("تم التحديث", `حالتك الآن: ${CHEF_STATUS.find(s => s.id === newStatus)?.label}`);
+    }
+  };
+
+  const toggleDrinks = async (value: boolean) => {
+    if (!chefId) return;
+    setChef((prev: any) => ({ ...prev, offers_drinks: value })); // تحديث فوري بالواجهة
+    const res  = await fetch(`${API}/api/chefs/${chefId}/offers`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ offers_drinks: value }),
+    });
+    const json = await res.json();
+    if (!json.success) {
+      setChef((prev: any) => ({ ...prev, offers_drinks: !value })); // تراجع لو فشل
+      Alert.alert("خطأ", json.message || "تعذر التحديث");
     }
   };
 
@@ -305,7 +319,7 @@ export default function DashboardScreen() {
         <TouchableOpacity onPress={handleLogout} style={s.logoutBtn}>
           <LogOut size={18} color="#E53935" strokeWidth={1.8} />
         </TouchableOpacity>
-        <Text style={s.title}>لوحة الشيف</Text>
+        <Text style={s.title}>{chef?.offers_drinks ? "لوحة الباريستا" : "لوحة الشيف"}</Text>
         <TouchableOpacity onPress={() => load(true)} style={s.refreshBtn}>
           <RefreshCw size={18} color="#F0A500" />
         </TouchableOpacity>
@@ -322,6 +336,19 @@ export default function DashboardScreen() {
           <Text style={s.statusDesc}>{currentStatus.desc}</Text>
         </View>
       </TouchableOpacity>
+
+      <View style={s.drinksBar}>
+        <Switch
+          value={Boolean(chef?.offers_drinks)}
+          onValueChange={toggleDrinks}
+          trackColor={{ false: "#3A2A1A", true: "#F0A50055" }}
+          thumbColor={chef?.offers_drinks ? "#F0A500" : "#8A6030"}
+        />
+        <View style={s.drinksInfo}>
+          <Coffee size={15} color="#F0A500" strokeWidth={1.8} />
+          <Text style={s.drinksText}>أقدّم مشروبات (باريستا)</Text>
+        </View>
+      </View>
 
       <TouchableOpacity style={s.menuBtn} onPress={() => router.push("/menu" as any)}>
         <View style={s.btnInner}>
@@ -540,6 +567,9 @@ const s = StyleSheet.create({
   refreshBtn:        { padding: 4 },
   logoutBtn:         { padding: 4 },
   statusBar:         { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", margin: 16, backgroundColor: "#1C1000", borderRadius: 16, padding: 16, borderWidth: 1 },
+  drinksBar:         { flexDirection: "row-reverse", alignItems: "center", gap: 10, marginHorizontal: 16, marginBottom: 12, backgroundColor: "#1C1000", borderRadius: 14, padding: 12, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)" },
+  drinksInfo:        { flexDirection: "row-reverse", alignItems: "center", gap: 6, flex: 1 },
+  drinksText:        { color: "#FDF0DC", fontSize: 13, fontFamily: "Almarai_700Bold" },
   statusTitle:       { fontSize: 11, color: "#8A6030", textAlign: "right", fontFamily: "Almarai_400Regular", marginBottom: 4 },
   statusVal:         { fontSize: 15, fontWeight: "800", textAlign: "right", fontFamily: "Almarai_700Bold" },
   statusDesc:        { fontSize: 11, color: "#8A6030", textAlign: "right", fontFamily: "Almarai_400Regular", marginTop: 2 },
