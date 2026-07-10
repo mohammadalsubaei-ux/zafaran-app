@@ -353,7 +353,7 @@ export default function DashboardScreen() {
       <TouchableOpacity style={s.menuBtn} onPress={() => router.push("/menu" as any)}>
         <View style={s.btnInner}>
           <UtensilsCrossed size={16} color="#F0A500" />
-          <Text style={s.menuBtnText}>ادارة وجباتي</Text>
+          <Text style={s.menuBtnText}>قائمتي</Text>
         </View>
       </TouchableOpacity>
 

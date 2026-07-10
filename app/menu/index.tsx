@@ -493,7 +493,7 @@ export default function MenuScreen() {
                 <UtensilsCrossed size={18} color="#F2B233" strokeWidth={1.8} />
               </View>
               <View style={s.heroInfo}>
-                <Text style={s.heroTitle}>إدارة قائمة الطعام</Text>
+                <Text style={s.heroTitle}>قائمتي</Text>
                 <Text style={s.heroSub}>أضف وجباتك، حدّث الأسعار، وارفع صور جذابة للعملاء.</Text>
               </View>
             </View>
