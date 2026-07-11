@@ -127,11 +127,11 @@ export default function DriverScreen() {
       if (!u) return;
       const user = JSON.parse(u);
       // جلب من جدول drivers
-      const res  = await fetch(`${API}/api/drivers?user_id=${user.id}`);
+      const res  = await fetch(`${API}/api/drivers/user/${user.id}`);
       const json = await res.json().catch(() => null);
-      if (json?.success && json.data?.length > 0) {
-        setDriverId(json.data[0].id);
-        await AsyncStorage.setItem("driver_id", json.data[0].id);
+      if (json?.success && json.data?.id) {
+        setDriverId(json.data.id);
+        await AsyncStorage.setItem("driver_id", json.data.id);
       } else {
         // استخدم user.id مؤقتاً
         setDriverId(user.id);
@@ -157,8 +157,17 @@ export default function DriverScreen() {
   }, [lang]);
 
   const saveAvailability = useCallback(async (value: boolean) => {
-    try { await AsyncStorage.setItem(AVAILABILITY_KEY, value ? "true" : "false"); } catch {}
-  }, []);
+    try {
+      await AsyncStorage.setItem(AVAILABILITY_KEY, value ? "true" : "false");
+      if (driverId) {
+        await fetch(`${API}/api/drivers/${driverId}/availability`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_available: value }),
+        });
+      }
+    } catch {}
+  }, [driverId]);
 
   const loadOrders = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -177,7 +186,8 @@ export default function DriverScreen() {
         setError(tr("loadError", lang)); return;
       }
       setReadyOrders(readyJson?.success     ? readyJson.data      || [] : []);
-      setMyOrders(deliveringJson?.success   ? deliveringJson.data || [] : []);
+      const allDelivering = deliveringJson?.success ? deliveringJson.data || [] : [];
+      setMyOrders(driverId ? allDelivering.filter((o: any) => o.driver_id === driverId) : allDelivering);
       setHistoryOrders(deliveredJson?.success ? deliveredJson.data || [] : []);
     } catch {
       setError(tr("connectionError", lang));
@@ -185,7 +195,7 @@ export default function DriverScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [lang]);
+  }, [lang, driverId]);
 
   useEffect(() => { loadSettings(); loadDriverId(); }, [loadSettings, loadDriverId]);
   useEffect(() => { loadOrders(false); }, [loadOrders]);
@@ -256,13 +266,20 @@ export default function DriverScreen() {
   }, []);
 
   const updateStatus = useCallback(async (orderId: string, status: "delivering" | "delivered") => {
+    if (!driverId) {
+      Alert.alert(tr("error", lang), tr("updateError", lang));
+      return;
+    }
+
     setActionOrderId(orderId);
     try {
-      const res  = await fetch(`${API}/api/orders/${orderId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
+      // نستخدم مسارات المندوب المخصصة (بدل تعديل حالة الطلب العام مباشرة)
+      // عشان يترابط driver_id بالطلب فعلياً وتتحدث أرباح/إحصائيات المندوب
+      const endpoint = status === "delivering"
+        ? `${API}/api/drivers/${driverId}/accept/${orderId}`
+        : `${API}/api/drivers/${driverId}/delivered/${orderId}`;
+
+      const res  = await fetch(endpoint, { method: "POST" });
       const json = await res.json().catch(() => null);
 
       if (res.ok && json?.success) {
@@ -283,7 +300,7 @@ export default function DriverScreen() {
     } finally {
       setActionOrderId(null);
     }
-  }, [lang, loadOrders, startTracking, stopTracking]);
+  }, [driverId, lang, loadOrders, startTracking, stopTracking]);
 
   const openMap = useCallback((lat?: number, lng?: number) => {
     if (!lat || !lng) { Alert.alert(tr("error", lang), tr("noLocation", lang)); return; }
