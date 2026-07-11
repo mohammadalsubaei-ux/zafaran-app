@@ -374,11 +374,8 @@ export default function DriverScreen() {
           </View>
 
           <View style={s.totalBox}>
-            <Text style={s.totalValue}>{money(item.total)} {tr("sar", lang)}</Text>
-            <Text style={s.totalLabel}>{tr("total", lang)}</Text>
-            {Number(item.driver_share || 0) > 0 && (
-              <Text style={s.driverShare}>{tr("myShare", lang)}: {money(item.driver_share)} {tr("sar", lang)}</Text>
-            )}
+            <Text style={s.totalValue}>{money(item.driver_share)} {tr("sar", lang)}</Text>
+            <Text style={s.totalLabel}>{tr("myShare", lang)}</Text>
           </View>
         </View>
 
