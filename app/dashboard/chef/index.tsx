@@ -144,19 +144,42 @@ export default function DashboardScreen() {
   };
 
   const openLocationMap = async () => {
-    // نبدأ من موقع الشيف الحالي المحفوظ لو موجود، وإلا موقع الجوال الحين
-    if (chef?.lat && chef?.lng) {
-      setMapRegion({ latitude: chef.lat, longitude: chef.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 });
-      setSelectedLocation({ lat: chef.lat, lng: chef.lng });
-    } else {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
+    // نطلب موقع الجوال الحالي فعلياً دايماً (نفس سلوك شاشة العميل) —
+    // بدل الاعتماد بصمت على إحداثيات قديمة قد تكون بيانات تجريبية غير حقيقية
+    const { status } = await Location.requestForegroundPermissionsAsync();
+
+    if (status === "granted") {
+      try {
         const loc = await Location.getCurrentPositionAsync({});
         setMapRegion({ latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 });
         setSelectedLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+      } catch {
+        // فشل جلب GPS — نرجع للموقع المحفوظ سابقاً لو موجود
+        if (chef?.lat && chef?.lng) {
+          setMapRegion({ latitude: chef.lat, longitude: chef.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+          setSelectedLocation({ lat: chef.lat, lng: chef.lng });
+        }
       }
+    } else if (chef?.lat && chef?.lng) {
+      // ما أعطى إذن الموقع — نعرض آخر موقع محفوظ إن وجد
+      setMapRegion({ latitude: chef.lat, longitude: chef.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+      setSelectedLocation({ lat: chef.lat, lng: chef.lng });
+    } else {
+      Alert.alert("إذن الموقع مطلوب", "فعّل إذن الموقع من إعدادات الجوال، أو حدد موقعك يدوياً على الخريطة.");
     }
+
     setShowLocationMap(true);
+  };
+
+  const useMyCurrentLocation = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("إذن الموقع مطلوب", "فعّل إذن الموقع من إعدادات الجوال.");
+      return;
+    }
+    const loc = await Location.getCurrentPositionAsync({});
+    setMapRegion({ latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+    setSelectedLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
   };
 
   const handleMapPress = (e: any) => {
@@ -649,6 +672,10 @@ export default function DashboardScreen() {
 
           <View style={s.mapFooter}>
             <Text style={s.mapHint}>اضغط على الخريطة لتحديد موقع مطبخك بدقة</Text>
+            <TouchableOpacity style={s.useCurrentBtn} onPress={useMyCurrentLocation}>
+              <MapPin size={14} color="#F0A500" strokeWidth={1.8} />
+              <Text style={s.useCurrentBtnText}>استخدم موقعي الحالي</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={s.saveLocationBtn}
               onPress={saveLocation}
@@ -686,6 +713,8 @@ const s = StyleSheet.create({
   mapHint:            { color: "#A98961", fontSize: 12, fontFamily: "Almarai_400Regular", textAlign: "center", marginBottom: 12 },
   saveLocationBtn:     { backgroundColor: "#F2B233", borderRadius: 14, paddingVertical: 14, alignItems: "center" },
   saveLocationBtnText: { color: "#17100B", fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
+  useCurrentBtn:       { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 10, paddingVertical: 10 },
+  useCurrentBtnText:   { color: "#F0A500", fontSize: 13, fontFamily: "Almarai_700Bold" },
   statusTitle:       { fontSize: 11, color: "#8A6030", textAlign: "right", fontFamily: "Almarai_400Regular", marginBottom: 4 },
   statusVal:         { fontSize: 15, fontWeight: "800", textAlign: "right", fontFamily: "Almarai_700Bold" },
   statusDesc:        { fontSize: 11, color: "#8A6030", textAlign: "right", fontFamily: "Almarai_400Regular", marginTop: 2 },
