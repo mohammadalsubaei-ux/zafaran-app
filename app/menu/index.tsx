@@ -18,6 +18,7 @@ import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import {
   Almarai_400Regular,
   Almarai_700Bold,
@@ -280,7 +281,20 @@ export default function MenuScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true, aspect: [4, 3], quality: 0.75,
     });
-    if (!result.canceled) setImageUri(result.assets[0].uri);
+    if (result.canceled) return;
+
+    try {
+      // نصغّر الصورة لعرض أقصى 1200px + ضغط 0.7 — يقلل الحجم كثير بدون تأثير ملحوظ على الجودة
+      const manipulated = await ImageManipulator.manipulateAsync(
+        result.assets[0].uri,
+        [{ resize: { width: 1200 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      setImageUri(manipulated.uri);
+    } catch {
+      // لو فشل التصغير لأي سبب، نستخدم الصورة الأصلية بدل ما نوقف المستخدم بالكامل
+      setImageUri(result.assets[0].uri);
+    }
   }, [saving, uploading]);
 
   const uploadImage = useCallback(async (uri: string): Promise<string | null> => {

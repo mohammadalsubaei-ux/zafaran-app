@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator,
-  Alert, ScrollView
+  Alert, ScrollView, Modal, FlatList
 } from "react-native";
 import Svg, { Path, Ellipse } from "react-native-svg";
 import { useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold } from "@expo-google-fonts/almarai";
@@ -38,6 +38,15 @@ export default function LoginScreen() {
   const [name, setName]                 = useState("");
   const [gender, setGender]             = useState<"male" | "female">("male");
   const [city, setCity]                 = useState("");
+  const [cities, setCities]             = useState<{ id: number; name_ar: string }[]>([]);
+  const [showCityPicker, setShowCityPicker] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API}/api/cities`)
+      .then((res) => res.json())
+      .then((json) => { if (json?.success) setCities(json.data || []); })
+      .catch(() => {});
+  }, []);
   const [neighborhood, setNeighborhood] = useState("");
   const [loading, setLoading]           = useState(false);
   const router = useRouter();
@@ -225,9 +234,11 @@ export default function LoginScreen() {
               </View>
               <GenderPicker />
               <Text style={s.label}>المدينة</Text>
-              <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="بريدة، عنيزة، ..." placeholderTextColor="#5A3A18" value={city} onChangeText={setCity} textAlign="right"/>
-              </View>
+              <TouchableOpacity style={s.inputWrap} onPress={() => setShowCityPicker(true)} activeOpacity={0.8}>
+                <Text style={[s.input, { color: city ? "#FDF0DC" : "#5A3A18", paddingVertical: 14 }]}>
+                  {city || "اختر مدينتك"}
+                </Text>
+              </TouchableOpacity>
               <Text style={s.label}>الحي</Text>
               <View style={s.inputWrap}>
                 <TextInput style={s.input} placeholder="حي النرجس، ..." placeholderTextColor="#5A3A18" value={neighborhood} onChangeText={setNeighborhood} textAlign="right"/>
@@ -268,9 +279,11 @@ export default function LoginScreen() {
             </View>
             <GenderPicker />
             <Text style={s.label}>المدينة</Text>
-            <View style={s.inputWrap}>
-              <TextInput style={s.input} placeholder="بريدة، عنيزة، ..." placeholderTextColor="#5A3A18" value={city} onChangeText={setCity} textAlign="right"/>
-            </View>
+            <TouchableOpacity style={s.inputWrap} onPress={() => setShowCityPicker(true)} activeOpacity={0.8}>
+              <Text style={[s.input, { color: city ? "#FDF0DC" : "#5A3A18", paddingVertical: 14 }]}>
+                {city || "اختر مدينتك"}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity style={[s.btn, { backgroundColor: "#2196F3" }]} onPress={() => handleRegister("driver")} disabled={loading}>
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>تسجيل كمندوب</Text>}
             </TouchableOpacity>
@@ -280,6 +293,30 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal visible={showCityPicker} transparent animationType="fade" onRequestClose={() => setShowCityPicker(false)}>
+        <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setShowCityPicker(false)}>
+          <View style={s.modalBox}>
+            <Text style={s.modalTitle}>اختر مدينتك</Text>
+            <FlatList
+              data={cities}
+              keyExtractor={(item) => String(item.id)}
+              style={{ maxHeight: 360 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={s.cityRow}
+                  onPress={() => { setCity(item.name_ar); setShowCityPicker(false); }}
+                >
+                  <Text style={[s.cityRowText, city === item.name_ar && { color: "#F0A500" }]}>
+                    {item.name_ar}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={<ActivityIndicator color="#F0A500" style={{ marginVertical: 20 }} />}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -311,4 +348,13 @@ const s = StyleSheet.create({
   genderBtnActive:   { backgroundColor: "rgba(240,165,0,0.12)", borderColor: "rgba(240,165,0,0.4)" },
   genderLabel:       { fontSize: 12, color: "#8A6030", fontFamily: "Almarai_700Bold" },
   genderLabelActive: { color: "#F0A500" },
+
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
+  modalBox: {
+    backgroundColor: "#1C0F00", borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 20, paddingBottom: 32, borderTopWidth: 1, borderColor: "rgba(240,165,0,0.15)",
+  },
+  modalTitle: { fontSize: 16, fontWeight: "800", color: "#FDF0DC", textAlign: "right", marginBottom: 14, fontFamily: "Almarai_800ExtraBold" },
+  cityRow: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.08)" },
+  cityRowText: { fontSize: 15, color: "#FDF0DC", textAlign: "right", fontFamily: "Almarai_400Regular" },
 });
