@@ -6,12 +6,16 @@ import {
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
+const isWeb = require('react-native').Platform.OS === 'web';
+const MapView = isWeb ? () => null : require('react-native-maps').default;
+const Marker  = isWeb ? () => null : require('react-native-maps').Marker;
 import {
   useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold
 } from "@expo-google-fonts/almarai";
 import {
   RefreshCw, ChevronDown, UtensilsCrossed, Package, ClipboardList,
-  Check, X, Flame, Star, LogOut, CalendarDays, Clock3, CheckCircle2, Coffee,
+  Check, X, Flame, Star, LogOut, CalendarDays, Clock3, CheckCircle2, Coffee, MapPin,
 } from "lucide-react-native";
 
 const API = "https://zafaran-backend-production.up.railway.app";
@@ -61,6 +65,13 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing]   = useState(false);
   const [chefId, setChefId]           = useState<string | null>(null);
   const [chef, setChef]               = useState<any>(null);
+  const [showLocationMap, setShowLocationMap] = useState(false);
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 26.3260, longitude: 43.9750,
+    latitudeDelta: 0.01, longitudeDelta: 0.01,
+  });
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [savingLocation, setSavingLocation] = useState(false);
   const [chefStatus, setChefStatus]   = useState("open");
   const [showStatus, setShowStatus]   = useState(false);
   const [tab, setTab]                 = useState<"active" | "history">("active");
@@ -130,6 +141,51 @@ export default function DashboardScreen() {
         router.replace("/login");
       }},
     ]);
+  };
+
+  const openLocationMap = async () => {
+    // نبدأ من موقع الشيف الحالي المحفوظ لو موجود، وإلا موقع الجوال الحين
+    if (chef?.lat && chef?.lng) {
+      setMapRegion({ latitude: chef.lat, longitude: chef.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+      setSelectedLocation({ lat: chef.lat, lng: chef.lng });
+    } else {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        const loc = await Location.getCurrentPositionAsync({});
+        setMapRegion({ latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+        setSelectedLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+      }
+    }
+    setShowLocationMap(true);
+  };
+
+  const handleMapPress = (e: any) => {
+    const { latitude, longitude } = e.nativeEvent.coordinate;
+    setSelectedLocation({ lat: latitude, lng: longitude });
+  };
+
+  const saveLocation = async () => {
+    if (!chefId || !selectedLocation) return;
+    setSavingLocation(true);
+    try {
+      const res  = await fetch(`${API}/api/chefs/${chefId}/location`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lat: selectedLocation.lat, lng: selectedLocation.lng }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setChef((prev: any) => ({ ...prev, lat: selectedLocation.lat, lng: selectedLocation.lng }));
+        setShowLocationMap(false);
+        Alert.alert("تم", "تم تحديث موقعك بنجاح");
+      } else {
+        Alert.alert("خطأ", json.message || "تعذر حفظ الموقع");
+      }
+    } catch {
+      Alert.alert("خطأ", "تعذر الاتصال بالخادم");
+    } finally {
+      setSavingLocation(false);
+    }
   };
 
   const changeStatus = async (newStatus: string) => {
@@ -350,6 +406,15 @@ export default function DashboardScreen() {
         </View>
       </View>
 
+      <TouchableOpacity style={s.locationBtn} onPress={openLocationMap}>
+        <View style={s.btnInner}>
+          <MapPin size={16} color={chef?.lat && chef?.lng ? "#4CAF50" : "#E53935"} strokeWidth={1.8} />
+          <Text style={s.locationBtnText}>
+            {chef?.lat && chef?.lng ? "تحديث موقعي على الخريطة" : "⚠️ حدد موقعك الآن (مطلوب لحساب التوصيل)"}
+          </Text>
+        </View>
+      </TouchableOpacity>
+
       <TouchableOpacity style={s.menuBtn} onPress={() => router.push("/menu" as any)}>
         <View style={s.btnInner}>
           <UtensilsCrossed size={16} color="#F0A500" />
@@ -556,6 +621,46 @@ export default function DashboardScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* مودال تحديد الموقع على الخريطة */}
+      <Modal visible={showLocationMap} animationType="slide">
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#17100B" }}>
+          <View style={s.mapHeader}>
+            <TouchableOpacity onPress={() => setShowLocationMap(false)}>
+              <Text style={s.mapHeaderBtn}>✕ إلغاء</Text>
+            </TouchableOpacity>
+            <Text style={s.mapHeaderTitle}>حدد موقع مطبخك</Text>
+            <View style={{ width: 60 }} />
+          </View>
+
+          <MapView
+            style={{ flex: 1 }}
+            region={mapRegion}
+            onPress={handleMapPress}
+            showsUserLocation
+          >
+            {selectedLocation && (
+              <Marker
+                coordinate={{ latitude: selectedLocation.lat, longitude: selectedLocation.lng }}
+                pinColor="#F0A500"
+              />
+            )}
+          </MapView>
+
+          <View style={s.mapFooter}>
+            <Text style={s.mapHint}>اضغط على الخريطة لتحديد موقع مطبخك بدقة</Text>
+            <TouchableOpacity
+              style={s.saveLocationBtn}
+              onPress={saveLocation}
+              disabled={!selectedLocation || savingLocation}
+            >
+              {savingLocation
+                ? <ActivityIndicator color="#17100B" />
+                : <Text style={s.saveLocationBtnText}>حفظ الموقع</Text>}
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -570,6 +675,17 @@ const s = StyleSheet.create({
   drinksBar:         { flexDirection: "row-reverse", alignItems: "center", gap: 10, marginHorizontal: 16, marginBottom: 12, backgroundColor: "#1C1000", borderRadius: 14, padding: 12, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)" },
   drinksInfo:        { flexDirection: "row-reverse", alignItems: "center", gap: 6, flex: 1 },
   drinksText:        { color: "#FDF0DC", fontSize: 13, fontFamily: "Almarai_700Bold" },
+
+  locationBtn:        { marginHorizontal: 16, marginBottom: 12, backgroundColor: "#1C1000", borderRadius: 14, padding: 13, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)" },
+  locationBtnText:     { color: "#FDF0DC", fontSize: 13, fontFamily: "Almarai_700Bold" },
+
+  mapHeader:          { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1, borderBottomColor: "rgba(242,178,51,0.1)" },
+  mapHeaderBtn:        { color: "#F0A500", fontSize: 14, fontFamily: "Almarai_700Bold" },
+  mapHeaderTitle:      { color: "#FDF0DC", fontSize: 15, fontFamily: "Almarai_800ExtraBold" },
+  mapFooter:          { padding: 16, backgroundColor: "#1C1000", borderTopWidth: 1, borderTopColor: "rgba(242,178,51,0.1)" },
+  mapHint:            { color: "#A98961", fontSize: 12, fontFamily: "Almarai_400Regular", textAlign: "center", marginBottom: 12 },
+  saveLocationBtn:     { backgroundColor: "#F2B233", borderRadius: 14, paddingVertical: 14, alignItems: "center" },
+  saveLocationBtnText: { color: "#17100B", fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
   statusTitle:       { fontSize: 11, color: "#8A6030", textAlign: "right", fontFamily: "Almarai_400Regular", marginBottom: 4 },
   statusVal:         { fontSize: 15, fontWeight: "800", textAlign: "right", fontFamily: "Almarai_700Bold" },
   statusDesc:        { fontSize: 11, color: "#8A6030", textAlign: "right", fontFamily: "Almarai_400Regular", marginTop: 2 },
