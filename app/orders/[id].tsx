@@ -16,6 +16,11 @@ import {
 
 import PaymentGateway, { PaymentMethod as GatewayMethod } from "@/components/PaymentGateway";
 
+const isWeb = require('react-native').Platform.OS === 'web';
+const MapView   = isWeb ? () => null : require('react-native-maps').default;
+const Marker    = isWeb ? () => null : require('react-native-maps').Marker;
+const Polyline  = isWeb ? () => null : require('react-native-maps').Polyline;
+
 const API = "https://zafaran-backend-production.up.railway.app";
 const TRACKING_POLL_INTERVAL = 8000; // 8 ثواني
 
@@ -155,40 +160,62 @@ function SimpleMap({ driverLat, driverLng, destLat, destLng }: {
   driverLat: number; driverLng: number;
   destLat?: number | null; destLng?: number | null;
 }) {
-  const mapUrl = destLat && destLng
-    ? `https://maps.google.com/maps?q=${driverLat},${driverLng}&z=15&output=embed`
-    : `https://maps.google.com/maps?q=${driverLat},${driverLng}&z=15&output=embed`;
+  const hasDest = destLat != null && destLng != null;
+
+  // نطاق الخريطة يشمل المندوب والوجهة مع بعض إذا متوفرة، وإلا يتمركز على المندوب بس
+  const midLat = hasDest ? (driverLat + destLat!) / 2 : driverLat;
+  const midLng = hasDest ? (driverLng + destLng!) / 2 : driverLng;
+  const latDelta = hasDest ? Math.max(Math.abs(driverLat - destLat!) * 1.8, 0.01) : 0.01;
+  const lngDelta = hasDest ? Math.max(Math.abs(driverLng - destLng!) * 1.8, 0.01) : 0.01;
 
   return (
     <View style={ms.mapWrap}>
-      <View style={ms.mapPlaceholder}>
-        <Truck size={32} color="#F2B233" strokeWidth={1.8} />
-        <Text style={ms.mapTitle}>المندوب في الطريق</Text>
-        <Text style={ms.mapCoords}>
-          {driverLat.toFixed(4)}, {driverLng.toFixed(4)}
-        </Text>
-        <TouchableOpacity
-          style={ms.openMapBtn}
-          onPress={() => {
-            const { Linking } = require("react-native");
-            Linking.openURL(`https://www.google.com/maps?q=${driverLat},${driverLng}`);
-          }}
-          activeOpacity={0.9}
-        >
-          <Navigation size={14} color="#17100B" strokeWidth={2} />
-          <Text style={ms.openMapBtnText}>تتبع على الخريطة</Text>
-        </TouchableOpacity>
-      </View>
+      <MapView
+        style={ms.map}
+        region={{ latitude: midLat, longitude: midLng, latitudeDelta: latDelta, longitudeDelta: lngDelta }}
+      >
+        <Marker coordinate={{ latitude: driverLat, longitude: driverLng }} title="المندوب" pinColor="#03A9F4">
+          <View style={ms.driverPin}>
+            <Truck size={16} color="#17100B" strokeWidth={2} />
+          </View>
+        </Marker>
+
+        {hasDest && (
+          <Marker coordinate={{ latitude: destLat!, longitude: destLng! }} title="موقع التسليم" pinColor="#F2B233" />
+        )}
+
+        {hasDest && (
+          <Polyline
+            coordinates={[
+              { latitude: driverLat, longitude: driverLng },
+              { latitude: destLat!, longitude: destLng! },
+            ]}
+            strokeColor="#03A9F4"
+            strokeWidth={3}
+          />
+        )}
+      </MapView>
+
+      <TouchableOpacity
+        style={ms.openMapBtn}
+        onPress={() => {
+          const { Linking } = require("react-native");
+          Linking.openURL(`https://www.google.com/maps?q=${driverLat},${driverLng}`);
+        }}
+        activeOpacity={0.9}
+      >
+        <Navigation size={13} color="#17100B" strokeWidth={2} />
+        <Text style={ms.openMapBtnText}>فتح بخرائط جوجل</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const ms = StyleSheet.create({
   mapWrap:        { borderRadius: 18, overflow: "hidden", marginBottom: 4 },
-  mapPlaceholder: { backgroundColor: "#111C22", borderRadius: 18, padding: 20, alignItems: "center", gap: 8, borderWidth: 1, borderColor: "rgba(3,169,244,0.25)" },
-  mapTitle:       { color: "#FDF0DC", fontSize: 15, fontFamily: "Almarai_800ExtraBold" },
-  mapCoords:      { color: "#8A6030", fontSize: 11, fontFamily: "Almarai_400Regular" },
-  openMapBtn:     { flexDirection: "row-reverse", alignItems: "center", gap: 6, backgroundColor: "#03A9F4", paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, marginTop: 4 },
+  map:            { width: "100%", height: 220 },
+  driverPin:      { backgroundColor: "#03A9F4", padding: 6, borderRadius: 20, borderWidth: 2, borderColor: "#17100B" },
+  openMapBtn:     { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#03A9F4", paddingVertical: 10, },
   openMapBtnText: { color: "#17100B", fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
 });
 
