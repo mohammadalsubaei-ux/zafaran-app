@@ -34,7 +34,7 @@ import {
 } from "lucide-react-native";
 
 const API = "https://zafaran-backend-production.up.railway.app";
-const LOGO = require("../../assets/images/logo.png");
+const LOGO = require("../../assets/images/icon.png");
 
 type Address = {
   id?: string | number;
@@ -190,13 +190,16 @@ function ZafaranHeader() {
     router.push("/(tabs)/profile" as any);
   }, [router]);
 
+  const goHome = useCallback(() => {
+    router.push("/(tabs)" as any);
+  }, [router]);
+
   return (
     <>
       <View style={h.container}>
         <View style={h.leftWrap}>
-          <TouchableOpacity activeOpacity={0.86} style={h.notifBtn}>
+          <TouchableOpacity activeOpacity={0.86} style={h.notifBtn} onPress={() => router.push("/notifications" as any)}>
             <Bell size={19} color="#F2B233" strokeWidth={1.85} />
-            <View style={h.notifDot} />
           </TouchableOpacity>
 
           <TouchableOpacity activeOpacity={0.86} style={h.avatarWrap} onPress={goProfile}>
@@ -220,16 +223,9 @@ function ZafaranHeader() {
           </View>
         </TouchableOpacity>
 
-        <View style={h.brandWrap}>
-          <View style={h.brandMark}>
-            <Image source={LOGO} style={h.brandLogo} resizeMode="contain" />
-          </View>
-
-          <View style={h.brandTextWrap}>
-            <Text style={h.brandName}>زعفران</Text>
-            <Text style={h.brandSub}>Zafaran</Text>
-          </View>
-        </View>
+        <TouchableOpacity activeOpacity={0.86} style={h.brandMark} onPress={goHome}>
+          <Image source={LOGO} style={h.brandLogo} resizeMode="cover" />
+        </TouchableOpacity>
       </View>
 
       <Modal visible={showAddresses} transparent animationType="slide" onRequestClose={closeAddresses}>
@@ -820,4 +816,3 @@ const h = StyleSheet.create({
     fontFamily: "Almarai_800ExtraBold",
   },
 });
-

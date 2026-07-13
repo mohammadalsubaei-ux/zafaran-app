@@ -23,7 +23,6 @@ import {
   Heart,
   MapPin,
   Search,
-  Sparkles,
   Star,
   UtensilsCrossed,
 } from "lucide-react-native";
@@ -86,7 +85,7 @@ const SECTIONS = [
   {
     id: "drinks",
     category: "drinks",
-    label: "المشروبات",
+    label: "مشروبات",
     sub: "قهوة وعصائر",
     color: "#87CEEB",
     bg: "#0F1E2A",
@@ -152,9 +151,9 @@ export default function HomeScreen() {
     return userId ? `favorites_${userId}` : null;
   }, [userId]);
 
-  const featuredChefs = useMemo(() => {
+  const mostOrderedChefs = useMemo(() => {
     return [...chefs]
-      .sort((a, b) => Number(b.rating_avg || 0) - Number(a.rating_avg || 0))
+      .sort((a, b) => Number(b.total_orders || 0) - Number(a.total_orders || 0))
       .slice(0, 6);
   }, [chefs]);
 
@@ -292,14 +291,9 @@ export default function HomeScreen() {
     return (
       <View>
         <View style={s.hero}>
-          <View style={s.heroBadge}>
-            <Sparkles size={13} color="#F2B233" />
-            <Text style={s.heroBadgeText}>زعفران</Text>
-          </View>
-
-          <Text style={s.heroTitle}>أكلات بيتية بطعم يعرفك</Text>
+          <Text style={s.heroTitle}>من بيتنا لبيتك 🌿</Text>
           <Text style={s.heroSub}>
-            اختر من الأسر المنتجة والشيفات القريبة منك بكل سهولة.
+            أشهى الأكلات من أسر منتجة قريبة منك
           </Text>
 
           <View style={s.searchWrap}>
@@ -364,60 +358,36 @@ export default function HomeScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={s.topList}
         >
-          {featuredChefs.map((chef) => {
-            const firstItem = chef.menu?.[0];
-
-            return (
-              <TouchableOpacity
-                key={chef.id}
-                activeOpacity={0.88}
-                style={s.topCard}
-                onPress={() => openChef(chef.id)}
-              >
-                <View style={s.topImgWrap}>
-                  {firstItem?.image_url ? (
-                    <Image source={{ uri: firstItem.image_url }} style={s.topImg} />
-                  ) : (
-                    <View style={[s.topImg, s.topImgPlaceholder]}>
-                      <UtensilsCrossed size={34} color="#5A3A18" strokeWidth={1.5} />
-                    </View>
-                  )}
-
-                  <View style={s.topRatingBadge}>
-                    <Star size={10} color="#F2B233" fill="#F2B233" />
-                    <Text style={s.topRatingText}>
-                      {safeNumber(chef.rating_avg, "0")}
-                    </Text>
-                  </View>
+          {mostOrderedChefs.map((chef) => (
+            <TouchableOpacity
+              key={chef.id}
+              activeOpacity={0.88}
+              style={s.topCard}
+              onPress={() => openChef(chef.id)}
+            >
+              <View style={s.topImgWrap}>
+                <View style={[s.topImg, s.topImgPlaceholder]}>
+                  <UtensilsCrossed size={30} color="#5A3A18" strokeWidth={1.5} />
                 </View>
 
-                <Text style={s.topChefName} numberOfLines={1}>
-                  {safeText(firstItem?.name, "وجبات متنوعة")}
-                </Text>
-                <Text style={s.topChefBy} numberOfLines={1}>
-                  {safeText(chef.users?.full_name, "أسرة منتجة")}
-                </Text>
-                <Text style={s.topPrice}>{formatPrice(firstItem?.price)} ر.س</Text>
-              </TouchableOpacity>
-            );
-          })}
+                <View style={s.topRatingBadge}>
+                  <Star size={10} color="#F2B233" fill="#F2B233" />
+                  <Text style={s.topRatingText}>
+                    {safeNumber(chef.rating_avg, "0")}
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={s.topChefName} numberOfLines={1}>
+                {safeText(chef.users?.full_name, "أسرة منتجة")}
+              </Text>
+              <Text style={s.topChefBy} numberOfLines={1}>
+                {safeText(chef.city, "")}
+              </Text>
+              <Text style={s.topPrice}>{safeNumber(chef.total_orders, "0")} طلب</Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
-
-        <TouchableOpacity activeOpacity={0.88} style={s.banner}>
-          <View style={s.bannerContent}>
-            <Text style={s.bannerKicker}>مبادرة زعفران</Text>
-            <Text style={s.bannerTitle}>ادعم الأسر المنتجة</Text>
-            <Text style={s.bannerSub}>كل طلب منك يصنع فرقًا حقيقيًا.</Text>
-
-            <View style={s.bannerBtn}>
-              <Text style={s.bannerBtnText}>اكتشف الآن</Text>
-            </View>
-          </View>
-
-          <View style={s.bannerIcon}>
-            <UtensilsCrossed size={46} color="#F2B233" strokeWidth={1.2} />
-          </View>
-        </TouchableOpacity>
 
         <View style={s.secHeader}>
           <TouchableOpacity activeOpacity={0.8}>
@@ -435,7 +405,7 @@ export default function HomeScreen() {
         ) : null}
       </View>
     );
-  }, [chefs, error, featuredChefs, onRefresh, openChef, openSection, search, searching]);
+  }, [chefs, error, mostOrderedChefs, onRefresh, openChef, openSection, search, searching]);
 
   const renderChef = useCallback(
     ({ item }: { item: Chef }) => {
@@ -578,59 +548,39 @@ const s = StyleSheet.create({
 
   hero: {
     marginHorizontal: 16,
-    marginTop: 14,
-    marginBottom: 12,
-    borderRadius: 28,
-    padding: 18,
+    marginTop: 10,
+    marginBottom: 10,
+    borderRadius: 24,
+    padding: 14,
     backgroundColor: "#21160D",
     borderWidth: 1,
     borderColor: "rgba(242,178,51,0.13)",
   },
 
-  heroBadge: {
-    alignSelf: "flex-end",
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(242,178,51,0.09)",
-    borderColor: "rgba(242,178,51,0.18)",
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    marginBottom: 12,
-  },
-
-  heroBadgeText: {
-    color: "#F2B233",
-    fontSize: 11,
-    fontFamily: "Almarai_800ExtraBold",
-  },
-
   heroTitle: {
     color: "#FDF0DC",
-    fontSize: 24,
-    lineHeight: 34,
+    fontSize: 19,
+    lineHeight: 26,
     textAlign: "right",
     fontFamily: "Almarai_800ExtraBold",
   },
 
   heroSub: {
     color: "#A98961",
-    fontSize: 13,
-    lineHeight: 22,
+    fontSize: 12,
+    lineHeight: 18,
     textAlign: "right",
-    marginTop: 6,
-    marginBottom: 16,
+    marginTop: 3,
+    marginBottom: 10,
     fontFamily: "Almarai_400Regular",
   },
 
   searchWrap: {
-    minHeight: 50,
+    minHeight: 44,
     flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: "#17100B",
-    borderRadius: 18,
+    borderRadius: 16,
     paddingHorizontal: 14,
     gap: 10,
     borderWidth: 1,
