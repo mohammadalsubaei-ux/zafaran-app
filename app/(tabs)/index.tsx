@@ -291,10 +291,7 @@ export default function HomeScreen() {
     return (
       <View>
         <View style={s.hero}>
-          <Text style={s.heroTitle}>من بيتنا لبيتك 🌿</Text>
-          <Text style={s.heroSub}>
-            أشهى الأكلات من أسر منتجة قريبة منك
-          </Text>
+          <Text style={s.heroTitle}>من بيتنا لبيتك</Text>
 
           <View style={s.searchWrap}>
             <Search size={18} color="#F2B233" strokeWidth={1.8} />
@@ -562,6 +559,7 @@ const s = StyleSheet.create({
     fontSize: 19,
     lineHeight: 26,
     textAlign: "right",
+    marginBottom: 12,
     fontFamily: "Almarai_800ExtraBold",
   },
 
