@@ -32,6 +32,74 @@ function LogoSVG() {
   );
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  مكوّن مستقل خارج الشاشة — تعريفه داخل LoginScreen كان يسبب
+//  هدمه وإعادة بنائه مع كل حرف يُكتب، مما يلغي تركيب الحروف
+//  بالكيبورد النصي ويمنع الكتابة في خانة الاسم نهائياً
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function GenderPicker({ gender, setGender }: {
+  gender: "male" | "female";
+  setGender: (g: "male" | "female") => void;
+}) {
+  return (
+    <View>
+      <Text style={s.label}>الجنس</Text>
+      <View style={s.genderRow}>
+        <TouchableOpacity
+          style={[s.genderBtn, gender === "male" && s.genderBtnActive]}
+          onPress={() => setGender("male")}
+        >
+          <Text style={[s.genderLabel, gender === "male" && s.genderLabelActive]}>ذكر</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[s.genderBtn, gender === "female" && s.genderBtnActive]}
+          onPress={() => setGender("female")}
+        >
+          <Text style={[s.genderLabel, gender === "female" && s.genderLabelActive]}>انثى</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  نافذة اختيار المدينة — مكوّن مشترك يُستخدم بشاشتي الشيف والمندوب
+//  (كانت النافذة موجودة بشاشة المندوب فقط، وزر المدينة بشاشة الشيف معطّل)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function CityPickerModal({ visible, onClose, cities, city, setCity }: {
+  visible: boolean;
+  onClose: () => void;
+  cities: { id: number; name_ar: string }[];
+  city: string;
+  setCity: (c: string) => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={onClose}>
+        <View style={s.modalBox}>
+          <Text style={s.modalTitle}>اختر مدينتك</Text>
+          <FlatList
+            data={cities}
+            keyExtractor={(item) => String(item.id)}
+            style={{ maxHeight: 360 }}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={s.cityRow}
+                onPress={() => { setCity(item.name_ar); onClose(); }}
+              >
+                <Text style={[s.cityRowText, city === item.name_ar && { color: "#F0A500" }]}>
+                  {item.name_ar}
+                </Text>
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={<ActivityIndicator color="#F0A500" style={{ marginVertical: 20 }} />}
+          />
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
 export default function LoginScreen() {
   const [step, setStep]                 = useState<"login" | "register" | "chef_register" | "driver_register">("login");
   const [phone, setPhone]               = useState("");
@@ -101,26 +169,6 @@ export default function LoginScreen() {
     } catch { Alert.alert("خطأ", "تعذر الاتصال بالسيرفر"); }
     finally { setLoading(false); }
   };
-
-  const GenderPicker = () => (
-    <View>
-      <Text style={s.label}>الجنس</Text>
-      <View style={s.genderRow}>
-        <TouchableOpacity
-          style={[s.genderBtn, gender === "male" && s.genderBtnActive]}
-          onPress={() => setGender("male")}
-        >
-          <Text style={[s.genderLabel, gender === "male" && s.genderLabelActive]}>ذكر</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[s.genderBtn, gender === "female" && s.genderBtnActive]}
-          onPress={() => setGender("female")}
-        >
-          <Text style={[s.genderLabel, gender === "female" && s.genderLabelActive]}>انثى</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
 
   // شاشة الدخول
   if (step === "login") {
@@ -196,7 +244,7 @@ export default function LoginScreen() {
               <View style={s.inputWrap}>
                 <TextInput style={s.input} placeholder="05X XXX XXXX" placeholderTextColor="#5A3A18" keyboardType="phone-pad" value={phone} onChangeText={setPhone} textAlign="right" maxLength={10}/>
               </View>
-              <GenderPicker />
+              <GenderPicker gender={gender} setGender={setGender} />
               <TouchableOpacity style={s.btn} onPress={() => handleRegister("customer")} disabled={loading}>
                 {loading ? <ActivityIndicator color="#1C0F00" /> : <Text style={s.btnText}>تسجيل</Text>}
               </TouchableOpacity>
@@ -232,7 +280,7 @@ export default function LoginScreen() {
               <View style={s.inputWrap}>
                 <TextInput style={s.input} placeholder="05X XXX XXXX" placeholderTextColor="#5A3A18" keyboardType="phone-pad" value={phone} onChangeText={setPhone} textAlign="right" maxLength={10}/>
               </View>
-              <GenderPicker />
+              <GenderPicker gender={gender} setGender={setGender} />
               <Text style={s.label}>المدينة</Text>
               <TouchableOpacity style={s.inputWrap} onPress={() => setShowCityPicker(true)} activeOpacity={0.8}>
                 <Text style={[s.input, { color: city ? "#FDF0DC" : "#5A3A18", paddingVertical: 14 }]}>
@@ -252,6 +300,14 @@ export default function LoginScreen() {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
+
+        <CityPickerModal
+          visible={showCityPicker}
+          onClose={() => setShowCityPicker(false)}
+          cities={cities}
+          city={city}
+          setCity={setCity}
+        />
       </SafeAreaView>
     );
   }
@@ -277,7 +333,7 @@ export default function LoginScreen() {
             <View style={s.inputWrap}>
               <TextInput style={s.input} placeholder="05X XXX XXXX" placeholderTextColor="#5A3A18" keyboardType="phone-pad" value={phone} onChangeText={setPhone} textAlign="right" maxLength={10}/>
             </View>
-            <GenderPicker />
+            <GenderPicker gender={gender} setGender={setGender} />
             <Text style={s.label}>المدينة</Text>
             <TouchableOpacity style={s.inputWrap} onPress={() => setShowCityPicker(true)} activeOpacity={0.8}>
               <Text style={[s.input, { color: city ? "#FDF0DC" : "#5A3A18", paddingVertical: 14 }]}>
@@ -294,29 +350,13 @@ export default function LoginScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <Modal visible={showCityPicker} transparent animationType="fade" onRequestClose={() => setShowCityPicker(false)}>
-        <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setShowCityPicker(false)}>
-          <View style={s.modalBox}>
-            <Text style={s.modalTitle}>اختر مدينتك</Text>
-            <FlatList
-              data={cities}
-              keyExtractor={(item) => String(item.id)}
-              style={{ maxHeight: 360 }}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={s.cityRow}
-                  onPress={() => { setCity(item.name_ar); setShowCityPicker(false); }}
-                >
-                  <Text style={[s.cityRowText, city === item.name_ar && { color: "#F0A500" }]}>
-                    {item.name_ar}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              ListEmptyComponent={<ActivityIndicator color="#F0A500" style={{ marginVertical: 20 }} />}
-            />
-          </View>
-        </TouchableOpacity>
-      </Modal>
+      <CityPickerModal
+        visible={showCityPicker}
+        onClose={() => setShowCityPicker(false)}
+        cities={cities}
+        city={city}
+        setCity={setCity}
+      />
     </SafeAreaView>
   );
 }
