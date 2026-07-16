@@ -4,9 +4,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator,
-  Alert, ScrollView, Modal, FlatList
+  Alert, ScrollView, Modal, FlatList, Image
 } from "react-native";
-import Svg, { Path, Ellipse } from "react-native-svg";
 import { useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold } from "@expo-google-fonts/almarai";
 import { savePushToken } from "@/utils/notifications";
 
@@ -17,20 +16,6 @@ const ROLE_ROUTES: Record<string, string> = {
   driver:   "/dashboard/driver",
   customer: "/(tabs)",
 };
-
-function LogoSVG() {
-  return (
-    <Svg width={60} height={66} viewBox="0 0 100 110">
-      <Path d="M30,22 C27,14 33,8 30,22 C27,32 33,38 30,48" stroke="#1C0F00" strokeWidth="3" fill="none" strokeLinecap="round" opacity={0.7}/>
-      <Path d="M50,18 C47,8 53,12 50,24 C47,36 53,42 50,52" stroke="#1C0F00" strokeWidth="3.5" fill="none" strokeLinecap="round" opacity={0.9}/>
-      <Path d="M70,22 C67,14 73,8 70,22 C67,32 73,38 70,48" stroke="#1C0F00" strokeWidth="3" fill="none" strokeLinecap="round" opacity={0.7}/>
-      <Ellipse cx="50" cy="60" rx="44" ry="10" fill="#1C0F00" opacity={0.9}/>
-      <Path d="M6,60 Q6,95 50,99 Q94,95 94,60 Z" fill="#1C0F00" opacity={0.5}/>
-      <Path d="M6,60 Q6,52 50,49 Q94,52 94,60" fill="#1C0F00" opacity={0.3}/>
-      <Ellipse cx="50" cy="102" rx="42" ry="7" fill="none" stroke="#1C0F00" strokeWidth="2" opacity={0.5}/>
-    </Svg>
-  );
-}
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  مكوّن مستقل خارج الشاشة — تعريفه داخل LoginScreen كان يسبب
@@ -175,10 +160,9 @@ export default function LoginScreen() {
     return (
       <SafeAreaView style={s.safe}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={s.scroll}>
+          <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
             <View style={s.logoWrap}>
-              <View style={s.logoBox}><LogoSVG /></View>
-              <Text style={s.logoName}>زعفران</Text>
+              <Image source={require("../assets/images/logo-mark.png")} style={s.logoMark} />
             </View>
             <View style={s.form}>
               <Text style={s.formTitle}>اهلاً بك</Text>
@@ -208,7 +192,7 @@ export default function LoginScreen() {
                 <View style={s.dividerLine}/>
               </View>
               <TouchableOpacity style={s.chefBtn} onPress={() => setStep("chef_register")}>
-                <Text style={s.chefBtnText}>انضم كشيف / شيفة</Text>
+                <Text style={s.chefBtnText}>سجّل مشروعك البيتي</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[s.chefBtn, { marginTop: 10, borderColor: "rgba(33,150,243,0.3)", backgroundColor: "rgba(33,150,243,0.08)" }]}
@@ -228,17 +212,16 @@ export default function LoginScreen() {
     return (
       <SafeAreaView style={s.safe}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={s.scroll}>
+          <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
             <View style={s.logoWrap}>
-              <View style={s.logoBox}><LogoSVG /></View>
-              <Text style={s.logoName}>زعفران</Text>
+              <Image source={require("../assets/images/logo-mark.png")} style={s.logoMark} />
             </View>
             <View style={s.form}>
               <Text style={s.formTitle}>حساب جديد</Text>
               <Text style={s.formHint}>سجّل حسابك مجاناً</Text>
               <Text style={s.label}>الاسم</Text>
               <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor="#5A3A18" value={name} onChangeText={setName} textAlign="right"/>
+                <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor="#5A3A18" onChangeText={setName} textAlign="right"/>
               </View>
               <Text style={s.label}>رقم الجوال</Text>
               <View style={s.inputWrap}>
@@ -263,18 +246,16 @@ export default function LoginScreen() {
     return (
       <SafeAreaView style={s.safe}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={s.scroll}>
+          <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
             <View style={s.logoWrap}>
-              <View style={s.logoBox}><LogoSVG /></View>
-              <Text style={s.logoName}>زعفران</Text>
-              <Text style={s.roleTag}>تسجيل شيف / شيفة</Text>
+              <Image source={require("../assets/images/logo-mark.png")} style={s.logoMark} />
             </View>
             <View style={s.form}>
-              <Text style={s.formTitle}>سجّل مطبخك</Text>
-              <Text style={s.formHint}>ابدأ بيع وجباتك البيتية</Text>
+              <Text style={s.formTitle}>سجّل مشروعك</Text>
+              <Text style={s.formHint}>سجّل للبدء بمشروعك — طبخ، حلا، قهوة، مخبوزات وكل التخصصات</Text>
               <Text style={s.label}>الاسم</Text>
               <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor="#5A3A18" value={name} onChangeText={setName} textAlign="right"/>
+                <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor="#5A3A18" onChangeText={setName} textAlign="right"/>
               </View>
               <Text style={s.label}>رقم الجوال</Text>
               <View style={s.inputWrap}>
@@ -289,10 +270,10 @@ export default function LoginScreen() {
               </TouchableOpacity>
               <Text style={s.label}>الحي</Text>
               <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="حي النرجس، ..." placeholderTextColor="#5A3A18" value={neighborhood} onChangeText={setNeighborhood} textAlign="right"/>
+                <TextInput style={s.input} placeholder="حي النرجس، ..." placeholderTextColor="#5A3A18" onChangeText={setNeighborhood} textAlign="right"/>
               </View>
               <TouchableOpacity style={s.btn} onPress={() => handleRegister("chef")} disabled={loading}>
-                {loading ? <ActivityIndicator color="#1C0F00" /> : <Text style={s.btnText}>سجّل مطبخي</Text>}
+                {loading ? <ActivityIndicator color="#1C0F00" /> : <Text style={s.btnText}>سجّل مشروعي</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={s.switchBtn} onPress={() => setStep("login")}>
                 <Text style={s.switchText}>رجوع</Text>
@@ -316,10 +297,9 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={s.safe}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={s.scroll}>
+        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
           <View style={s.logoWrap}>
-            <View style={s.logoBox}><LogoSVG /></View>
-            <Text style={s.logoName}>زعفران</Text>
+            <Image source={require("../assets/images/logo-mark.png")} style={s.logoMark} />
             <Text style={[s.roleTag, { color: "#2196F3" }]}>تسجيل مندوب توصيل</Text>
           </View>
           <View style={s.form}>
@@ -327,7 +307,7 @@ export default function LoginScreen() {
             <Text style={s.formHint}>وصّل الطلبات واكسب اكثر</Text>
             <Text style={s.label}>الاسم</Text>
             <View style={s.inputWrap}>
-              <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor="#5A3A18" value={name} onChangeText={setName} textAlign="right"/>
+              <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor="#5A3A18" onChangeText={setName} textAlign="right"/>
             </View>
             <Text style={s.label}>رقم الجوال</Text>
             <View style={s.inputWrap}>
@@ -365,13 +345,12 @@ const s = StyleSheet.create({
   safe:              { flex: 1, backgroundColor: "#0E0700" },
   scroll:            { flexGrow: 1, padding: 24, justifyContent: "center" },
   logoWrap:          { alignItems: "center", marginBottom: 28 },
-  logoBox:           { width: 100, height: 100, borderRadius: 30, backgroundColor: "#F0A500", alignItems: "center", justifyContent: "center", marginBottom: 14, shadowColor: "#F0A500", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 20 },
-  logoName:          { fontSize: 38, fontWeight: "900", color: "#F0A500", fontFamily: "Almarai_800ExtraBold" },
+  logoMark:          { width: 230, height: 166, resizeMode: "contain", marginBottom: 6 },
   roleTag:           { fontSize: 14, color: "#F0A500", fontFamily: "Almarai_700Bold", marginTop: 6 },
   form:              { backgroundColor: "#1C1000", borderRadius: 24, padding: 24, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)" },
   formTitle:         { fontSize: 24, fontWeight: "900", color: "#FDF0DC", textAlign: "right", marginBottom: 4, fontFamily: "Almarai_800ExtraBold" },
   formHint:          { fontSize: 12, color: "#8A6030", textAlign: "right", marginBottom: 20, fontFamily: "Almarai_400Regular" },
-  label:             { fontSize: 11, fontWeight: "700", color: "#C97D20", letterSpacing: 2, textAlign: "right", marginBottom: 6, fontFamily: "Almarai_700Bold" },
+  label:             { fontSize: 11, fontWeight: "700", color: "#C97D20", textAlign: "right", marginBottom: 6, fontFamily: "Almarai_700Bold" },
   inputWrap:         { backgroundColor: "#251400", borderRadius: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.2)", paddingHorizontal: 14, marginBottom: 14 },
   input:             { height: 50, color: "#FDF0DC", fontSize: 15, fontFamily: "Almarai_400Regular" },
   btn:               { backgroundColor: "#F0A500", borderRadius: 16, padding: 16, alignItems: "center", marginTop: 4 },

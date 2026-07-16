@@ -115,6 +115,7 @@ export default function DriverScreen() {
   const [isTracking, setIsTracking] = useState(false);
   const [trackingOrderId, setTrackingOrderId] = useState<string | null>(null);
   const [driverId, setDriverId]     = useState<string | null>(null);
+  const [profileStatus, setProfileStatus] = useState<"loading" | "ok" | "unverified" | "missing">("loading");
 
   const locationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -132,9 +133,10 @@ export default function DriverScreen() {
       if (json?.success && json.data?.id) {
         setDriverId(json.data.id);
         await AsyncStorage.setItem("driver_id", json.data.id);
+        setProfileStatus(json.data.is_verified ? "ok" : "unverified");
       } else {
-        // استخدم user.id مؤقتاً
-        setDriverId(user.id);
+        // لا فولباك على user.id ابدا — يسبب اخطاء foreign key بقاعدة البيانات
+        setProfileStatus("missing");
       }
     } catch {}
   }, []);
@@ -459,6 +461,48 @@ export default function DriverScreen() {
         <View style={s.loadingWrap}>
           <ActivityIndicator color="#F2B233" size="large" />
           <Text style={s.loadingText}>{tr("loading", lang)}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (profileStatus === "unverified") {
+    return (
+      <SafeAreaView style={s.safe}>
+        <View style={s.loadingWrap}>
+          <Text style={[s.loadingText, { fontSize: 17, marginBottom: 6 }]}>
+            {lang === "ar" ? "حسابك قيد المراجعة" : "Your account is under review"}
+          </Text>
+          <Text style={[s.loadingText, { textAlign: "center", paddingHorizontal: 34 }]}>
+            {lang === "ar" ? "بنرسل لك اشعارا فور توثيق حسابك وتقدر تبدأ التوصيل" : "We will notify you once your account is verified"}
+          </Text>
+          <TouchableOpacity onPress={loadDriverId} activeOpacity={0.85} style={{ marginTop: 18, paddingVertical: 10, paddingHorizontal: 28, borderRadius: 12, borderWidth: 1, borderColor: "rgba(242,178,51,0.4)" }}>
+            <Text style={{ color: "#F2B233", fontFamily: "Almarai_700Bold", fontSize: 13 }}>{lang === "ar" ? "تحديث" : "Refresh"}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={logout} activeOpacity={0.85} style={{ marginTop: 14 }}>
+            <Text style={{ color: "#E53935", fontFamily: "Almarai_700Bold", fontSize: 13 }}>{lang === "ar" ? "تسجيل خروج" : "Log out"}</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (profileStatus === "missing") {
+    return (
+      <SafeAreaView style={s.safe}>
+        <View style={s.loadingWrap}>
+          <Text style={[s.loadingText, { fontSize: 17, marginBottom: 6 }]}>
+            {lang === "ar" ? "تعذر العثور على ملفك كمندوب" : "Driver profile not found"}
+          </Text>
+          <Text style={[s.loadingText, { textAlign: "center", paddingHorizontal: 34 }]}>
+            {lang === "ar" ? "جرب تحديث الصفحة، ولو استمرت المشكلة سجل خروجا واعد التسجيل" : "Try refreshing, or log out and register again"}
+          </Text>
+          <TouchableOpacity onPress={loadDriverId} activeOpacity={0.85} style={{ marginTop: 18, paddingVertical: 10, paddingHorizontal: 28, borderRadius: 12, borderWidth: 1, borderColor: "rgba(242,178,51,0.4)" }}>
+            <Text style={{ color: "#F2B233", fontFamily: "Almarai_700Bold", fontSize: 13 }}>{lang === "ar" ? "اعادة المحاولة" : "Retry"}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={logout} activeOpacity={0.85} style={{ marginTop: 14 }}>
+            <Text style={{ color: "#E53935", fontFamily: "Almarai_700Bold", fontSize: 13 }}>{lang === "ar" ? "تسجيل خروج" : "Log out"}</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
