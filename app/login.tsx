@@ -158,7 +158,7 @@ export default function LoginScreen() {
   // شاشة الدخول
   if (step === "login") {
     return (
-      <SafeAreaView style={s.safe}>
+      <SafeAreaView key="step-login" style={s.safe}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
             <View style={s.logoWrap}>
@@ -210,7 +210,7 @@ export default function LoginScreen() {
   // شاشة تسجيل عميل
   if (step === "register") {
     return (
-      <SafeAreaView style={s.safe}>
+      <SafeAreaView key="step-register" style={s.safe}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
             <View style={s.logoWrap}>
@@ -244,7 +244,7 @@ export default function LoginScreen() {
   // شاشة تسجيل شيف
   if (step === "chef_register") {
     return (
-      <SafeAreaView style={s.safe}>
+      <SafeAreaView key="step-chef" style={s.safe}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
             <View style={s.logoWrap}>
@@ -295,7 +295,7 @@ export default function LoginScreen() {
 
   // شاشة تسجيل مندوب
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView key="step-driver" style={s.safe}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
           <View style={s.logoWrap}>
