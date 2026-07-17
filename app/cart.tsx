@@ -44,7 +44,7 @@ import { useCart } from "@/context/CartContext";
 import PaymentGateway, { PaymentMethod as GatewayMethod } from "@/components/PaymentGateway";
 
 const API = "https://zafaran-backend-production.up.railway.app";
-const FIXED_DELIVERY_FEE = 10;
+const DEFAULT_FEE_PARAMS = { delivery_base_fee: 10, delivery_base_km: 4.99, delivery_per_km_fee: 1 };
 
 // نفس معادلة الباك إند بالضبط (Haversine + تدرّج المسافة) — لعرض تقدير دقيق للعميل
 function calcDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
@@ -59,10 +59,10 @@ function calcDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number) 
   return R * c;
 }
 
-function calcEstimatedFee(distanceKm: number | null) {
-  if (distanceKm == null) return FIXED_DELIVERY_FEE; // احتياطي إذا ما توفرت الإحداثيات
-  if (distanceKm <= 4.99) return 10;
-  return 10 + Math.ceil(distanceKm - 4.99);
+function calcEstimatedFee(distanceKm: number | null, p: typeof DEFAULT_FEE_PARAMS) {
+  if (distanceKm == null) return p.delivery_base_fee; // احتياطي إذا ما توفرت الإحداثيات
+  if (distanceKm <= p.delivery_base_km) return p.delivery_base_fee;
+  return p.delivery_base_fee + Math.ceil(distanceKm - p.delivery_base_km) * p.delivery_per_km_fee;
 }
 
 type DeliveryType = "delivery" | "pickup";
@@ -128,6 +128,15 @@ export default function CartScreen() {
   const [loading, setLoading]       = useState(false);
   const [locLoading, setLocLoading] = useState(false);
 
+  // نِسب التوصيل من الخادم (تتحكم بها لوحة الأدمن) — مع احتياطي محلي
+  const [feeParams, setFeeParams] = useState(DEFAULT_FEE_PARAMS);
+  useEffect(() => {
+    fetch(`${API}/api/orders/delivery-settings`)
+      .then((r) => r.json())
+      .then((j) => { if (j?.success && j.data) setFeeParams({ ...DEFAULT_FEE_PARAMS, ...j.data }); })
+      .catch(() => {});
+  }, []);
+
   const [deliveryType, setDeliveryType]     = useState<DeliveryType>("delivery");
   const [paymentMethod, setPaymentMethod]   = useState<PaymentMethod>("stc_pay");
 
@@ -176,7 +185,7 @@ export default function CartScreen() {
   }, [deliveryType, lat, lng, chefLat, chefLng]);
 
   const subtotal    = Number(total || 0);
-  const deliveryFee = deliveryType === "delivery" ? calcEstimatedFee(estimatedDistanceKm) : 0;
+  const deliveryFee = deliveryType === "delivery" ? calcEstimatedFee(estimatedDistanceKm, feeParams) : 0;
   const grandTotal  = useMemo(() => subtotal + deliveryFee, [subtotal, deliveryFee]);
 
   const chefName   = text(items?.[0]?.chef_name, "الشيف");
@@ -502,7 +511,7 @@ export default function CartScreen() {
                   onPress={() => setDeliveryType("delivery")}>
                   <Truck size={24} color={deliveryType === "delivery" ? "#F2B233" : "#6D4E2D"} />
                   <Text style={[s.deliveryTitle, deliveryType === "delivery" && s.deliveryTitleActive]}>توصيل</Text>
-                  <Text style={s.deliverySub}>+ {money(deliveryType === "delivery" ? deliveryFee : FIXED_DELIVERY_FEE)}</Text>
+                  <Text style={s.deliverySub}>+ {money(deliveryType === "delivery" ? deliveryFee : feeParams.delivery_base_fee)}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity activeOpacity={0.9}
                   style={[s.deliveryCard, deliveryType === "pickup" && s.deliveryCardActive]}

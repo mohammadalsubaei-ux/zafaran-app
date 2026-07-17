@@ -123,7 +123,8 @@ export default function LoginScreen() {
         const route = ROLE_ROUTES[json.data.role] || "/(tabs)";
         router.replace(route as any);
       } else {
-        Alert.alert("رقم غير مسجل", "ما عندك حساب؟ سجّل الآن");
+        // عرض رسالة الخادم الحقيقية (موقوف / غير مسجل) بدل نص ثابت يخفيها
+        Alert.alert("تنبيه", json.message || "رقم الجوال غير مسجل — ما عندك حساب؟ سجّل الآن");
       }
     } catch { Alert.alert("خطأ", "تعذر الاتصال بالسيرفر"); }
     finally { setLoading(false); }

@@ -240,9 +240,12 @@ export default function DashboardScreen() {
   };
 
   const updateStatus = async (orderId: string, status: string) => {
+    // إرسال هوية الشيف — الخادم يتحقق من ملكية الطلب قبل أي تغيير
+    const stored = await AsyncStorage.getItem("user");
+    const userId = stored ? JSON.parse(stored)?.id : null;
     const res  = await fetch(`${API}/api/orders/${orderId}/status`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, user_id: userId }),
     });
     const json = await res.json();
     if (json.success) { Alert.alert("تم التحديث"); load(true); }
