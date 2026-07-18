@@ -10,14 +10,15 @@ const isWeb = require('react-native').Platform.OS === 'web';
 const MapView = isWeb ? () => null : require('react-native-maps').default;
 const Marker  = isWeb ? () => null : require('react-native-maps').Marker;
 import { useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold } from "@expo-google-fonts/almarai";
+import { ArrowRight, Home, Briefcase, Star, MapPin, Trash2 } from "lucide-react-native";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 
 const LABELS = [
-  { id: "منزل",     emoji: "🏠" },
-  { id: "عمل",      emoji: "💼" },
-  { id: "استراحة",  emoji: "⭐" },
-  { id: "أخرى",     emoji: "📍" },
+  { id: "منزل",     Icon: Home },
+  { id: "عمل",      Icon: Briefcase },
+  { id: "استراحة",  Icon: Star },
+  { id: "أخرى",     Icon: MapPin },
 ];
 
 export default function AddressesScreen() {
@@ -154,11 +155,11 @@ export default function AddressesScreen() {
   return (
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={s.back}>→ رجوع</Text>
+        <TouchableOpacity activeOpacity={0.8} style={s.headerBtn} onPress={() => router.back()}>
+          <ArrowRight size={20} color="#F0A500" />
         </TouchableOpacity>
-        <Text style={s.title}>عناويني 📍</Text>
-        <View style={{ width: 60 }} />
+        <Text style={s.title}>عناويني</Text>
+        <View style={{ width: 38 }} />
       </View>
 
       {loading
@@ -170,9 +171,12 @@ export default function AddressesScreen() {
             renderItem={({ item }) => (
               <View style={[s.card, item.is_default && s.cardDefault]}>
                 <View style={s.cardRight}>
-                  <Text style={s.cardEmoji}>
-                    {LABELS.find(l => l.id === item.label)?.emoji || "📍"}
-                  </Text>
+                  <View style={s.cardIconBox}>
+                    {(() => {
+                      const LabelIcon = LABELS.find(l => l.id === item.label)?.Icon || MapPin;
+                      return <LabelIcon size={18} color="#F0A500" strokeWidth={1.8} />;
+                    })()}
+                  </View>
                   <View style={s.cardInfo}>
                     <View style={s.cardTitleRow}>
                       <Text style={s.cardLabel}>{item.label}</Text>
@@ -192,14 +196,16 @@ export default function AddressesScreen() {
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity style={s.deleteBtn} onPress={() => deleteAddress(item.id)}>
-                    <Text style={s.deleteBtnText}>🗑️</Text>
+                    <Trash2 size={15} color="#E57373" strokeWidth={1.8} />
                   </TouchableOpacity>
                 </View>
               </View>
             )}
             ListEmptyComponent={
               <View style={s.emptyWrap}>
-                <Text style={s.emptyEmoji}>📍</Text>
+                <View style={{ marginBottom: 12 }}>
+                  <MapPin size={44} color="#5A3A18" strokeWidth={1.4} />
+                </View>
                 <Text style={s.empty}>ما عندك عناوين محفوظة</Text>
               </View>
             }
@@ -249,7 +255,7 @@ export default function AddressesScreen() {
                   style={[s.labelBtn, selectedLabel === l.id && s.labelBtnActive]}
                   onPress={() => setSelectedLabel(l.id)}
                 >
-                  <Text style={s.labelEmoji}>{l.emoji}</Text>
+                  <l.Icon size={18} color={selectedLabel === l.id ? "#F0A500" : "#8A6030"} strokeWidth={1.8} style={{ marginBottom: 3 }} />
                   <Text style={[s.labelText, selectedLabel === l.id && s.labelTextActive]}>{l.id}</Text>
                 </TouchableOpacity>
               ))}
@@ -290,6 +296,8 @@ const s = StyleSheet.create({
   mapHeader:      { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", padding: 16, backgroundColor: "#0E0700", borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.12)" },
   title:          { fontSize: 18, fontWeight: "900", color: "#FDF0DC", fontFamily: "Almarai_800ExtraBold" },
   back:           { color: "#F0A500", fontSize: 15, fontWeight: "700", fontFamily: "Almarai_700Bold" },
+  cardIconBox:    { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(240,165,0,0.08)", alignItems: "center", justifyContent: "center" },
+  headerBtn:      { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: "rgba(240,165,0,0.25)", alignItems: "center", justifyContent: "center" },
   card:           { backgroundColor: "#1C1000", borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
   cardDefault:    { borderColor: "rgba(240,165,0,0.4)", backgroundColor: "rgba(240,165,0,0.05)" },
   cardRight:      { flexDirection: "row-reverse", alignItems: "flex-start", gap: 12, marginBottom: 10 },

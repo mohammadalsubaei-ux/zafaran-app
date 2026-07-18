@@ -196,7 +196,9 @@ export default function WalletScreen() {
   }, [loadWallet]);
 
   const goBack = useCallback(() => {
-    router.back();
+    // المحفظة بابها صفحة "حسابي" — الرجوع إليها دائماً
+    // (back العادي عبر التبويبات يضيع ويرمي للرئيسية)
+    router.push("/(tabs)/profile" as any);
   }, [router]);
 
   const openLogin = useCallback(() => {

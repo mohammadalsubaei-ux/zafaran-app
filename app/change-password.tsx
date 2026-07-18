@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ChevronRight, KeyRound } from "lucide-react-native";
+import { ArrowRight, KeyRound } from "lucide-react-native";
 import {
   useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold,
 } from "@expo-google-fonts/almarai";
@@ -56,10 +56,10 @@ export default function ChangePassword() {
   return (
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
-        <View style={{ width: 26 }} />
+        <View style={{ width: 38 }} />
         <Text style={s.title}>تغيير كلمة المرور</Text>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <ChevronRight size={24} color="#F2B233" />
+          <ArrowRight size={20} color="#F2B233" />
         </TouchableOpacity>
       </View>
 
@@ -118,7 +118,7 @@ export default function ChangePassword() {
 const s = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: "#0E0700" },
   header:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
-  backBtn: { padding: 4 },
+  backBtn: { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: "rgba(242,178,51,0.25)", alignItems: "center", justifyContent: "center" },
   title:   { color: "#FDF0DC", fontSize: 17, fontFamily: "Almarai_800ExtraBold" },
   scroll:  { paddingHorizontal: 20, paddingBottom: 24 },
 
