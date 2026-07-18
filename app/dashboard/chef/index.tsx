@@ -15,7 +15,7 @@ import {
 } from "@expo-google-fonts/almarai";
 import {
   RefreshCw, ChevronDown, UtensilsCrossed, Package, ClipboardList,
-  Check, X, Flame, Star, LogOut, CalendarDays, Clock3, CheckCircle2, Coffee, MapPin,, Wallet
+  Check, X, Flame, Star, LogOut, CalendarDays, Clock3, CheckCircle2, Coffee, MapPin, Wallet
 } from "lucide-react-native";
 
 const API = "https://zafaran-backend-production.up.railway.app";
