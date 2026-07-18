@@ -2,6 +2,7 @@
 import { useRouter, useFocusEffect } from "expo-router";
 import {
   ActivityIndicator,
+  Dimensions,
   FlatList,
   Image,
   RefreshControl,
@@ -137,6 +138,9 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [banners, setBanners] = useState<
+    { id: string; title: string; subtitle: string | null; bg_color: string; text_color: string; target: string | null }[]
+  >([]);
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestId = useRef(0);
@@ -235,6 +239,14 @@ export default function HomeScreen() {
     }, [bootstrap])
   );
 
+  // بانرات العروض من لوحة الأدمن — القسم يختفي كلياً عند غيابها
+  useEffect(() => {
+    fetch(`${API}/api/banners`)
+      .then((r) => r.json())
+      .then((j) => { if (j?.success && Array.isArray(j.data)) setBanners(j.data); })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
 
@@ -307,6 +319,33 @@ export default function HomeScreen() {
             {searching ? <ActivityIndicator size="small" color="#F2B233" /> : null}
           </View>
         </View>
+
+        {banners.length > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={s.bannersRow}
+            contentContainerStyle={s.bannersContent}
+          >
+            {banners.map((b) => (
+              <TouchableOpacity
+                key={b.id}
+                activeOpacity={b.target ? 0.85 : 1}
+                onPress={() => { if (b.target) router.push(b.target as any); }}
+                style={[
+                  s.bannerCard,
+                  { backgroundColor: b.bg_color },
+                  banners.length === 1 && s.bannerCardFull,
+                ]}
+              >
+                <Text style={[s.bannerTitle, { color: b.text_color }]}>{b.title}</Text>
+                {b.subtitle ? (
+                  <Text style={[s.bannerSub, { color: b.text_color }]}>{b.subtitle}</Text>
+                ) : null}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        ) : null}
 
         <View style={s.sectionsRow}>
           {SECTIONS.map((sec) => (
@@ -572,6 +611,21 @@ const s = StyleSheet.create({
     marginBottom: 10,
     fontFamily: "Almarai_400Regular",
   },
+
+  bannersRow: { marginBottom: 6 },
+  bannersContent: { paddingHorizontal: 16, gap: 10, flexDirection: "row-reverse" },
+  bannerCard: {
+    width: 290,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "rgba(242,178,51,0.15)",
+  },
+  bannerCardFull: {
+    width: Dimensions.get("window").width - 32,
+  },
+  bannerTitle: { fontSize: 16, textAlign: "right", fontFamily: "Almarai_800ExtraBold" },
+  bannerSub: { fontSize: 12, textAlign: "right", marginTop: 5, opacity: 0.9, fontFamily: "Almarai_400Regular" },
 
   searchWrap: {
     minHeight: 44,

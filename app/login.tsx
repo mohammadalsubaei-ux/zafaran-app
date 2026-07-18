@@ -101,6 +101,8 @@ export default function LoginScreen() {
       .catch(() => {});
   }, []);
   const [neighborhood, setNeighborhood] = useState("");
+  const [password, setPassword]         = useState("");
+  const [password2, setPassword2]       = useState("");
   const [loading, setLoading]           = useState(false);
   const router = useRouter();
 
@@ -110,11 +112,12 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     const cleanPhone = phone.trim();
     if (cleanPhone.length < 10) { Alert.alert("تنبيه", "ادخل رقم جوال صحيح"); return; }
+    if (password.length < 6) { Alert.alert("تنبيه", "ادخل كلمة المرور (6 احرف على الاقل)"); return; }
     setLoading(true);
     try {
       const res  = await fetch(`${API}/api/users/login`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: cleanPhone }),
+        body: JSON.stringify({ phone: cleanPhone, password }),
       });
       const json = await res.json();
       if (json.success) {
@@ -134,13 +137,15 @@ export default function LoginScreen() {
     const cleanPhone = phone.trim();
     if (cleanPhone.length < 10) { Alert.alert("تنبيه", "ادخل رقم جوال صحيح"); return; }
     if (!name.trim()) { Alert.alert("تنبيه", "ادخل اسمك"); return; }
+    if (password.length < 6) { Alert.alert("تنبيه", "ادخل كلمة مرور (6 احرف على الاقل)"); return; }
+    if (password !== password2) { Alert.alert("تنبيه", "كلمتا المرور غير متطابقتين"); return; }
     if ((role === "chef" || role === "driver") && !city.trim()) { Alert.alert("تنبيه", "ادخل مدينتك"); return; }
     setLoading(true);
     try {
       const res  = await fetch(`${API}/api/users/register`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone: cleanPhone, full_name: name.trim(),
+          phone: cleanPhone, full_name: name.trim(), password,
           role, gender,
           city: city.trim(), neighborhood: neighborhood.trim()
         }),
@@ -167,7 +172,7 @@ export default function LoginScreen() {
             </View>
             <View style={s.form}>
               <Text style={s.formTitle}>اهلاً بك</Text>
-              <Text style={s.formHint}>ادخل رقم جوالك للدخول</Text>
+              <Text style={s.formHint}>ادخل رقم جوالك وكلمة المرور</Text>
               <Text style={s.label}>رقم الجوال</Text>
               <View style={s.inputWrap}>
                 <TextInput
@@ -179,6 +184,17 @@ export default function LoginScreen() {
                   onChangeText={setPhone}
                   textAlign="right"
                   maxLength={10}
+                />
+              </View>
+              <Text style={s.label}>كلمة المرور</Text>
+              <View style={s.inputWrap}>
+                <TextInput
+                  style={s.input}
+                  placeholder="••••••"
+                  placeholderTextColor="#5A3A18"
+                  secureTextEntry
+                  onChangeText={setPassword}
+                  textAlign="right"
                 />
               </View>
               <TouchableOpacity style={s.btn} onPress={handleLogin} disabled={loading}>
@@ -224,6 +240,14 @@ export default function LoginScreen() {
               <View style={s.inputWrap}>
                 <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor="#5A3A18" onChangeText={setName} textAlign="right"/>
               </View>
+              <Text style={s.label}>كلمة المرور</Text>
+              <View style={s.inputWrap}>
+                <TextInput style={s.input} placeholder="6 احرف على الاقل" placeholderTextColor="#5A3A18" secureTextEntry onChangeText={setPassword} textAlign="right"/>
+              </View>
+              <Text style={s.label}>تاكيد كلمة المرور</Text>
+              <View style={s.inputWrap}>
+                <TextInput style={s.input} placeholder="اعد كتابتها" placeholderTextColor="#5A3A18" secureTextEntry onChangeText={setPassword2} textAlign="right"/>
+              </View>
               <Text style={s.label}>رقم الجوال</Text>
               <View style={s.inputWrap}>
                 <TextInput style={s.input} placeholder="05X XXX XXXX" placeholderTextColor="#5A3A18" keyboardType="phone-pad" value={phone} onChangeText={setPhone} textAlign="right" maxLength={10}/>
@@ -257,6 +281,14 @@ export default function LoginScreen() {
               <Text style={s.label}>الاسم</Text>
               <View style={s.inputWrap}>
                 <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor="#5A3A18" onChangeText={setName} textAlign="right"/>
+              </View>
+              <Text style={s.label}>كلمة المرور</Text>
+              <View style={s.inputWrap}>
+                <TextInput style={s.input} placeholder="6 احرف على الاقل" placeholderTextColor="#5A3A18" secureTextEntry onChangeText={setPassword} textAlign="right"/>
+              </View>
+              <Text style={s.label}>تاكيد كلمة المرور</Text>
+              <View style={s.inputWrap}>
+                <TextInput style={s.input} placeholder="اعد كتابتها" placeholderTextColor="#5A3A18" secureTextEntry onChangeText={setPassword2} textAlign="right"/>
               </View>
               <Text style={s.label}>رقم الجوال</Text>
               <View style={s.inputWrap}>
@@ -309,6 +341,14 @@ export default function LoginScreen() {
             <Text style={s.label}>الاسم</Text>
             <View style={s.inputWrap}>
               <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor="#5A3A18" onChangeText={setName} textAlign="right"/>
+            </View>
+            <Text style={s.label}>كلمة المرور</Text>
+            <View style={s.inputWrap}>
+              <TextInput style={s.input} placeholder="6 احرف على الاقل" placeholderTextColor="#5A3A18" secureTextEntry onChangeText={setPassword} textAlign="right"/>
+            </View>
+            <Text style={s.label}>تاكيد كلمة المرور</Text>
+            <View style={s.inputWrap}>
+              <TextInput style={s.input} placeholder="اعد كتابتها" placeholderTextColor="#5A3A18" secureTextEntry onChangeText={setPassword2} textAlign="right"/>
             </View>
             <Text style={s.label}>رقم الجوال</Text>
             <View style={s.inputWrap}>
