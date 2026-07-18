@@ -120,26 +120,20 @@ const STATUS_META: Record<string, any> = {
   },
 };
 
-const TRACK_STEPS = [
-  { id: "pending", label: "استلام" },
-  { id: "accepted", label: "قبول" },
-  { id: "preparing", label: "تحضير" },
-  { id: "ready", label: "جاهز" },
+const TRACK_STEPS_DELIVERY = [
+  { id: "accepted",   label: "قبول" },
+  { id: "preparing",  label: "تحضير" },
+  { id: "ready",      label: "جاهز" },
   { id: "delivering", label: "توصيل" },
-  { id: "delivered", label: "تسليم" },
+  { id: "delivered",  label: "تسليم" },
 ];
 
-const TRACK_INDEX: Record<string, number> = {
-  pending: 0,
-  pending_time: 0,
-  time_confirmed: 1,
-  accepted: 1,
-  preparing: 2,
-  ready: 3,
-  delivering: 4,
-  delivered: 5,
-  cancelled: 0,
-};
+const TRACK_STEPS_PICKUP = [
+  { id: "accepted",  label: "قبول" },
+  { id: "preparing", label: "تحضير" },
+  { id: "ready",     label: "جاهز للاستلام" },
+  { id: "delivered", label: "استلام" },
+];
 
 function cleanText(value: unknown, fallback = "غير محدد") {
   if (value === null || value === undefined) return fallback;
@@ -394,7 +388,9 @@ export default function OrdersScreen() {
       const StatusIcon = st.Icon;
 
       const orderItems = item.order_items || item.items || [];
-      const currentStep = TRACK_INDEX[item.status] ?? 0;
+      const TRACK_STEPS = (item as any).delivery_address === "استلام شخصي" ? TRACK_STEPS_PICKUP : TRACK_STEPS_DELIVERY;
+      const normalizedKey = item.status === "time_confirmed" ? "accepted" : item.status === "pending_time" ? "pending" : item.status;
+      const currentStep = TRACK_STEPS.findIndex((step) => step.id === normalizedKey);
       const chefName = cleanText(item.chefs?.users?.full_name, "أسرة منتجة");
       const isFinished = ["delivered", "cancelled"].includes(item.status);
 

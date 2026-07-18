@@ -584,10 +584,10 @@ const s = StyleSheet.create({
 
   hero: {
     marginHorizontal: 16,
-    marginTop: 10,
-    marginBottom: 10,
-    borderRadius: 24,
-    padding: 14,
+    marginTop: 8,
+    marginBottom: 8,
+    borderRadius: 20,
+    padding: 12,
     backgroundColor: "#21160D",
     borderWidth: 1,
     borderColor: "rgba(242,178,51,0.13)",
@@ -595,10 +595,10 @@ const s = StyleSheet.create({
 
   heroTitle: {
     color: "#FDF0DC",
-    fontSize: 19,
-    lineHeight: 26,
+    fontSize: 18,
+    lineHeight: 24,
     textAlign: "right",
-    marginBottom: 12,
+    marginBottom: 8,
     fontFamily: "Almarai_800ExtraBold",
   },
 
@@ -612,23 +612,23 @@ const s = StyleSheet.create({
     fontFamily: "Almarai_400Regular",
   },
 
-  bannersRow: { marginBottom: 6 },
+  bannersRow: { marginBottom: 4 },
   bannersContent: { paddingHorizontal: 16, gap: 10, flexDirection: "row-reverse" },
   bannerCard: {
     width: 290,
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: 16,
+    padding: 13,
     borderWidth: 1,
     borderColor: "rgba(242,178,51,0.15)",
   },
   bannerCardFull: {
     width: Dimensions.get("window").width - 32,
   },
-  bannerTitle: { fontSize: 16, textAlign: "right", fontFamily: "Almarai_800ExtraBold" },
+  bannerTitle: { fontSize: 15, textAlign: "right", fontFamily: "Almarai_800ExtraBold" },
   bannerSub: { fontSize: 12, textAlign: "right", marginTop: 5, opacity: 0.9, fontFamily: "Almarai_400Regular" },
 
   searchWrap: {
-    minHeight: 44,
+    minHeight: 40,
     flexDirection: "row-reverse",
     alignItems: "center",
     backgroundColor: "#17100B",
@@ -641,7 +641,7 @@ const s = StyleSheet.create({
 
   searchInput: {
     flex: 1,
-    height: 50,
+    height: 44,
     color: "#FDF0DC",
     fontSize: 14,
     fontFamily: "Almarai_400Regular",
@@ -651,13 +651,13 @@ const s = StyleSheet.create({
     flexDirection: "row-reverse",
     paddingHorizontal: 16,
     gap: 10,
-    marginBottom: 14,
+    marginBottom: 10,
   },
 
   sectionCard: {
     flex: 1,
-    borderRadius: 20,
-    paddingVertical: 13,
+    borderRadius: 18,
+    paddingVertical: 10,
     paddingHorizontal: 8,
     alignItems: "center",
     borderWidth: 1,
@@ -665,13 +665,13 @@ const s = StyleSheet.create({
   },
 
   sectionIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 15,
+    width: 38,
+    height: 38,
+    borderRadius: 13,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
+    marginBottom: 6,
   },
 
   sectionLabel: {
@@ -692,24 +692,24 @@ const s = StyleSheet.create({
     flexDirection: "row-reverse",
     paddingHorizontal: 16,
     gap: 10,
-    marginBottom: 18,
+    marginBottom: 12,
   },
 
   statCard: {
     flex: 1,
-    minHeight: 74,
-    borderRadius: 20,
+    minHeight: 58,
+    borderRadius: 16,
     backgroundColor: "#21160D",
     borderWidth: 1,
     borderColor: "rgba(242,178,51,0.1)",
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+    gap: 2,
   },
 
   statValue: {
     color: "#FDF0DC",
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: "Almarai_800ExtraBold",
   },
 
@@ -724,7 +724,7 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 10,
     marginTop: 4,
   },
 
