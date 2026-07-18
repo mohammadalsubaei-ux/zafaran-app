@@ -39,6 +39,7 @@ import {
   User,
   UserRound,
   Wallet,
+  KeyRound,
 } from "lucide-react-native";
 
 import { useLang } from "@/context/LanguageContext";
@@ -79,6 +80,8 @@ const T: any = {
     settings: "الإعدادات",
     language: "اللغة",
     languageSub: "التبديل بين العربية والإنجليزية",
+    changePw: "تغيير كلمة المرور",
+    changePwSub: "حدّث كلمة مرور حسابك",
     region: "المنطقة",
     regionSub: "القصيم، المملكة العربية السعودية",
     notifications: "الإشعارات",
@@ -121,6 +124,8 @@ const T: any = {
     settings: "Settings",
     language: "Language",
     languageSub: "Switch between Arabic and English",
+    changePw: "Change Password",
+    changePwSub: "Update your account password",
     region: "Region",
     regionSub: "Al-Qassim, Saudi Arabia",
     notifications: "Notifications",
@@ -460,20 +465,45 @@ export default function ProfileScreen() {
             onPress={toggleLang}
           />
 
-          <MenuItem title={t.region} subtitle={t.regionSub} Icon={Globe2} disabled />
+          <MenuItem
+            title={t.region}
+            subtitle={t.regionSub}
+            Icon={Globe2}
+            onPress={() => router.push("/addresses" as any)}
+          />
 
           <MenuItem
             title={t.notifications}
             subtitle={t.notificationsSub}
             Icon={Bell}
-            disabled
+            onPress={() => router.push("/notifications" as any)}
+          />
+
+          <MenuItem
+            title={t.changePw}
+            subtitle={t.changePwSub}
+            Icon={KeyRound}
+            onPress={() => router.push("/change-password" as any)}
           />
         </Section>
 
         <Section title={t.legal}>
-          <MenuItem title={t.support} subtitle={t.supportSub} Icon={Headphones} disabled />
-          <MenuItem title={t.privacy} Icon={ShieldCheck} disabled />
-          <MenuItem title={t.terms} Icon={FileText} disabled />
+          <MenuItem
+            title={t.support}
+            subtitle={t.supportSub}
+            Icon={Headphones}
+            onPress={() => router.push("/support" as any)}
+          />
+          <MenuItem
+            title={t.privacy}
+            Icon={ShieldCheck}
+            onPress={() => router.push("/privacy" as any)}
+          />
+          <MenuItem
+            title={t.terms}
+            Icon={FileText}
+            onPress={() => router.push("/terms" as any)}
+          />
 
           <View style={s.versionRow}>
             <View style={s.menuIconBox}>
