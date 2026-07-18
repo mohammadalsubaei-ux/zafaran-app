@@ -87,19 +87,20 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string; Ic
   cancelled:      { label: "ملغي",                  color: "#E53935", bg: "rgba(229,57,53,0.12)",   Icon: XCircle      },
 };
 
-const TRACK_STEPS = [
-  { key: "pending",    label: "استلام الطلب", Icon: Clock3       },
-  { key: "accepted",   label: "قبول الطلب",   Icon: CheckCircle2 },
-  { key: "preparing",  label: "التحضير",       Icon: Flame        },
-  { key: "ready",      label: "جاهز",          Icon: PackageCheck },
-  { key: "delivering", label: "في الطريق",     Icon: Truck        },
-  { key: "delivered",  label: "مكتمل",         Icon: Home         },
+const TRACK_STEPS_DELIVERY = [
+  { key: "accepted",   label: "قبول الطلب",    Icon: CheckCircle2 },
+  { key: "preparing",  label: "التحضير",        Icon: Flame        },
+  { key: "ready",      label: "جاهز",           Icon: PackageCheck },
+  { key: "delivering", label: "في الطريق",      Icon: Truck        },
+  { key: "delivered",  label: "تم التسليم",     Icon: Home         },
 ];
 
-const TRACK_INDEX: Record<string, number> = {
-  pending: 0, pending_time: 0, accepted: 1, time_confirmed: 1,
-  preparing: 2, ready: 3, delivering: 4, delivered: 5,
-};
+const TRACK_STEPS_PICKUP = [
+  { key: "accepted",  label: "قبول الطلب",     Icon: CheckCircle2 },
+  { key: "preparing", label: "التحضير",         Icon: Flame        },
+  { key: "ready",     label: "جاهز للاستلام",  Icon: PackageCheck },
+  { key: "delivered", label: "تم الاستلام",    Icon: Home         },
+];
 
 function text(value: unknown, fallback = "غير محدد") {
   if (value === null || value === undefined) return fallback;
@@ -358,7 +359,9 @@ export default function OrderDetailScreen() {
   const statusKey   = String(order.status || "pending");
   const status      = STATUS_META[statusKey] || STATUS_META.pending;
   const StatusIcon  = status.Icon;
-  const currentStep = TRACK_INDEX[statusKey] ?? 0;
+  const TRACK_STEPS = order?.delivery_address === "استلام شخصي" ? TRACK_STEPS_PICKUP : TRACK_STEPS_DELIVERY;
+  const normalizedKey = statusKey === "time_confirmed" ? "accepted" : statusKey === "pending_time" ? "pending" : statusKey;
+  const currentStep = TRACK_STEPS.findIndex((st) => st.key === normalizedKey);
   const isCancelled = statusKey === "cancelled";
   const isDelivered = statusKey === "delivered";
   const isDelivering = statusKey === "delivering";

@@ -15,7 +15,7 @@ import {
 } from "@expo-google-fonts/almarai";
 import {
   RefreshCw, ChevronDown, UtensilsCrossed, Package, ClipboardList,
-  Check, X, Flame, Star, LogOut, CalendarDays, Clock3, CheckCircle2, Coffee, MapPin,
+  Check, X, Flame, Star, LogOut, CalendarDays, Clock3, CheckCircle2, Coffee, MapPin,, Wallet
 } from "lucide-react-native";
 
 const API = "https://zafaran-backend-production.up.railway.app";
@@ -26,7 +26,7 @@ const STATUS: any = {
   time_confirmed: { label: "تم تأكيد الوقت",        color: "#8BC34A" },
   accepted:       { label: "تم القبول",              color: "#2196F3" },
   preparing:      { label: "قيد التحضير",            color: "#FF6600" },
-  ready:          { label: "جاهز للتوصيل",           color: "#9C27B0" },
+  ready:          { label: "جاهز",                    color: "#9C27B0" },
   delivering:     { label: "في الطريق",              color: "#03A9F4" },
   delivered:      { label: "تم التسليم",             color: "#4CAF50" },
   cancelled:      { label: "ملغي",                   color: "#E53935" },
@@ -386,7 +386,17 @@ export default function DashboardScreen() {
 
     if (status === "preparing") return (
       <TouchableOpacity style={s.btnAcc} onPress={() => updateStatus(id, "ready")}>
-        <View style={s.btnInner}><Check size={14} color="#F0A500" /><Text style={s.btnText}>الطلب جاهز — ابلغ المندوب</Text></View>
+        <View style={s.btnInner}><Check size={14} color="#F0A500" /><Text style={s.btnText}>{order.delivery_address === "استلام شخصي" ? "الطلب جاهز — أبلغ العميل" : "الطلب جاهز — ابلغ المندوب"}</Text></View>
+      </TouchableOpacity>
+    );
+
+    // طلب استلام شخصي جاهز: الشيف يوثق استلام العميل (وترصد الأرباح)
+    if (status === "ready" && order.delivery_address === "استلام شخصي") return (
+      <TouchableOpacity style={s.btnAcc} onPress={() => Alert.alert("تأكيد الاستلام", "العميل استلم طلبه فعلياً؟", [
+        { text: "لا", style: "cancel" },
+        { text: "نعم", onPress: () => updateStatus(id, "delivered") },
+      ])}>
+        <View style={s.btnInner}><CheckCircle2 size={14} color="#F0A500" /><Text style={s.btnText}>تم استلام العميل — إتمام الطلب</Text></View>
       </TouchableOpacity>
     );
 
@@ -445,6 +455,13 @@ export default function DashboardScreen() {
         <View style={s.btnInner}>
           <UtensilsCrossed size={16} color="#F0A500" />
           <Text style={s.menuBtnText}>قائمتي</Text>
+        </View>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={s.menuBtn} onPress={() => router.push("/dashboard/chef/earnings" as any)}>
+        <View style={s.btnInner}>
+          <Wallet size={16} color="#F0A500" />
+          <Text style={s.menuBtnText}>الأرباح والمحفظة</Text>
         </View>
       </TouchableOpacity>
 
