@@ -4,7 +4,7 @@
     "slug": "zafaran-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/icon-app.png",
     "scheme": "zafaranapp",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
@@ -26,7 +26,7 @@
     "android": {
       "package": "com.zafaran.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
+        "foregroundImage": "./assets/images/icon-app.png",
         "backgroundColor": "#0A0500"
       },
       "edgeToEdgeEnabled": true,
@@ -42,7 +42,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/icon.png"
+      "favicon": "./assets/images/icon-app.png"
     },
     "plugins": [
       "expo-router",
