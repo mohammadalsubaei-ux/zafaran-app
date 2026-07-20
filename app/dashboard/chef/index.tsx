@@ -15,7 +15,8 @@ import {
 } from "@expo-google-fonts/almarai";
 import {
   RefreshCw, ChevronDown, UtensilsCrossed, Package, ClipboardList,
-  Check, X, Flame, Star, LogOut, CalendarDays, Clock3, CheckCircle2, Coffee, MapPin, Wallet
+  Check, X, Flame, Star, LogOut, CalendarDays, Clock3, CheckCircle2, Coffee, MapPin, Wallet,
+  ArrowRight
 } from "lucide-react-native";
 
 const API = "https://zafaran-backend-production.up.railway.app";
@@ -408,9 +409,14 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
-        <TouchableOpacity onPress={handleLogout} style={s.logoutBtn}>
-          <LogOut size={18} color="#E53935" strokeWidth={1.8} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row-reverse", alignItems: "center", gap: 10 }}>
+          <TouchableOpacity onPress={() => router.push("/(tabs)" as any)} style={s.backHomeBtn}>
+            <ArrowRight size={20} color="#F0A500" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleLogout} style={s.logoutBtn}>
+            <LogOut size={18} color="#E53935" strokeWidth={1.8} />
+          </TouchableOpacity>
+        </View>
         <Text style={s.title}>{chef?.offers_drinks ? "لوحة الباريستا" : "لوحة الشيف"}</Text>
         <TouchableOpacity onPress={() => load(true)} style={s.refreshBtn}>
           <RefreshCw size={18} color="#F0A500" />
@@ -718,6 +724,7 @@ const s = StyleSheet.create({
   title:             { fontSize: 18, fontWeight: "900", color: "#FDF0DC", fontFamily: "Almarai_800ExtraBold" },
   refreshBtn:        { padding: 4 },
   logoutBtn:         { padding: 4 },
+  backHomeBtn:       { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: "rgba(240,165,0,0.25)", alignItems: "center", justifyContent: "center" },
   statusBar:         { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", margin: 16, backgroundColor: "#1C1000", borderRadius: 16, padding: 16, borderWidth: 1 },
   drinksBar:         { flexDirection: "row-reverse", alignItems: "center", gap: 10, marginHorizontal: 16, marginBottom: 12, backgroundColor: "#1C1000", borderRadius: 14, padding: 12, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)" },
   drinksInfo:        { flexDirection: "row-reverse", alignItems: "center", gap: 6, flex: 1 },

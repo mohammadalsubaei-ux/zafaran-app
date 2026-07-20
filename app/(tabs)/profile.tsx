@@ -60,6 +60,9 @@ const T: any = {
     guestTitle: "أهلًا بك في زعفران",
     guestSub: "سجل دخولك للوصول إلى الطلبات، المحفظة، العناوين، ولوحات التحكم.",
     login: "تسجيل الدخول",
+    guestRegister: "إنشاء حساب جديد",
+    guestChef: "سجّل مشروعك البيتي",
+    guestDriver: "انضم كمندوب توصيل",
     profile: "الملف الشخصي",
     verified: "حساب موثق",
     customer: "عميل",
@@ -104,6 +107,9 @@ const T: any = {
     guestTitle: "Welcome to Zafaran",
     guestSub: "Sign in to access orders, wallet, addresses, and dashboards.",
     login: "Login",
+    guestRegister: "Create a new account",
+    guestChef: "Register your home business",
+    guestDriver: "Join as a delivery driver",
     profile: "Profile",
     verified: "Verified Account",
     customer: "Customer",
@@ -349,6 +355,35 @@ export default function ProfileScreen() {
           <TouchableOpacity activeOpacity={0.9} style={s.primaryBtn} onPress={openLogin}>
             <LogIn size={18} color="#17100B" strokeWidth={2} />
             <Text style={s.primaryBtnText}>{t.login}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={s.guestOutlineBtn}
+            onPress={() => router.push({ pathname: "/login", params: { step: "register" } } as any)}
+          >
+            <UserRound size={17} color="#F2B233" strokeWidth={1.8} />
+            <Text style={s.guestOutlineText}>{t.guestRegister}</Text>
+          </TouchableOpacity>
+
+          <View style={s.guestDivider} />
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={s.guestRoleBtn}
+            onPress={() => router.push({ pathname: "/login", params: { step: "chef_register" } } as any)}
+          >
+            <ChefHat size={17} color="#F2B233" strokeWidth={1.8} />
+            <Text style={s.guestRoleText}>{t.guestChef}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={[s.guestRoleBtn, s.guestRoleBtnDriver]}
+            onPress={() => router.push({ pathname: "/login", params: { step: "driver_register" } } as any)}
+          >
+            <Truck size={17} color="#2196F3" strokeWidth={1.8} />
+            <Text style={[s.guestRoleText, { color: "#2196F3" }]}>{t.guestDriver}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -878,5 +913,59 @@ const s = StyleSheet.create({
     color: "#17100B",
     fontSize: 14,
     fontFamily: "Almarai_800ExtraBold",
+  },
+
+  guestOutlineBtn: {
+    minHeight: 50,
+    minWidth: 190,
+    marginTop: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(242,178,51,0.35)",
+    backgroundColor: "rgba(242,178,51,0.06)",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row-reverse",
+    gap: 8,
+    paddingHorizontal: 24,
+  },
+
+  guestOutlineText: {
+    color: "#F2B233",
+    fontSize: 14,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  guestDivider: {
+    width: 190,
+    height: 1,
+    backgroundColor: "rgba(242,178,51,0.12)",
+    marginVertical: 20,
+  },
+
+  guestRoleBtn: {
+    minHeight: 48,
+    minWidth: 230,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(242,178,51,0.25)",
+    backgroundColor: "rgba(242,178,51,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row-reverse",
+    gap: 8,
+    paddingHorizontal: 20,
+  },
+
+  guestRoleBtnDriver: {
+    marginTop: 10,
+    borderColor: "rgba(33,150,243,0.3)",
+    backgroundColor: "rgba(33,150,243,0.08)",
+  },
+
+  guestRoleText: {
+    color: "#F2B233",
+    fontSize: 13,
+    fontFamily: "Almarai_700Bold",
   },
 });

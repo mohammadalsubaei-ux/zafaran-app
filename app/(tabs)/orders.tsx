@@ -187,6 +187,7 @@ export default function OrdersScreen() {
   const router = useRouter();
 
   const [orders, setOrders] = useState<Order[]>([]);
+  const [isGuest, setIsGuest] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<"active" | "history">("active");
@@ -207,7 +208,8 @@ export default function OrdersScreen() {
         const storedUser = await AsyncStorage.getItem("user");
 
         if (!storedUser) {
-          router.replace("/login" as any);
+          setIsGuest(true);
+          setOrders([]);
           return;
         }
 
@@ -217,14 +219,18 @@ export default function OrdersScreen() {
           userData = JSON.parse(storedUser);
         } catch {
           await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
-          router.replace("/login" as any);
+          setIsGuest(true);
+          setOrders([]);
           return;
         }
 
         if (!userData?.id) {
-          router.replace("/login" as any);
+          setIsGuest(true);
+          setOrders([]);
           return;
         }
+
+        setIsGuest(false);
 
         const res = await fetch(`${API}/api/orders/customer/${userData.id}`);
         const json = await res.json().catch(() => null);
@@ -503,6 +509,39 @@ export default function OrdersScreen() {
         <View style={s.loadingWrap}>
           <ActivityIndicator color="#F2B233" size="large" />
           <Text style={s.loadingText}>جاري تحميل طلباتك...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isGuest) {
+    return (
+      <SafeAreaView style={s.safe}>
+        <View style={s.guestWrap}>
+          <View style={s.guestIcon}>
+            <ShoppingBag size={54} color="#F2B233" strokeWidth={1.4} />
+          </View>
+
+          <Text style={s.guestTitle}>سجل دخولك أولًا</Text>
+          <Text style={s.guestSub}>
+            عشان تتابع طلباتك من القبول حتى التسليم.
+          </Text>
+
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={s.primaryBtn}
+            onPress={() => router.push("/login" as any)}
+          >
+            <Text style={s.primaryBtnText}>تسجيل الدخول</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={s.guestSecondaryBtn}
+            onPress={goHome}
+          >
+            <Text style={s.guestSecondaryText}>تصفح بدون تسجيل</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -997,5 +1036,52 @@ const s = StyleSheet.create({
     color: "#17100B",
     fontSize: 13,
     fontFamily: "Almarai_800ExtraBold",
+  },
+
+  guestWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 28,
+  },
+
+  guestIcon: {
+    width: 112,
+    height: 112,
+    borderRadius: 38,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#21160D",
+    borderWidth: 1,
+    borderColor: "rgba(242,178,51,0.12)",
+    marginBottom: 22,
+  },
+
+  guestTitle: {
+    color: "#FDF0DC",
+    fontSize: 20,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  guestSub: {
+    color: "#A98961",
+    fontSize: 13,
+    lineHeight: 23,
+    textAlign: "center",
+    marginTop: 8,
+    marginBottom: 20,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  guestSecondaryBtn: {
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+  },
+
+  guestSecondaryText: {
+    color: "#A98961",
+    fontSize: 13,
+    fontFamily: "Almarai_700Bold",
   },
 });

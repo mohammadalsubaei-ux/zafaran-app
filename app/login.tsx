@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
@@ -105,6 +105,15 @@ export default function LoginScreen() {
   const [password2, setPassword2]       = useState("");
   const [loading, setLoading]           = useState(false);
   const router = useRouter();
+  const params = useLocalSearchParams<{ step?: string }>();
+
+  // القدوم من شاشة "حسابي" للضيف بخطوة محددة (تسجيل عميل/شيف/مندوب)
+  useEffect(() => {
+    const target = String(params?.step || "");
+    if (["register", "chef_register", "driver_register"].includes(target)) {
+      setStep(target as "register" | "chef_register" | "driver_register");
+    }
+  }, [params?.step]);
 
   const [fontsLoaded] = useFonts({ Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold });
   if (!fontsLoaded) return null;
@@ -216,6 +225,9 @@ export default function LoginScreen() {
                 onPress={() => setStep("driver_register")}
               >
                 <Text style={[s.chefBtnText, { color: "#2196F3" }]}>انضم كمندوب توصيل</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.switchBtn} onPress={() => router.replace("/(tabs)" as any)}>
+                <Text style={s.switchText}>تصفح كضيف بدون تسجيل</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>

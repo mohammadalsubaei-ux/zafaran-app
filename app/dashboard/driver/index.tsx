@@ -13,6 +13,7 @@ import {
   RefreshCw, Truck, Package, CheckCircle2, MapPin, User, Phone,
   Navigation, LogOut, CircleAlert, Clock3, BadgeCheck, Filter,
   ClipboardList, Wallet, TrendingUp, Radio,
+  ArrowRight
 } from "lucide-react-native";
 
 const API            = "https://zafaran-backend-production.up.railway.app";
@@ -511,9 +512,14 @@ export default function DriverScreen() {
   return (
     <SafeAreaView style={s.safe}>
       <View style={[s.header, { flexDirection: isRTL ? "row-reverse" : "row" }]}>
-        <TouchableOpacity style={s.logoutBtn} onPress={logout} activeOpacity={0.85}>
-          <LogOut size={20} color="#E53935" strokeWidth={1.9} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: isRTL ? "row-reverse" : "row", alignItems: "center", gap: 10 }}>
+          <TouchableOpacity style={s.backHomeBtn} onPress={() => router.push("/(tabs)" as any)} activeOpacity={0.85}>
+            <ArrowRight size={20} color="#F2B233" />
+          </TouchableOpacity>
+          <TouchableOpacity style={s.logoutBtn} onPress={logout} activeOpacity={0.85}>
+            <LogOut size={20} color="#E53935" strokeWidth={1.9} />
+          </TouchableOpacity>
+        </View>
 
         <View style={[s.headerTitleRow, { flexDirection: isRTL ? "row-reverse" : "row" }]}>
           <Truck size={17} color="#F2B233" strokeWidth={1.8} />
@@ -678,6 +684,7 @@ const s = StyleSheet.create({
   header:          { minHeight: 66, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "rgba(242,178,51,0.1)", alignItems: "center", justifyContent: "space-between" },
   headerBtn:       { width: 42, height: 42, borderRadius: 15, backgroundColor: "rgba(242,178,51,0.08)", borderWidth: 1, borderColor: "rgba(242,178,51,0.14)", alignItems: "center", justifyContent: "center" },
   logoutBtn:       { width: 42, height: 42, borderRadius: 15, backgroundColor: "rgba(229,57,53,0.08)", borderWidth: 1, borderColor: "rgba(229,57,53,0.18)", alignItems: "center", justifyContent: "center" },
+  backHomeBtn:     { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: "rgba(242,178,51,0.25)", alignItems: "center", justifyContent: "center" },
   headerTitleRow:  { alignItems: "center", gap: 7 },
   title:           { color: "#FDF0DC", fontSize: 18, fontFamily: "Almarai_800ExtraBold" },
   headerActions:   { flexDirection: "row", alignItems: "center", gap: 8 },

@@ -100,8 +100,10 @@ export default function SplashScreen() {
       try {
         const user = await AsyncStorage.getItem("user");
 
+        // التصفح كضيف: بدون جلسة → الرئيسية مباشرة، والتسجيل يُطلب لحظة النية
+        // (إتمام الطلب، المفضلة، طلباتي، المحفظة، حسابي)
         if (!user) {
-          router.replace("/login" as any);
+          router.replace("/(tabs)" as any);
           return;
         }
 
@@ -111,7 +113,7 @@ export default function SplashScreen() {
           userData = JSON.parse(user);
         } catch {
           await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
-          router.replace("/login" as any);
+          router.replace("/(tabs)" as any);
           return;
         }
 
@@ -123,7 +125,7 @@ driver: "/dashboard/driver",
 
         router.replace((routes[userData?.role] || "/(tabs)") as any);
       } catch {
-        router.replace("/login" as any);
+        router.replace("/(tabs)" as any);
       }
     });
 

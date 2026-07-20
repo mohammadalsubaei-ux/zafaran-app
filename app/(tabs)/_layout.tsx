@@ -392,10 +392,6 @@ export default function TabLayout() {
         />
 
         <Tabs.Screen name="wallet" options={{ href: null }} />
-        <Tabs.Screen name="sweets" options={{ href: null }} />
-        <Tabs.Screen name="pastries" options={{ href: null }} />
-        <Tabs.Screen name="explore" options={{ href: null }} />
-        <Tabs.Screen name="chef" options={{ href: null }} />
       </Tabs>
     </View>
   );

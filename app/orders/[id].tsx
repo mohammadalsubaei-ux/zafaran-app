@@ -1,9 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator, RefreshControl, SafeAreaView, ScrollView,
-  StyleSheet, Text, TouchableOpacity, View, Platform,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold, useFonts,
 } from "@expo-google-fonts/almarai";
@@ -232,6 +241,10 @@ export default function OrderDetailScreen() {
   const [driverLocation, setDriverLocation] = useState<DriverLocation>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [respondLoading, setRespondLoading] = useState(false);
+  const [cancelLoading, setCancelLoading]   = useState(false);
+  const [noDriverLoading, setNoDriverLoading] = useState(false);
+  const [snoozeUntil, setSnoozeUntil]       = useState(0);
+  const [nowTick, setNowTick]               = useState(Date.now());
   const [showPayment, setShowPayment] = useState(false);
 
   const trackingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -268,6 +281,13 @@ export default function OrderDetailScreen() {
 
   useEffect(() => { loadOrder(false); }, [loadOrder]);
 
+  useEffect(() => {
+    const waiting = order?.status === "ready" && !order?.driver_id && order?.delivery_address !== "استلام شخصي";
+    if (!waiting) return;
+    const t = setInterval(() => { setNowTick(Date.now()); loadOrder(true); }, 20000);
+    return () => clearInterval(t);
+  }, [order?.status, order?.driver_id, order?.delivery_address, loadOrder]);
+
   // تتبع لحظي عند حالة delivering
   useEffect(() => {
     if (order?.status === "delivering") {
@@ -284,6 +304,97 @@ export default function OrderDetailScreen() {
       if (trackingIntervalRef.current) clearInterval(trackingIntervalRef.current);
     };
   }, [order?.status, fetchDriverLocation]);
+
+  const cancelOrder = useCallback(() => {
+    Alert.alert("إلغاء الطلب", "متأكد من إلغاء هذا الطلب؟", [
+      { text: "تراجع", style: "cancel" },
+      {
+        text: "نعم، إلغاء",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            setCancelLoading(true);
+            const stored = await AsyncStorage.getItem("user");
+            const userId = stored ? JSON.parse(stored)?.id : null;
+            const res = await fetch(`${API}/api/orders/${orderId}/status`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: "cancelled", user_id: userId, cancel_reason: "ألغاه العميل" }),
+            });
+            const json = await res.json();
+            if (json.success) {
+              loadOrder(true);
+            } else {
+              Alert.alert("تنبيه", json.message || "تعذر الإلغاء");
+            }
+          } catch {
+            Alert.alert("خطأ", "تعذر الاتصال بالسيرفر");
+          } finally {
+            setCancelLoading(false);
+          }
+        },
+      },
+    ]);
+  }, [orderId, loadOrder]);
+
+  const renotifyDrivers = useCallback(async () => {
+    try {
+      setNoDriverLoading(true);
+      const stored = await AsyncStorage.getItem("user");
+      const userId = stored ? JSON.parse(stored)?.id : null;
+      const res = await fetch(`${API}/api/orders/${orderId}/renotify-drivers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSnoozeUntil(Date.now() + 2 * 60 * 1000);
+        Alert.alert("تم", "أشعرنا المناديب المتاحين مجدداً — سننبهك فور قبول أحدهم");
+      } else {
+        Alert.alert("تنبيه", json.message || "تعذر الإرسال");
+      }
+    } catch {
+      Alert.alert("خطأ", "تعذر الاتصال بالسيرفر");
+    } finally {
+      setNoDriverLoading(false);
+    }
+  }, [orderId]);
+
+  const switchToPickup = useCallback(() => {
+    Alert.alert(
+      "التحويل لاستلام شخصي",
+      "بيلغى التوصيل وتستلم طلبك بنفسك من موقع الأسرة المنتجة بدون رسوم توصيل — نكمل؟",
+      [
+        { text: "تراجع", style: "cancel" },
+        {
+          text: "نعم، استلام شخصي",
+          onPress: async () => {
+            try {
+              setNoDriverLoading(true);
+              const stored = await AsyncStorage.getItem("user");
+              const userId = stored ? JSON.parse(stored)?.id : null;
+              const res = await fetch(`${API}/api/orders/${orderId}/switch-to-pickup`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: userId }),
+              });
+              const json = await res.json();
+              if (json.success) {
+                loadOrder(true);
+              } else {
+                Alert.alert("تنبيه", json.message || "تعذر التحويل");
+              }
+            } catch {
+              Alert.alert("خطأ", "تعذر الاتصال بالسيرفر");
+            } finally {
+              setNoDriverLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [orderId, loadOrder]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -365,6 +476,10 @@ export default function OrderDetailScreen() {
   const isCancelled = statusKey === "cancelled";
   const isDelivered = statusKey === "delivered";
   const isDelivering = statusKey === "delivering";
+  const canCancel = statusKey === "pending" || statusKey === "pending_time";
+  const waitingDriver = statusKey === "ready" && !order?.driver_id && order?.delivery_address !== "استلام شخصي";
+  const waitedMs = waitingDriver && order?.ready_at ? nowTick - new Date(order.ready_at).getTime() : 0;
+  const showNoDriverCard = waitingDriver && waitedMs > 90 * 1000 && nowTick > snoozeUntil;
   const isPreorder  = order.order_type === "preorder";
   const isMale      = order.chefs?.users?.gender === "male";
   const isPickup    = order.delivery_type === "pickup" || text(order.delivery_address, "") === "استلام شخصي";
@@ -408,6 +523,31 @@ export default function OrderDetailScreen() {
           </Text>
           <Text style={s.heroSub}>{formatDate(order.created_at)}</Text>
         </View>
+
+        {canCancel ? (
+          <TouchableOpacity style={s.cancelOrderBtn} onPress={cancelOrder} disabled={cancelLoading} activeOpacity={0.85}>
+            {cancelLoading
+              ? <ActivityIndicator size="small" color="#E57373" />
+              : <Text style={s.cancelOrderBtnText}>إلغاء الطلب</Text>}
+          </TouchableOpacity>
+        ) : null}
+
+        {showNoDriverCard ? (
+          <View style={s.noDriverCard}>
+            <Text style={s.noDriverTitle}>لا يوجد مندوب متاح حالياً</Text>
+            <Text style={s.noDriverSub}>طلبك جاهز عند الأسرة المنتجة — اختر ما يناسبك:</Text>
+            <View style={s.noDriverBtns}>
+              <TouchableOpacity style={s.ndWaitBtn} onPress={renotifyDrivers} disabled={noDriverLoading} activeOpacity={0.85}>
+                {noDriverLoading
+                  ? <ActivityIndicator size="small" color="#F2B233" />
+                  : <Text style={s.ndWaitText}>إشعار المناديب والانتظار</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity style={s.ndPickupBtn} onPress={switchToPickup} disabled={noDriverLoading} activeOpacity={0.85}>
+                <Text style={s.ndPickupText}>استلام شخصي</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
 
         {/* تتبع المندوب اللحظي */}
         {isDelivering && (
@@ -695,6 +835,16 @@ const s = StyleSheet.create({
   orderNumber:      { color: "#F2B233", fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
   heroTitle:        { color: "#FDF0DC", textAlign: "right", fontSize: 22, lineHeight: 32, fontFamily: "Almarai_800ExtraBold" },
   heroSub:          { color: "#A98961", textAlign: "right", marginTop: 6, fontSize: 12, lineHeight: 21, fontFamily: "Almarai_400Regular" },
+  cancelOrderBtn: { borderWidth: 1, borderColor: "rgba(229,57,53,0.5)", borderRadius: 14, paddingVertical: 12, alignItems: "center", marginBottom: 14 },
+  cancelOrderBtnText: { color: "#E57373", fontSize: 13, fontFamily: "Almarai_700Bold" },
+  noDriverCard:  { backgroundColor: "rgba(242,178,51,0.07)", borderRadius: 16, padding: 15, borderWidth: 1, borderColor: "rgba(242,178,51,0.3)", marginBottom: 14 },
+  noDriverTitle: { color: "#F2B233", fontSize: 14, fontFamily: "Almarai_800ExtraBold", textAlign: "right" },
+  noDriverSub:   { color: "#A98961", fontSize: 12, fontFamily: "Almarai_400Regular", textAlign: "right", marginTop: 4, marginBottom: 12 },
+  noDriverBtns:  { flexDirection: "row-reverse", gap: 10 },
+  ndWaitBtn:     { flex: 1, borderWidth: 1, borderColor: "rgba(242,178,51,0.45)", borderRadius: 12, paddingVertical: 11, alignItems: "center" },
+  ndWaitText:    { color: "#F2B233", fontSize: 12, fontFamily: "Almarai_700Bold" },
+  ndPickupBtn:   { flex: 1, backgroundColor: "#F2B233", borderRadius: 12, paddingVertical: 11, alignItems: "center" },
+  ndPickupText:  { color: "#0E0700", fontSize: 12, fontFamily: "Almarai_800ExtraBold" },
   trackingCard:     { backgroundColor: "#111C22", borderRadius: 24, padding: 15, marginBottom: 12, borderWidth: 1, borderColor: "rgba(3,169,244,0.25)" },
   liveBadge:        { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(76,175,80,0.15)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginRight: "auto" },
   liveDot:          { width: 6, height: 6, borderRadius: 3, backgroundColor: "#4CAF50" },
@@ -776,3 +926,6 @@ const s = StyleSheet.create({
   primaryBtn:       { minWidth: 180, borderRadius: 17, backgroundColor: "#F2B233", paddingHorizontal: 22, paddingVertical: 13, alignItems: "center" },
   primaryBtnText:   { color: "#17100B", fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
 });
+
+
+

@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ChevronRight, Bell, BellOff } from "lucide-react-native";
+import { ArrowRight, Bell, BellOff } from "lucide-react-native";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 
@@ -68,11 +68,11 @@ export default function NotificationsScreen() {
   return (
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <ChevronRight size={22} color="#F2B233" strokeWidth={2} />
+        <TouchableOpacity activeOpacity={0.8} onPress={() => router.back()} style={s.backBtn}>
+          <ArrowRight size={20} color="#F2B233" />
         </TouchableOpacity>
         <Text style={s.headerTitle}>الإشعارات</Text>
-        <View style={{ width: 36 }} />
+        <View style={{ width: 38 }} />
       </View>
 
       {loading ? (
@@ -114,7 +114,7 @@ const s = StyleSheet.create({
     flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "rgba(242,178,51,0.1)",
   },
-  backBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  backBtn: { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: "rgba(242,178,51,0.25)", alignItems: "center", justifyContent: "center" },
   headerTitle: { color: "#FDF0DC", fontSize: 16, fontWeight: "800" },
 
   card: {
