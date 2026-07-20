@@ -16,8 +16,9 @@ import {
 import {
   RefreshCw, ChevronDown, UtensilsCrossed, Package, ClipboardList,
   Check, X, Flame, Star, LogOut, CalendarDays, Clock3, CheckCircle2, Coffee, MapPin, Wallet,
-  ArrowRight
+  ArrowRight, FileText
 } from "lucide-react-native";
+import { pickCompressedImage, uploadImageToBucket } from "@/utils/images";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 
@@ -73,6 +74,8 @@ export default function DashboardScreen() {
   });
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [savingLocation, setSavingLocation] = useState(false);
+  const [graceDays, setGraceDays]       = useState(30);
+  const [certUploading, setCertUploading] = useState(false);
   const [chefStatus, setChefStatus]   = useState("open");
   const [showStatus, setShowStatus]   = useState(false);
   const [tab, setTab]                 = useState<"active" | "history">("active");
@@ -126,6 +129,14 @@ export default function DashboardScreen() {
   }, [chefId]);
 
   useEffect(() => { loadChef(); }, [loadChef]);
+
+  // مهلة شهادة العمل الحر — مصدرها الوحيد app_settings عبر الباكند
+  useEffect(() => {
+    fetch(`${API}/api/chefs/cert-grace`)
+      .then((r) => r.json())
+      .then((j) => { if (j?.success && j?.data?.grace_days) setGraceDays(j.data.grace_days); })
+      .catch(() => {});
+  }, []);
   useEffect(() => { if (chefId) load(); }, [chefId, load]);
   useFocusEffect(useCallback(() => { if (chefId) load(true); }, [chefId, load]));
 
@@ -133,6 +144,50 @@ export default function DashboardScreen() {
     setRefreshing(true);
     await load(true);
   }, [load]);
+
+  // شهادة العمل الحر: حقل غير إلزامي بالتسجيل — يُرفع من هنا خلال المهلة
+  // بعد انتهاء المهلة: لا إيقاف تلقائي — الأدمن يقرر يدوياً لكل حالة
+  const certInfo = useMemo(() => {
+    if (!chef) return null;
+    if (chef.freelance_cert_url) {
+      const d = chef.freelance_cert_uploaded_at ? new Date(chef.freelance_cert_uploaded_at) : null;
+      return { state: "uploaded" as const, date: d ? d.toLocaleDateString("ar-SA") : "" };
+    }
+    const created = chef.created_at ? new Date(chef.created_at).getTime() : Date.now();
+    const daysUsed = Math.floor((Date.now() - created) / 86400000);
+    const left = graceDays - daysUsed;
+    if (left >= 0) return { state: "pending" as const, left };
+    return { state: "late" as const, late: -left };
+  }, [chef, graceDays]);
+
+  const uploadCert = useCallback(async () => {
+    if (certUploading || !chefId) return;
+    // مستند — بدون قص، والضغط الإجباري يتكفل بحجم صورة الجوال
+    const uri = await pickCompressedImage();
+    if (!uri) return;
+
+    setCertUploading(true);
+    try {
+      const url = await uploadImageToBucket("certificates", "cert", uri);
+      if (!url) { Alert.alert("تعذر رفع الشهادة", "تأكد من الإنترنت وحاول مرة ثانية."); return; }
+
+      const res  = await fetch(`${API}/api/chefs/${chefId}/freelance-cert`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cert_url: url }),
+      });
+      const json = await res.json().catch(() => null);
+
+      if (res.ok && json?.success) {
+        setChef(json.data);
+        Alert.alert("تم", "تم رفع شهادة العمل الحر بنجاح.");
+      } else {
+        Alert.alert("خطأ", json?.message || "تعذر حفظ الشهادة.");
+      }
+    } finally {
+      setCertUploading(false);
+    }
+  }, [certUploading, chefId]);
 
   const handleLogout = () => {
     Alert.alert("خروج", "تبي تطلع من حسابك؟", [
@@ -452,10 +507,43 @@ export default function DashboardScreen() {
         <View style={s.btnInner}>
           <MapPin size={16} color={chef?.lat && chef?.lng ? "#4CAF50" : "#E53935"} strokeWidth={1.8} />
           <Text style={s.locationBtnText}>
-            {chef?.lat && chef?.lng ? "تحديث موقعي على الخريطة" : "⚠️ حدد موقعك الآن (مطلوب لحساب التوصيل)"}
+            {chef?.lat && chef?.lng ? "تحديث موقعي على الخريطة" : "حدد موقعك الآن (مطلوب لحساب التوصيل)"}
           </Text>
         </View>
       </TouchableOpacity>
+
+      {certInfo ? (
+        <View style={s.certCard}>
+          <View style={s.certRow}>
+            <FileText
+              size={16}
+              color={certInfo.state === "uploaded" ? "#4CAF50" : certInfo.state === "late" ? "#E53935" : "#F0A500"}
+              strokeWidth={1.8}
+            />
+            <Text style={s.certTitle}>شهادة العمل الحر</Text>
+          </View>
+
+          <Text
+            style={[
+              s.certStatus,
+              certInfo.state === "uploaded" && { color: "#8AF0A5" },
+              certInfo.state === "late" && { color: "#FF9A9A" },
+            ]}
+          >
+            {certInfo.state === "uploaded"
+              ? `مرفوعة${certInfo.date ? ` بتاريخ ${certInfo.date}` : ""}`
+              : certInfo.state === "pending"
+              ? `غير إلزامية الآن — متبقي ${certInfo.left} يوم لرفعها`
+              : `انتهت المهلة قبل ${certInfo.late} يوم — ارفعها الآن لتجنب إيقاف الحساب`}
+          </Text>
+
+          <TouchableOpacity style={s.certBtn} onPress={uploadCert} disabled={certUploading}>
+            {certUploading
+              ? <ActivityIndicator color="#1C0F00" size="small" />
+              : <Text style={s.certBtnText}>{certInfo.state === "uploaded" ? "استبدال الشهادة" : "رفع الشهادة"}</Text>}
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
       <TouchableOpacity style={s.menuBtn} onPress={() => router.push("/menu" as any)}>
         <View style={s.btnInner}>
@@ -732,6 +820,12 @@ const s = StyleSheet.create({
 
   locationBtn:        { marginHorizontal: 16, marginBottom: 12, backgroundColor: "#1C1000", borderRadius: 14, padding: 13, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)" },
   locationBtnText:     { color: "#FDF0DC", fontSize: 13, fontFamily: "Almarai_700Bold" },
+  certCard:            { marginHorizontal: 16, marginBottom: 12, backgroundColor: "#1C1000", borderRadius: 14, padding: 13, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)" },
+  certRow:             { flexDirection: "row-reverse", alignItems: "center", gap: 7 },
+  certTitle:           { color: "#FDF0DC", fontSize: 13, fontFamily: "Almarai_700Bold" },
+  certStatus:          { color: "#FFD27A", fontSize: 12, lineHeight: 20, marginTop: 6, fontFamily: "Almarai_400Regular", textAlign: "right" },
+  certBtn:             { marginTop: 10, backgroundColor: "#F0A500", borderRadius: 12, paddingVertical: 10, alignItems: "center", justifyContent: "center" },
+  certBtnText:         { color: "#1C0F00", fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
 
   mapHeader:          { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1, borderBottomColor: "rgba(242,178,51,0.1)" },
   mapHeaderBtn:        { color: "#F0A500", fontSize: 14, fontFamily: "Almarai_700Bold" },

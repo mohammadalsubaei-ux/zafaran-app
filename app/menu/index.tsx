@@ -17,8 +17,7 @@ import {
 import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
+import { pickCompressedImage, uploadImageToBucket } from "@/utils/images";
 import {
   Almarai_400Regular,
   Almarai_700Bold,
@@ -47,10 +46,7 @@ import {
   XCircle,
 } from "lucide-react-native";
 
-const API      = "https://zafaran-backend-production.up.railway.app";
-const SUPA_URL = "https://gnmsakxtdwgkvaajktco.supabase.co";
-const SUPA_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6ImdubXNha3h0ZHdna3ZhYWprdGNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MzQwOTYsImV4cCI6MjA5MzMxMDA5Nn0.XOVMlX2IxzAzyN5vDnb9FEIsFS5fZg8HkUtJTZTHZzw";
+const API = "https://zafaran-backend-production.up.railway.app";
 
 type MenuStatus = "available" | "preorder" | "unavailable";
 
@@ -273,47 +269,17 @@ export default function MenuScreen() {
 
   const pickImage = useCallback(async () => {
     if (saving || uploading) return;
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permission.status !== "granted") {
-      Alert.alert("إذن الصور مطلوب", "نحتاج إذن الوصول للصور."); return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true, aspect: [4, 3], quality: 0.75,
-    });
-    if (result.canceled) return;
-
-    try {
-      // نصغّر الصورة لعرض أقصى 1200px + ضغط 0.7 — يقلل الحجم كثير بدون تأثير ملحوظ على الجودة
-      const manipulated = await ImageManipulator.manipulateAsync(
-        result.assets[0].uri,
-        [{ resize: { width: 1200 } }],
-        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-      );
-      setImageUri(manipulated.uri);
-    } catch {
-      // لو فشل التصغير لأي سبب، نستخدم الصورة الأصلية بدل ما نوقف المستخدم بالكامل
-      setImageUri(result.assets[0].uri);
-    }
+    // الأداة الموحدة: صور فقط + قص 4:3 + تصغير 1200px + ضغط JPEG إجباري بلا استثناء
+    const compressed = await pickCompressedImage({ crop: [4, 3] });
+    if (compressed) setImageUri(compressed);
   }, [saving, uploading]);
 
   const uploadImage = useCallback(async (uri: string): Promise<string | null> => {
     setUploading(true); setUploadMessage("جاري رفع الصورة...");
     try {
-      const rawExt  = uri.split(".").pop()?.split("?")[0]?.toLowerCase() || "jpg";
-      const ext      = ["jpg","jpeg","png","webp"].includes(rawExt) ? rawExt : "jpg";
-      const mimeType = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : `image/${ext}`;
-      const fileName = `menu_${Date.now()}_${Math.floor(Math.random() * 100000)}.${ext}`;
-      const formData = new FormData();
-      formData.append("file", { uri, name: fileName, type: mimeType } as any);
-      const res = await fetch(`${SUPA_URL}/storage/v1/object/menu-images/${fileName}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${SUPA_KEY}`, apikey: SUPA_KEY, "x-upsert": "true" },
-        body: formData,
-      });
-      if (!res.ok) return null;
-      setUploadMessage("تم رفع الصورة، جاري حفظ الوجبة...");
-      return `${SUPA_URL}/storage/v1/object/public/menu-images/${fileName}`;
+      const url = await uploadImageToBucket("menu-images", "menu", uri);
+      if (url) setUploadMessage("تم رفع الصورة، جاري حفظ الوجبة...");
+      return url;
     } catch { return null; }
     finally { setUploading(false); }
   }, []);

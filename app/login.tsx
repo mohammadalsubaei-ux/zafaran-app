@@ -317,6 +317,7 @@ export default function LoginScreen() {
               <View style={s.inputWrap}>
                 <TextInput style={s.input} placeholder="حي النرجس، ..." placeholderTextColor="#5A3A18" onChangeText={setNeighborhood} textAlign="right"/>
               </View>
+              <Text style={s.certHint}>شهادة العمل الحر غير إلزامية للتسجيل — يمكنك رفعها لاحقًا من لوحتك خلال المهلة المحددة</Text>
               <TouchableOpacity style={s.btn} onPress={() => handleRegister("chef")} disabled={loading}>
                 {loading ? <ActivityIndicator color="#1C0F00" /> : <Text style={s.btnText}>سجّل مشروعي</Text>}
               </TouchableOpacity>
@@ -410,6 +411,7 @@ const s = StyleSheet.create({
   btnText:           { fontSize: 17, fontWeight: "900", color: "#1C0F00", fontFamily: "Almarai_800ExtraBold" },
   switchBtn:         { marginTop: 16, alignItems: "center" },
   switchText:        { color: "#F0A500", fontSize: 13, fontWeight: "700", fontFamily: "Almarai_700Bold" },
+  certHint:          { color: "#A98961", fontSize: 11.5, lineHeight: 19, textAlign: "right", marginBottom: 12, fontFamily: "Almarai_400Regular" },
   divider:           { flexDirection: "row", alignItems: "center", marginVertical: 16, gap: 10 },
   dividerLine:       { flex: 1, height: 1, backgroundColor: "rgba(240,165,0,0.15)" },
   dividerText:       { color: "#5A3A18", fontSize: 12, fontFamily: "Almarai_400Regular" },
