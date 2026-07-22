@@ -1,4 +1,4 @@
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+﻿// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  أداة الصور الموحدة لمنصة زعفران
 //  شروط الرفع (تُفرض تلقائياً — البائع يصور بجواله والنظام يتكفل):
 //  - صور فقط (يرفض أي ملف آخر من المصدر)
@@ -11,8 +11,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 
 const SUPA_URL = "https://gnmsakxtdwgkvaajktco.supabase.co";
-const SUPA_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6ImdubXNha3h0ZHdna3ZhYWprdGNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MzQwOTYsImV4cCI6MjA5MzMxMDA5Nn0.XOVMlX2IxzAzyN5vDnb9FEIsFS5fZg8HkUtJTZTHZzw";
+const SUPA_KEY = "sb_publishable_VpziBJN-IvDQzJGjwbJvsg_AUBG3K41";
 
 export const MAX_IMAGE_WIDTH = 1200;
 export const IMAGE_QUALITY = 0.7;
@@ -73,9 +72,14 @@ export async function uploadImageToBucket(
       body: formData,
     });
 
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.log("[upload-debug] bucket:", bucket, "| status:", res.status, "| body:", errBody);
+      return null;
+    }
     return `${SUPA_URL}/storage/v1/object/public/${bucket}/${fileName}`;
-  } catch {
+  } catch (e: any) {
+    console.log("[upload-debug] network error:", e?.message || String(e));
     return null;
   }
 }
