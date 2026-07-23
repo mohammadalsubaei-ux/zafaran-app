@@ -16,7 +16,7 @@ import {
 import {
   RefreshCw, ChevronDown, UtensilsCrossed, Package, ClipboardList,
   Check, X, Flame, Star, LogOut, CalendarDays, Clock3, CheckCircle2, Coffee, MapPin, Wallet,
-  ArrowRight, FileText
+  ArrowRight, FileText, Eye
 } from "lucide-react-native";
 import { pickCompressedImage, uploadImageToBucket } from "@/utils/images";
 
@@ -478,125 +478,141 @@ export default function DashboardScreen() {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={[s.statusBar, { borderColor: currentStatus.color + "44" }]} onPress={() => setShowStatus(true)}>
-        <View style={s.btnInner}>
-          <ChevronDown size={16} color={currentStatus.color} />
-          <Text style={[s.statusChange, { color: currentStatus.color }]}>تغيير</Text>
-        </View>
-        <View>
-          <Text style={s.statusTitle}>حالة مطبخي</Text>
-          <Text style={[s.statusVal, { color: currentStatus.color }]}>● {currentStatus.label}</Text>
-          <Text style={s.statusDesc}>{currentStatus.desc}</Text>
-        </View>
-      </TouchableOpacity>
 
-      <View style={s.drinksBar}>
-        <Switch
-          value={Boolean(chef?.offers_drinks)}
-          onValueChange={toggleDrinks}
-          trackColor={{ false: "#3A2A1A", true: "#F0A50055" }}
-          thumbColor={chef?.offers_drinks ? "#F0A500" : "#8A6030"}
-        />
-        <View style={s.drinksInfo}>
-          <Coffee size={15} color="#F0A500" strokeWidth={1.8} />
-          <Text style={s.drinksText}>أقدّم مشروبات (باريستا)</Text>
-        </View>
-      </View>
-
-      <TouchableOpacity style={s.locationBtn} onPress={openLocationMap}>
-        <View style={s.btnInner}>
-          <MapPin size={16} color={chef?.lat && chef?.lng ? "#4CAF50" : "#E53935"} strokeWidth={1.8} />
-          <Text style={s.locationBtnText}>
-            {chef?.lat && chef?.lng ? "تحديث موقعي على الخريطة" : "حدد موقعك الآن (مطلوب لحساب التوصيل)"}
-          </Text>
-        </View>
-      </TouchableOpacity>
-
-      {certInfo ? (
-        <View style={s.certCard}>
-          <View style={s.certRow}>
-            <FileText
-              size={16}
-              color={certInfo.state === "uploaded" ? "#4CAF50" : certInfo.state === "late" ? "#E53935" : "#F0A500"}
-              strokeWidth={1.8}
-            />
-            <Text style={s.certTitle}>شهادة العمل الحر</Text>
-          </View>
-
-          <Text
-            style={[
-              s.certStatus,
-              certInfo.state === "uploaded" && { color: "#8AF0A5" },
-              certInfo.state === "late" && { color: "#FF9A9A" },
-            ]}
-          >
-            {certInfo.state === "uploaded"
-              ? `مرفوعة${certInfo.date ? ` بتاريخ ${certInfo.date}` : ""}`
-              : certInfo.state === "pending"
-              ? `غير إلزامية الآن — متبقي ${certInfo.left} يوم لرفعها`
-              : `انتهت المهلة قبل ${certInfo.late} يوم — ارفعها الآن لتجنب إيقاف الحساب`}
-          </Text>
-
-          <TouchableOpacity style={s.certBtn} onPress={uploadCert} disabled={certUploading}>
-            {certUploading
-              ? <ActivityIndicator color="#1C0F00" size="small" />
-              : <Text style={s.certBtnText}>{certInfo.state === "uploaded" ? "استبدال الشهادة" : "رفع الشهادة"}</Text>}
-          </TouchableOpacity>
-        </View>
-      ) : null}
-
-      <TouchableOpacity style={s.menuBtn} onPress={() => router.push("/menu" as any)}>
-        <View style={s.btnInner}>
-          <UtensilsCrossed size={16} color="#F0A500" />
-          <Text style={s.menuBtnText}>قائمتي</Text>
-        </View>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={s.menuBtn} onPress={() => router.push("/dashboard/chef/earnings" as any)}>
-        <View style={s.btnInner}>
-          <Wallet size={16} color="#F0A500" />
-          <Text style={s.menuBtnText}>الأرباح والمحفظة</Text>
-        </View>
-      </TouchableOpacity>
-
-      <View style={s.statsRow}>
-        <View style={s.statCard}>
-          <Text style={s.statNum}>{activeOrders.length}</Text>
-          <Text style={s.statLabel}>نشطة</Text>
-        </View>
-        <View style={s.statCard}>
-          <Text style={s.statNum}>{activeOrders.filter(o => o.order_type === "preorder").length}</Text>
-          <Text style={[s.statLabel, { color: "#FF9800" }]}>حجوزات</Text>
-        </View>
-        <View style={s.statCard}>
-          <Text style={s.statNum}>{historyOrders.filter(o => o.status === "delivered").length}</Text>
-          <Text style={s.statLabel}>مكتملة</Text>
-        </View>
-        <View style={s.statCard}>
-          <View style={s.btnInner}>
-            <Star size={12} color="#F0A500" />
-            <Text style={s.statNum}>{chef?.rating_avg || "—"}</Text>
-          </View>
-          <Text style={s.statLabel}>التقييم</Text>
-        </View>
-      </View>
-
-      <View style={s.tabRow}>
-        <TouchableOpacity style={[s.tabBtn, tab === "active" && s.tabBtnActive]} onPress={() => setTab("active")}>
-          <Text style={[s.tabText, tab === "active" && s.tabTextActive]}>النشطة ({activeOrders.length})</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[s.tabBtn, tab === "history" && s.tabBtnActive]} onPress={() => setTab("history")}>
-          <Text style={[s.tabText, tab === "history" && s.tabTextActive]}>السجل ({historyOrders.length})</Text>
-        </TouchableOpacity>
-      </View>
-
-      {loading
-        ? <ActivityIndicator color="#F0A500" style={{ marginTop: 40 }} size="large" />
-        : <FlatList
-            data={displayOrders}
+      <FlatList
+            data={loading ? [] : displayOrders}
             keyExtractor={i => i.id}
-            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 0, paddingBottom: 40 }}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F0A500" />}
+            ListHeaderComponent={
+              <View style={{ marginHorizontal: -16 }}>
+          <TouchableOpacity style={[s.statusBar, { borderColor: currentStatus.color + "44" }]} onPress={() => setShowStatus(true)}>
+            <View style={s.btnInner}>
+              <ChevronDown size={16} color={currentStatus.color} />
+              <Text style={[s.statusChange, { color: currentStatus.color }]}>تغيير</Text>
+            </View>
+            <View>
+              <Text style={s.statusTitle}>حالة مطبخي</Text>
+              <Text style={[s.statusVal, { color: currentStatus.color }]}>● {currentStatus.label}</Text>
+              <Text style={s.statusDesc}>{currentStatus.desc}</Text>
+            </View>
+          </TouchableOpacity>
+
+          <View style={s.drinksBar}>
+            <Switch
+              value={Boolean(chef?.offers_drinks)}
+              onValueChange={toggleDrinks}
+              trackColor={{ false: "#3A2A1A", true: "#F0A50055" }}
+              thumbColor={chef?.offers_drinks ? "#F0A500" : "#8A6030"}
+            />
+            <View style={s.drinksInfo}>
+              <Coffee size={15} color="#F0A500" strokeWidth={1.8} />
+              <Text style={s.drinksText}>أقدّم مشروبات (باريستا)</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity style={s.locationBtn} onPress={openLocationMap}>
+            <View style={s.btnInner}>
+              <MapPin size={16} color={chef?.lat && chef?.lng ? "#4CAF50" : "#E53935"} strokeWidth={1.8} />
+              <Text style={s.locationBtnText}>
+                {chef?.lat && chef?.lng ? "تحديث موقعي على الخريطة" : "حدد موقعك الآن (مطلوب لحساب التوصيل)"}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {certInfo ? (
+            <View style={s.certCard}>
+              <View style={s.certRow}>
+                <FileText
+                  size={16}
+                  color={certInfo.state === "uploaded" ? "#4CAF50" : certInfo.state === "late" ? "#E53935" : "#F0A500"}
+                  strokeWidth={1.8}
+                />
+                <Text style={s.certTitle}>شهادة العمل الحر</Text>
+              </View>
+
+              <Text
+                style={[
+                  s.certStatus,
+                  certInfo.state === "uploaded" && { color: "#8AF0A5" },
+                  certInfo.state === "late" && { color: "#FF9A9A" },
+                ]}
+              >
+                {certInfo.state === "uploaded"
+                  ? `مرفوعة${certInfo.date ? ` بتاريخ ${certInfo.date}` : ""}`
+                  : certInfo.state === "pending"
+                  ? `غير إلزامية الآن — متبقي ${certInfo.left} يوم لرفعها`
+                  : `انتهت المهلة قبل ${certInfo.late} يوم — ارفعها الآن لتجنب إيقاف الحساب`}
+              </Text>
+
+              <TouchableOpacity style={s.certBtn} onPress={uploadCert} disabled={certUploading}>
+                {certUploading
+                  ? <ActivityIndicator color="#1C0F00" size="small" />
+                  : <Text style={s.certBtnText}>{certInfo.state === "uploaded" ? "استبدال الشهادة" : "رفع الشهادة"}</Text>}
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          <TouchableOpacity style={s.menuBtn} onPress={() => router.push("/menu" as any)}>
+            <View style={s.btnInner}>
+              <UtensilsCrossed size={16} color="#F0A500" />
+              <Text style={s.menuBtnText}>قائمتي</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={s.menuBtn} onPress={() => router.push("/dashboard/chef/earnings" as any)}>
+            <View style={s.btnInner}>
+              <Wallet size={16} color="#F0A500" />
+              <Text style={s.menuBtnText}>الأرباح والمحفظة</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={s.menuBtn}
+            onPress={() => {
+              if (!chefId) return;
+              router.push(`/chef/${chefId}` as any);
+            }}
+          >
+            <View style={s.btnInner}>
+              <Eye size={16} color="#F0A500" />
+              <Text style={s.menuBtnText}>معاينة متجري</Text>
+            </View>
+          </TouchableOpacity>
+
+          <View style={s.statsRow}>
+            <View style={s.statCard}>
+              <Text style={s.statNum}>{activeOrders.length}</Text>
+              <Text style={s.statLabel}>نشطة</Text>
+            </View>
+            <View style={s.statCard}>
+              <Text style={s.statNum}>{activeOrders.filter(o => o.order_type === "preorder").length}</Text>
+              <Text style={[s.statLabel, { color: "#FF9800" }]}>حجوزات</Text>
+            </View>
+            <View style={s.statCard}>
+              <Text style={s.statNum}>{historyOrders.filter(o => o.status === "delivered").length}</Text>
+              <Text style={s.statLabel}>مكتملة</Text>
+            </View>
+            <View style={s.statCard}>
+              <View style={s.btnInner}>
+                <Star size={12} color="#F0A500" />
+                <Text style={s.statNum}>{chef?.rating_avg || "—"}</Text>
+              </View>
+              <Text style={s.statLabel}>التقييم</Text>
+            </View>
+          </View>
+
+          <View style={s.tabRow}>
+            <TouchableOpacity style={[s.tabBtn, tab === "active" && s.tabBtnActive]} onPress={() => setTab("active")}>
+              <Text style={[s.tabText, tab === "active" && s.tabTextActive]}>النشطة ({activeOrders.length})</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[s.tabBtn, tab === "history" && s.tabBtnActive]} onPress={() => setTab("history")}>
+              <Text style={[s.tabText, tab === "history" && s.tabTextActive]}>السجل ({historyOrders.length})</Text>
+            </TouchableOpacity>
+          </View>
+
+              </View>
+            }
             renderItem={({ item }) => (
               <View style={[s.card, item.order_type === "preorder" && s.cardPreorder]}>
                 <View style={s.row}>
@@ -645,13 +661,14 @@ export default function DashboardScreen() {
               </View>
             )}
             ListEmptyComponent={
-              <View style={s.emptyWrap}>
-                {tab === "active" ? <Package size={52} color="#5A3A18" /> : <ClipboardList size={52} color="#5A3A18" />}
-                <Text style={s.empty}>{tab === "active" ? "ما في طلبات نشطة" : "ما في سجل بعد"}</Text>
-              </View>
+              loading
+                ? <ActivityIndicator color="#F0A500" style={{ marginTop: 40 }} size="large" />
+                : <View style={s.emptyWrap}>
+                    {tab === "active" ? <Package size={52} color="#5A3A18" /> : <ClipboardList size={52} color="#5A3A18" />}
+                    <Text style={s.empty}>{tab === "active" ? "ما في طلبات نشطة" : "ما في سجل بعد"}</Text>
+                  </View>
             }
           />
-      }
 
       {/* Modal حالة المطبخ */}
       <Modal visible={showStatus} transparent animationType="slide">
