@@ -17,11 +17,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.zafaran.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "نحتاج موقعك لتوصيل طلبك بدقة",
-        "NSLocationAlwaysUsageDescription": "نحتاج موقعك لتوصيل طلبك بدقة",
-        "NSPhotoLibraryUsageDescription": "نحتاج الوصول للصور حتى تتمكن من رفع صور الوجبات",
-        "NSCameraUsageDescription": "نحتاج الكاميرا حتى تتمكن من تصوير ورفع صور الوجبات"
-      }
+        "NSLocationWhenInUseUsageDescription": "نستخدم موقعك لحساب رسوم التوصيل بدقة وتتبع طلبك أثناء التوصيل",
+        "NSPhotoLibraryUsageDescription": "نحتاج الوصول للصور لرفع صور منتجاتك وشهادة العمل الحر",
+        "NSCameraUsageDescription": "نحتاج الكاميرا لتصوير منتجاتك ورفع صورها"
+      },
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.zafaran.app",
@@ -36,9 +36,9 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.RECORD_AUDIO"
-      ]
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ],
+      "versionCode": 1
     },
     "web": {
       "output": "static",
@@ -59,14 +59,14 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "نحتاج موقعك لتوصيل طلبك بدقة"
+          "locationWhenInUsePermission": "نستخدم موقعك لحساب رسوم التوصيل بدقة وتتبع طلبك أثناء التوصيل"
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "نحتاج الوصول للصور حتى تتمكن من رفع صور الوجبات",
-          "cameraPermission": "نحتاج الكاميرا حتى تتمكن من تصوير ورفع صور الوجبات"
+          "photosPermission": "نحتاج الوصول للصور لرفع صور منتجاتك وشهادة العمل الحر",
+          "cameraPermission": "نحتاج الكاميرا لتصوير منتجاتك ورفع صورها"
         }
       ],
       "expo-localization"
