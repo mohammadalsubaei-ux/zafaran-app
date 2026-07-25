@@ -37,7 +37,7 @@ import {
   Trash2,
   Truck,
   UtensilsCrossed,
-  Wallet,
+  Wallet, Banknote,
 } from "lucide-react-native";
 
 import { useCart } from "@/context/CartContext";
@@ -66,7 +66,7 @@ function calcEstimatedFee(distanceKm: number | null, p: typeof DEFAULT_FEE_PARAM
 }
 
 type DeliveryType = "delivery" | "pickup";
-type PaymentMethod = "stc_pay" | "apple_pay" | "card";
+type PaymentMethod = "cash" | "stc_pay" | "apple_pay" | "card";
 
 type UserSession = {
   id?: string | number | null;
@@ -82,7 +82,8 @@ const PAYMENT_METHODS: Array<{
   Icon: any;
   enabled: boolean;
 }> = [
-  { id: "stc_pay",   title: "STC Pay",      subtitle: "الدفع عبر STC Pay", Icon: Wallet,     enabled: true  },
+  { id: "cash",      title: "الدفع عند الاستلام", subtitle: "ادفع كاش أو تحويل عند وصول طلبك", Icon: Banknote,   enabled: true  },
+  { id: "stc_pay",   title: "STC Pay",      subtitle: "قريبًا",            Icon: Wallet,     enabled: false },
   { id: "apple_pay", title: "Apple Pay",     subtitle: "قريبًا",            Icon: Smartphone, enabled: false },
   { id: "card",      title: "مدى / بطاقة",  subtitle: "قريبًا",            Icon: CreditCard, enabled: false },
 ];
@@ -138,7 +139,7 @@ export default function CartScreen() {
   }, []);
 
   const [deliveryType, setDeliveryType]     = useState<DeliveryType>("delivery");
-  const [paymentMethod, setPaymentMethod]   = useState<PaymentMethod>("stc_pay");
+  const [paymentMethod, setPaymentMethod]   = useState<PaymentMethod>("cash");
 
   const [address, setAddress] = useState("");
   const [lat, setLat]         = useState<number | null>(null);
@@ -334,7 +335,18 @@ export default function CartScreen() {
           return;
         }
 
-        // الطلب الفوري: افتح بوابة الدفع مباشرة
+        // الدفع عند الاستلام: لا بوابة دفع — تأكيد مباشر والتحصيل عند التسليم
+        if (paymentMethod === "cash") {
+          clearCart();
+          Alert.alert(
+            "تم إرسال طلبك بنجاح",
+            (orderId ? `رقم طلبك: ${orderId.slice(0, 8)}\n` : "") + "الدفع عند استلام الطلب — كاش أو تحويل.",
+            [{ text: "متابعة الطلب", onPress: () => router.replace("/(tabs)/orders" as any) }]
+          );
+          return;
+        }
+
+        // الدفع الإلكتروني: افتح بوابة الدفع مباشرة
         setPayingOrderId(orderId);
         setShowPayment(true);
         return;

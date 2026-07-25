@@ -647,7 +647,7 @@ export default function OrderDetailScreen() {
             )}
 
             {/* الوقت اتفق عليه، بس الدفع لسا ما تم */}
-            {order.time_negotiation_status === "accepted" && order.payment_status !== "paid" && (
+            {order.time_negotiation_status === "accepted" && order.payment_status !== "paid" && order.payment_method !== "cash" && (
               <TouchableOpacity
                 activeOpacity={0.9}
                 style={s.payNowBtn}
@@ -661,7 +661,7 @@ export default function OrderDetailScreen() {
         )}
 
         {/* الطلب الفوري غير مدفوع (فشل أو أُلغي أثناء الدفع سابقاً) */}
-        {!isPreorder && order.payment_status !== "paid" && !isCancelled && (
+        {!isPreorder && order.payment_status !== "paid" && order.payment_method !== "cash" && !isCancelled && (
           <View style={s.card}>
             <TouchableOpacity
               activeOpacity={0.9}
@@ -926,6 +926,3 @@ const s = StyleSheet.create({
   primaryBtn:       { minWidth: 180, borderRadius: 17, backgroundColor: "#F2B233", paddingHorizontal: 22, paddingVertical: 13, alignItems: "center" },
   primaryBtnText:   { color: "#17100B", fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
 });
-
-
-
