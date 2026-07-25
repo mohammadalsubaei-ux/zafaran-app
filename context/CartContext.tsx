@@ -8,6 +8,7 @@ interface CartItem {
   chef_id: string;
   chef_name: string;
   image_url?: string | null;
+  status?: string; // available | preorder — تحدد إظهار منتقي وقت الحجز بالسلة
 }
 
 interface CartContextType {

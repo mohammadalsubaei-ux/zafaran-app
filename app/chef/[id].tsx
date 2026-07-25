@@ -240,12 +240,8 @@ export default function ChefScreen() {
     (item: MenuItem) => {
       if (!chef) return;
 
-      if (!isOpen) {
-        if (isPreorderOnly) {
-          Alert.alert("حجز مسبق فقط", "هذا الشيف يستقبل حجوزات مسبقة فقط حالياً — ميزة الحجز المسبق قريباً بالتطبيق.");
-        } else {
-          Alert.alert("الشيف مغلق", "لا يمكن إضافة وجبات من شيف مغلق حاليًا.");
-        }
+      if (!isOpen && !isPreorderOnly) {
+        Alert.alert("المتجر مغلق", "لا يمكن إضافة منتجات من متجر مغلق حاليًا.");
         return;
       }
 
@@ -262,6 +258,8 @@ export default function ChefScreen() {
         chef_id: String(chef.id),
         chef_name: chefName,
         image_url: text(item.image_url, ""),
+        // متجر بوضع الحجز المسبق: كل أصنافه تُطلب حجزاً — وإلا حالة الصنف نفسه
+        status: isPreorderOnly ? "preorder" : String(item.status || "available"),
       };
 
       if (chef_id && String(chef_id) !== String(chef.id)) {
