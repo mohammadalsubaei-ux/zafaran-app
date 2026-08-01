@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View, Text, FlatList, StyleSheet, SafeAreaView,
   ActivityIndicator, TouchableOpacity, Alert, Modal,
-  ScrollView, RefreshControl, Switch,
+  ScrollView, RefreshControl, Switch, Share,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -16,7 +16,7 @@ import {
 import {
   RefreshCw, ChevronDown, UtensilsCrossed, Package, ClipboardList,
   Check, X, Flame, Star, LogOut, CalendarDays, Clock3, CheckCircle2, Coffee, MapPin, Wallet,
-  ArrowRight, FileText, Eye
+  ArrowRight, FileText, Eye, Share2
 } from "lucide-react-native";
 import { pickCompressedImage, uploadImageToBucket } from "@/utils/images";
 
@@ -577,6 +577,23 @@ export default function DashboardScreen() {
             <View style={s.btnInner}>
               <Eye size={16} color="#F0A500" />
               <Text style={s.menuBtnText}>معاينة متجري</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={s.menuBtn}
+            onPress={async () => {
+              if (!chefId) return;
+              try {
+                await Share.share({
+                  message: "تصفح متجري على زعفران واطلب مباشرة:\n" + API + "/store/" + chefId,
+                });
+              } catch {}
+            }}
+          >
+            <View style={s.btnInner}>
+              <Share2 size={16} color="#F0A500" />
+              <Text style={s.menuBtnText}>مشاركة متجري</Text>
             </View>
           </TouchableOpacity>
 
