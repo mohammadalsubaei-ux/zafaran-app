@@ -2,7 +2,6 @@
 import {
   ActivityIndicator,
   Alert,
-  Platform,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -17,7 +16,7 @@ import {
   Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold, useFonts,
 } from "@expo-google-fonts/almarai";
 import {
-  AlertCircle, ArrowRight, CalendarDays, CheckCircle2, ChefHat, Clock3,
+  AlertCircle, ArrowRight, Banknote, CalendarDays, CheckCircle2, ChefHat, Clock3,
   CreditCard, Flame, Gift, Home, MapPin, Navigation, PackageCheck,
   ReceiptText, RefreshCw, Smartphone, Star, Truck, UtensilsCrossed,
   Wallet, XCircle,
@@ -34,7 +33,7 @@ const API = "https://zafaran-backend-production.up.railway.app";
 const TRACKING_POLL_INTERVAL = 8000; // 8 ثواني
 
 type OrderStatus = "pending" | "accepted" | "preparing" | "ready" | "delivering" | "delivered" | "cancelled" | "pending_time" | "time_confirmed";
-type PaymentMethod = "stc_pay" | "apple_pay" | "card" | string;
+type PaymentMethod = "cash" | "stc_pay" | "apple_pay" | "card" | string;
 type PaymentStatus = "pending" | "paid" | "failed" | "refunded" | string;
 
 type OrderItem = {
@@ -50,6 +49,8 @@ type Order = {
   id: string;
   status?: OrderStatus | string | null;
   created_at?: string | null;
+  ready_at?: string | null;
+  driver_id?: string | null;
   delivery_type?: "delivery" | "pickup" | string | null;
   delivery_address?: string | null;
   delivery_fee?: number | string | null;
@@ -141,27 +142,34 @@ function formatDateTime(value: unknown) {
   if (Number.isNaN(date.getTime())) return "غير محدد";
   return date.toLocaleString("ar-SA", { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
+
+// cash هي الطريقة الافتراضية في السلة — غيابها هنا كان يعرض "غير محدد" لكل طلب
 function paymentLabel(method?: PaymentMethod | null) {
+  if (method === "cash")      return "الدفع عند الاستلام";
   if (method === "stc_pay")   return "STC Pay";
   if (method === "apple_pay") return "Apple Pay";
   if (method === "card")      return "مدى / بطاقة";
   return "غير محدد";
 }
 function PaymentIcon({ method, color }: { method?: PaymentMethod | null; color: string }) {
+  if (method === "cash")      return <Banknote   size={18} color={color} strokeWidth={1.8} />;
   if (method === "apple_pay") return <Smartphone size={18} color={color} strokeWidth={1.8} />;
-  if (method === "card")      return <CreditCard  size={18} color={color} strokeWidth={1.8} />;
+  if (method === "card")      return <CreditCard size={18} color={color} strokeWidth={1.8} />;
   return <Wallet size={18} color={color} strokeWidth={1.8} />;
 }
-function paymentStatusLabel(status?: PaymentStatus | null) {
+function paymentStatusLabel(status?: PaymentStatus | null, method?: PaymentMethod | null) {
   if (status === "paid")     return "مدفوع";
   if (status === "failed")   return "فشل الدفع";
   if (status === "refunded") return "مسترجع";
+  // الدفع عند الاستلام: الحالة pending طبيعية ولا تعني تأخر العميل
+  if (method === "cash")     return "يُدفع نقداً أو تحويلاً عند الاستلام";
   return "بانتظار الدفع";
 }
-function paymentStatusColor(status?: PaymentStatus | null) {
+function paymentStatusColor(status?: PaymentStatus | null, method?: PaymentMethod | null) {
   if (status === "paid")     return "#4CAF50";
   if (status === "failed")   return "#E53935";
   if (status === "refunded") return "#03A9F4";
+  if (method === "cash")     return "#A98961";
   return "#F2B233";
 }
 
@@ -483,12 +491,13 @@ export default function OrderDetailScreen() {
   const isPreorder  = order.order_type === "preorder";
   const isMale      = order.chefs?.users?.gender === "male";
   const isPickup    = order.delivery_type === "pickup" || text(order.delivery_address, "") === "استلام شخصي";
+  const isCash      = order.payment_method === "cash";
   const subtotal    = numberValue(order.subtotal);
   const deliveryFee = isPickup ? 0 : numberValue(order.delivery_fee);
   const total       = numberValue(order.total_amount || order.total || subtotal + deliveryFee);
   const chefName    = text(order.chefs?.users?.full_name, isMale ? "الشيف" : "الشيفة");
   const chefLocation = [order.chefs?.city, order.chefs?.neighborhood].filter(Boolean).join(" · ");
-  const paymentColor = paymentStatusColor(order.payment_status);
+  const paymentColor = paymentStatusColor(order.payment_status, order.payment_method);
 
   return (
     <SafeAreaView style={s.safe}>
@@ -647,7 +656,7 @@ export default function OrderDetailScreen() {
             )}
 
             {/* الوقت اتفق عليه، بس الدفع لسا ما تم */}
-            {order.time_negotiation_status === "accepted" && order.payment_status !== "paid" && order.payment_method !== "cash" && (
+            {order.time_negotiation_status === "accepted" && order.payment_status !== "paid" && !isCash && (
               <TouchableOpacity
                 activeOpacity={0.9}
                 style={s.payNowBtn}
@@ -661,7 +670,7 @@ export default function OrderDetailScreen() {
         )}
 
         {/* الطلب الفوري غير مدفوع (فشل أو أُلغي أثناء الدفع سابقاً) */}
-        {!isPreorder && order.payment_status !== "paid" && order.payment_method !== "cash" && !isCancelled && (
+        {!isPreorder && order.payment_status !== "paid" && !isCash && !isCancelled && (
           <View style={s.card}>
             <TouchableOpacity
               activeOpacity={0.9}
@@ -760,7 +769,9 @@ export default function OrderDetailScreen() {
             </View>
             <View style={s.paymentInfo}>
               <Text style={s.paymentTitle}>{paymentLabel(order.payment_method)}</Text>
-              <Text style={[s.paymentStatus, { color: paymentColor }]}>{paymentStatusLabel(order.payment_status)}</Text>
+              <Text style={[s.paymentStatus, { color: paymentColor }]}>
+                {paymentStatusLabel(order.payment_status, order.payment_method)}
+              </Text>
             </View>
           </View>
         </View>
@@ -784,6 +795,9 @@ export default function OrderDetailScreen() {
             <Text style={s.totalLabel}>الإجمالي</Text>
             <Text style={s.totalValue}>{money(total)}</Text>
           </View>
+          {isCash && !isDelivered && !isCancelled ? (
+            <Text style={s.cashHint}>المبلغ يُحصّل عند استلام الطلب</Text>
+          ) : null}
         </View>
 
         {/* العنوان */}
@@ -915,6 +929,7 @@ const s = StyleSheet.create({
   summaryDivider:   { height: 1, backgroundColor: "rgba(242,178,51,0.12)", marginVertical: 4 },
   totalLabel:       { color: "#FDF0DC", fontSize: 16, fontFamily: "Almarai_800ExtraBold" },
   totalValue:       { color: "#F2B233", fontSize: 20, fontFamily: "Almarai_800ExtraBold" },
+  cashHint:         { color: "#8A6030", textAlign: "right", fontSize: 11, marginTop: 8, fontFamily: "Almarai_400Regular" },
   addressText:      { color: "#A98961", textAlign: "right", fontSize: 13, lineHeight: 23, fontFamily: "Almarai_400Regular" },
   cancelText:       { color: "#FFCECE", textAlign: "right", fontSize: 13, lineHeight: 23, fontFamily: "Almarai_400Regular" },
   reviewBtn:        { minHeight: 56, borderRadius: 20, backgroundColor: "#F2B233", flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 4 },

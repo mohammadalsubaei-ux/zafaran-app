@@ -55,12 +55,13 @@ type Chef = {
   }> | null;
 };
 
+// المسميات هنا يجب أن تطابق شاشة التصنيفات حرفياً — أي اختلاف يربك المستخدم
 const SECTIONS = [
   {
     id: "kitchen",
     category: "popular",
     label: "الطبخ",
-    sub: "أكلات شعبية",
+    sub: "أطباق ومقبلات",
     color: "#F2B233",
     bg: "#2A1E00",
     Icon: UtensilsCrossed,
@@ -69,7 +70,7 @@ const SECTIONS = [
     id: "sweets",
     category: "sweets",
     label: "الحلا",
-    sub: "حلويات لذيذة",
+    sub: "حلويات وكيك",
     color: "#E8A0BF",
     bg: "#2A1220",
     Icon: Cake,
@@ -77,8 +78,8 @@ const SECTIONS = [
   {
     id: "pastries",
     category: "pastries",
-    label: "الفطائر",
-    sub: "فطائر ومعجنات",
+    label: "المعجنات",
+    sub: "فطائر ومخبوزات",
     color: "#A8D8A8",
     bg: "#0F2A0F",
     Icon: Croissant,
@@ -86,8 +87,8 @@ const SECTIONS = [
   {
     id: "drinks",
     category: "drinks",
-    label: "مشروبات",
-    sub: "قهوة وعصائر",
+    label: "القهوة",
+    sub: "قهوة ومشروبات",
     color: "#87CEEB",
     bg: "#0F1E2A",
     Icon: Coffee,
@@ -358,10 +359,16 @@ export default function HomeScreen() {
               <View style={[s.sectionIconWrap, { borderColor: `${sec.color}44` }]}>
                 <sec.Icon size={20} color={sec.color} strokeWidth={1.8} />
               </View>
-              <Text style={[s.sectionLabel, { color: sec.color }]}>
+              <Text
+                style={[s.sectionLabel, { color: sec.color }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
                 {sec.label}
               </Text>
-              <Text style={s.sectionSub}>{sec.sub}</Text>
+              <Text style={s.sectionSub} numberOfLines={1} adjustsFontSizeToFit>
+                {sec.sub}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -441,7 +448,7 @@ export default function HomeScreen() {
         ) : null}
       </View>
     );
-  }, [chefs, error, mostOrderedChefs, onRefresh, openChef, openSection, search, searching]);
+  }, [banners, chefs, error, mostOrderedChefs, onRefresh, openChef, openSection, router, search, searching]);
 
   const renderChef = useCallback(
     ({ item }: { item: Chef }) => {
@@ -650,7 +657,7 @@ const s = StyleSheet.create({
   sectionsRow: {
     flexDirection: "row-reverse",
     paddingHorizontal: 16,
-    gap: 10,
+    gap: 8,
     marginBottom: 10,
   },
 
@@ -658,7 +665,7 @@ const s = StyleSheet.create({
     flex: 1,
     borderRadius: 18,
     paddingVertical: 10,
-    paddingHorizontal: 8,
+    paddingHorizontal: 5,
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.06)",
@@ -843,22 +850,6 @@ const s = StyleSheet.create({
     color: "#A98961",
     fontFamily: "Almarai_700Bold",
     marginBottom: 3,
-  },
-
-  bannerTitle: {
-    fontSize: 19,
-    color: "#F2B233",
-    fontFamily: "Almarai_800ExtraBold",
-    marginBottom: 4,
-    textAlign: "right",
-  },
-
-  bannerSub: {
-    fontSize: 12,
-    color: "#A98961",
-    fontFamily: "Almarai_400Regular",
-    marginBottom: 12,
-    textAlign: "right",
   },
 
   bannerBtn: {

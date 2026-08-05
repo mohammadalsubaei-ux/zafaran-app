@@ -1,6 +1,7 @@
 ﻿import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   RefreshControl,
   SafeAreaView,
@@ -20,6 +21,8 @@ import {
 import {
   AlertCircle,
   CalendarClock,
+  CalendarDays,
+  Check,
   CheckCircle2,
   ChefHat,
   ChevronLeft,
@@ -32,6 +35,7 @@ import {
   RefreshCw,
   ShoppingBag,
   Truck,
+  X,
   XCircle,
 } from "lucide-react-native";
 
@@ -53,6 +57,10 @@ type Order = {
   status: OrderStatus | string;
   total?: number | string | null;
   created_at?: string | null;
+  order_type?: string | null;
+  time_negotiation_status?: string | null;
+  proposed_time?: string | null;
+  confirmed_time?: string | null;
   chefs?: {
     users?: {
       full_name?: string | null;
@@ -169,6 +177,22 @@ function formatDate(value: unknown) {
   }
 }
 
+function formatDateTime(value: unknown) {
+  if (!value) return "";
+
+  try {
+    return new Date(String(value)).toLocaleString("ar-SA", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}
+
 function getItemName(item: any) {
   return (
     item?.name ||
@@ -192,6 +216,7 @@ export default function OrdersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<"active" | "history">("active");
   const [error, setError] = useState<string | null>(null);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
 
   const [fontsLoaded] = useFonts({
     Almarai_400Regular,
@@ -269,6 +294,59 @@ export default function OrdersScreen() {
     setRefreshing(true);
     await loadOrders(true);
   }, [loadOrders]);
+
+  // رد العميل على الوقت البديل الذي اقترحه المتجر
+  const respondToTime = useCallback(
+    async (orderId: string, action: "accept" | "reject") => {
+      if (respondingId) return;
+      setRespondingId(orderId);
+
+      try {
+        const res = await fetch(`${API}/api/orders/${orderId}/respond-time`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
+        });
+
+        const json = await res.json().catch(() => null);
+
+        if (res.ok && json?.success) {
+          Alert.alert(
+            "تم",
+            action === "accept"
+              ? "تم تأكيد الموعد — المتجر بيبدأ التحضير في وقته."
+              : "تم إلغاء الطلب بدون أي رسوم."
+          );
+          await loadOrders(true);
+        } else {
+          Alert.alert("تعذر إرسال ردك", json?.message || "حاول مرة ثانية.");
+        }
+      } catch {
+        Alert.alert("مشكلة اتصال", "تأكد من الإنترنت وحاول مرة ثانية.");
+      } finally {
+        setRespondingId(null);
+      }
+    },
+    [loadOrders, respondingId]
+  );
+
+  const confirmReject = useCallback(
+    (orderId: string) => {
+      Alert.alert(
+        "رفض الموعد البديل",
+        "رفض الموعد يعني إلغاء الطلب بالكامل بدون رسوم. تبي تكمل؟",
+        [
+          { text: "تراجع", style: "cancel" },
+          {
+            text: "رفض وإلغاء",
+            style: "destructive",
+            onPress: () => respondToTime(orderId, "reject"),
+          },
+        ]
+      );
+    },
+    [respondToTime]
+  );
 
   const activeOrders = useMemo(() => {
     return orders.filter((order) => !["delivered", "cancelled"].includes(order.status));
@@ -400,10 +478,18 @@ export default function OrdersScreen() {
       const chefName = cleanText(item.chefs?.users?.full_name, "أسرة منتجة");
       const isFinished = ["delivered", "cancelled"].includes(item.status);
 
+      const isPreorder = item.order_type === "preorder";
+      const negotiation = item.time_negotiation_status;
+      const isResponding = respondingId === String(item.id);
+
       return (
         <TouchableOpacity
           activeOpacity={0.9}
-          style={[s.card, item.status === "cancelled" && s.cardCancelled]}
+          style={[
+            s.card,
+            item.status === "cancelled" && s.cardCancelled,
+            isPreorder && !isFinished && s.cardPreorder,
+          ]}
           onPress={() => openOrder(String(item.id))}
         >
           <View style={s.cardHeader}>
@@ -412,9 +498,18 @@ export default function OrdersScreen() {
               <Text style={s.orderId}>{shortId(item.id)}</Text>
             </View>
 
-            <View style={[s.badge, { backgroundColor: st.bg }]}>
-              <StatusIcon size={13} color={st.color} strokeWidth={1.9} />
-              <Text style={[s.badgeText, { color: st.color }]}>{st.label}</Text>
+            <View style={s.badgesWrap}>
+              {isPreorder ? (
+                <View style={s.preorderTag}>
+                  <CalendarDays size={10} color="#FF9800" strokeWidth={1.9} />
+                  <Text style={s.preorderTagText}>حجز مسبق</Text>
+                </View>
+              ) : null}
+
+              <View style={[s.badge, { backgroundColor: st.bg }]}>
+                <StatusIcon size={13} color={st.color} strokeWidth={1.9} />
+                <Text style={[s.badgeText, { color: st.color }]}>{st.label}</Text>
+              </View>
             </View>
           </View>
 
@@ -430,6 +525,70 @@ export default function OrdersScreen() {
               </Text>
             </View>
           </View>
+
+          {/* مفاوضة وقت الحجز المسبق */}
+          {isPreorder && !isFinished && negotiation === "pending" ? (
+            <View style={s.timeBoxWaiting}>
+              <Clock3 size={14} color="#FF9800" strokeWidth={1.9} />
+              <Text style={s.timeTextWaiting}>
+                {item.proposed_time
+                  ? `طلبت التسليم ${formatDateTime(item.proposed_time)} — بانتظار تأكيد المتجر`
+                  : "بانتظار تأكيد المتجر لوقت التسليم"}
+              </Text>
+            </View>
+          ) : null}
+
+          {isPreorder && !isFinished && negotiation === "chef_countered" ? (
+            <View style={s.counterBox}>
+              <View style={s.counterHead}>
+                <CalendarClock size={15} color="#FF9800" strokeWidth={1.9} />
+                <Text style={s.counterTitle}>المتجر اقترح موعداً بديلاً</Text>
+              </View>
+
+              {item.proposed_time ? (
+                <Text style={s.counterOld}>
+                  موعدك السابق: {formatDateTime(item.proposed_time)}
+                </Text>
+              ) : null}
+
+              <Text style={s.counterNew}>
+                الموعد المقترح: {formatDateTime(item.confirmed_time)}
+              </Text>
+
+              {isResponding ? (
+                <ActivityIndicator color="#F2B233" style={{ marginTop: 12 }} />
+              ) : (
+                <View style={s.counterBtns}>
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    style={s.counterAccept}
+                    onPress={() => respondToTime(String(item.id), "accept")}
+                  >
+                    <Check size={14} color="#8BC34A" strokeWidth={2.2} />
+                    <Text style={s.counterAcceptText}>أوافق على الموعد</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    style={s.counterReject}
+                    onPress={() => confirmReject(String(item.id))}
+                  >
+                    <X size={14} color="#E53935" strokeWidth={2.2} />
+                    <Text style={s.counterRejectText}>رفض</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          ) : null}
+
+          {isPreorder && !isFinished && negotiation === "accepted" && item.confirmed_time ? (
+            <View style={s.timeBoxConfirmed}>
+              <CheckCircle2 size={14} color="#8BC34A" strokeWidth={1.9} />
+              <Text style={s.timeTextConfirmed}>
+                الموعد المؤكد: {formatDateTime(item.confirmed_time)}
+              </Text>
+            </View>
+          ) : null}
 
           <View style={s.itemsBox}>
             {orderItems.slice(0, 2).map((oi: any, index: number) => (
@@ -500,7 +659,7 @@ export default function OrdersScreen() {
         </TouchableOpacity>
       );
     },
-    [openOrder]
+    [confirmReject, openOrder, respondToTime, respondingId]
   );
 
   if (!fontsLoaded || loading) {
@@ -788,6 +947,11 @@ const s = StyleSheet.create({
     opacity: 0.9,
   },
 
+  cardPreorder: {
+    borderColor: "rgba(255,152,0,0.30)",
+    backgroundColor: "#20150A",
+  },
+
   cardHeader: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
@@ -812,6 +976,27 @@ const s = StyleSheet.create({
     color: "#FDF0DC",
     fontSize: 14,
     fontFamily: "Almarai_800ExtraBold",
+  },
+
+  badgesWrap: {
+    alignItems: "flex-start",
+    gap: 6,
+  },
+
+  preorderTag: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255,152,0,0.14)",
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+
+  preorderTagText: {
+    color: "#FF9800",
+    fontSize: 10,
+    fontFamily: "Almarai_700Bold",
   },
 
   badge: {
@@ -866,6 +1051,133 @@ const s = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Almarai_800ExtraBold",
     textAlign: "right",
+  },
+
+  timeBoxWaiting: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: "rgba(255,152,0,0.09)",
+    borderWidth: 1,
+    borderColor: "rgba(255,152,0,0.20)",
+    borderRadius: 16,
+    padding: 11,
+    marginBottom: 10,
+  },
+
+  timeTextWaiting: {
+    flex: 1,
+    color: "#FF9800",
+    textAlign: "right",
+    fontSize: 12,
+    lineHeight: 20,
+    fontFamily: "Almarai_700Bold",
+  },
+
+  timeBoxConfirmed: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: "rgba(139,195,74,0.09)",
+    borderWidth: 1,
+    borderColor: "rgba(139,195,74,0.20)",
+    borderRadius: 16,
+    padding: 11,
+    marginBottom: 10,
+  },
+
+  timeTextConfirmed: {
+    flex: 1,
+    color: "#8BC34A",
+    textAlign: "right",
+    fontSize: 12,
+    lineHeight: 20,
+    fontFamily: "Almarai_700Bold",
+  },
+
+  counterBox: {
+    backgroundColor: "rgba(255,152,0,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,152,0,0.30)",
+    borderRadius: 18,
+    padding: 13,
+    marginBottom: 10,
+  },
+
+  counterHead: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 7,
+    marginBottom: 8,
+  },
+
+  counterTitle: {
+    color: "#FF9800",
+    textAlign: "right",
+    fontSize: 13,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  counterOld: {
+    color: "#8A6030",
+    textAlign: "right",
+    fontSize: 11,
+    lineHeight: 19,
+    fontFamily: "Almarai_400Regular",
+    textDecorationLine: "line-through",
+  },
+
+  counterNew: {
+    color: "#FDF0DC",
+    textAlign: "right",
+    fontSize: 13,
+    lineHeight: 22,
+    marginTop: 3,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  counterBtns: {
+    flexDirection: "row-reverse",
+    gap: 8,
+    marginTop: 12,
+  },
+
+  counterAccept: {
+    flex: 2,
+    minHeight: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(139,195,74,0.13)",
+    borderWidth: 1,
+    borderColor: "rgba(139,195,74,0.35)",
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+
+  counterAcceptText: {
+    color: "#8BC34A",
+    fontSize: 13,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  counterReject: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(229,57,53,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(229,57,53,0.25)",
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+
+  counterRejectText: {
+    color: "#E53935",
+    fontSize: 13,
+    fontFamily: "Almarai_800ExtraBold",
   },
 
   itemsBox: {

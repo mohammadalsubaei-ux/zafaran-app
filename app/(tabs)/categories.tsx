@@ -4,7 +4,6 @@ import {
   FlatList,
   Image,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -24,7 +23,6 @@ import {
   CircleOff,
   Coffee,
   Croissant,
-  Flame,
   ImageOff,
   MapPin,
   RefreshCw,
@@ -57,51 +55,47 @@ type Chef = {
   }> | null;
 };
 
+// المسميات هنا يجب أن تطابق أقسام الشاشة الرئيسية حرفياً
+// aliases: كل قيم menu_items.category المحتملة التي تنتمي لهذا التصنيف
+// أي قيمة غير مذكورة هنا لن تظهر إلا تحت "الكل"
 const CATEGORIES = [
   {
     id: "all",
     label: "الكل",
-    sub: "كل المنتجات",
     color: "#F2B233",
-    bg: "rgba(242,178,51,0.10)",
     Icon: Sparkles,
     aliases: ["all"],
   },
   {
     id: "popular",
     label: "الطبخ",
-    sub: "أكلات شعبية",
     color: "#F2B233",
-    bg: "#2A1E00",
     Icon: UtensilsCrossed,
-    aliases: ["popular", "kitchen", "rice", "sides"],
+    aliases: [
+      "popular", "kitchen", "main", "mains", "rice",
+      "appetizers", "appetizer", "starters", "sides", "stew", "soup", "salad",
+    ],
   },
   {
     id: "sweets",
     label: "الحلا",
-    sub: "حلويات",
     color: "#E8A0BF",
-    bg: "#2A1220",
     Icon: Cake,
-    aliases: ["sweets", "dessert", "desserts"],
+    aliases: ["sweets", "sweet", "dessert", "desserts", "cake", "cakes"],
   },
   {
     id: "pastries",
     label: "المعجنات",
-    sub: "فطائر ومخبوزات",
     color: "#A8D8A8",
-    bg: "#0F2A0F",
     Icon: Croissant,
-    aliases: ["pastries", "bakery"],
+    aliases: ["pastries", "pastry", "bakery", "bread", "pies", "pie"],
   },
   {
     id: "drinks",
-    label: "القهاوي",
-    sub: "قهوة ومشروبات",
+    label: "القهوة",
     color: "#87CEEB",
-    bg: "#0F1E2A",
     Icon: Coffee,
-    aliases: ["drinks", "coffee", "beverages"],
+    aliases: ["drinks", "drink", "coffee", "beverages", "juice", "juices", "tea"],
   },
 ];
 
@@ -130,16 +124,15 @@ function categoryMeta(id: string) {
   return CATEGORIES.find((cat) => cat.id === id) || CATEGORIES[0];
 }
 
+function itemInCategory(item: { category?: string | null }, categoryId: string) {
+  if (categoryId === "all") return true;
+  const aliases = categoryMeta(categoryId).aliases;
+  return aliases.includes(cleanText(item.category, "").toLowerCase());
+}
+
 function chefHasCategory(chef: Chef, categoryId: string) {
   if (categoryId === "all") return true;
-
-  const meta = categoryMeta(categoryId);
-  const aliases = meta.aliases;
-
-  return chef.menu?.some((item) => {
-    const itemCategory = cleanText(item.category, "").toLowerCase();
-    return aliases.includes(itemCategory);
-  });
+  return chef.menu?.some((item) => itemInCategory(item, categoryId));
 }
 
 export default function CategoriesScreen() {
@@ -205,6 +198,20 @@ export default function CategoriesScreen() {
     await loadChefs(true);
   }, [loadChefs]);
 
+  // عدد المتاجر ضمن كل تصنيف — يستخدم لتخفيت التصنيف الفارغ
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+
+    CATEGORIES.forEach((cat) => {
+      counts[cat.id] =
+        cat.id === "all"
+          ? chefs.length
+          : chefs.filter((chef) => chefHasCategory(chef, cat.id)).length;
+    });
+
+    return counts;
+  }, [chefs]);
+
   const filteredChefs = useMemo(() => {
     const q = search.trim().toLowerCase();
 
@@ -259,91 +266,70 @@ export default function CategoriesScreen() {
   const ListHeader = useCallback(() => {
     return (
       <View>
-        <View style={s.hero}>
-          <View style={s.heroBadge}>
-            <selectedMeta.Icon size={14} color={selectedMeta.color} strokeWidth={1.8} />
-            <Text style={[s.heroBadgeText, { color: selectedMeta.color }]}>
-              {selectedMeta.label}
-            </Text>
-          </View>
+        {/* البحث أولاً — التصنيفات تحته مباشرة كصف فلترة واحد بلا تمرير أفقي */}
+        <View style={s.searchWrap}>
+          <Search size={18} color="#F2B233" strokeWidth={1.8} />
 
-          <Text style={s.heroTitle}>اختر تصنيفك</Text>
-          <Text style={s.heroSub}>أكل · قهوة · حلا · معجنات</Text>
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="ابحث عن متجر أو منتج..."
+            placeholderTextColor="#7C6145"
+            style={s.searchInput}
+            textAlign="right"
+            returnKeyType="search"
+          />
 
-          <View style={s.searchWrap}>
-            <Search size={18} color="#F2B233" strokeWidth={1.8} />
-
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="ابحث عن شيف أو طبق..."
-              placeholderTextColor="#7C6145"
-              style={s.searchInput}
-              textAlign="right"
-              returnKeyType="search"
-            />
-
-            {search.trim() ? (
-              <TouchableOpacity activeOpacity={0.85} onPress={clearSearch}>
-                <X size={17} color="#8A6030" strokeWidth={2} />
-              </TouchableOpacity>
-            ) : null}
-          </View>
+          {search.trim() ? (
+            <TouchableOpacity activeOpacity={0.85} onPress={clearSearch}>
+              <X size={17} color="#8A6030" strokeWidth={2} />
+            </TouchableOpacity>
+          ) : null}
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.categoriesRow}
-        >
+        <View style={s.filterRow}>
           {CATEGORIES.map((cat) => {
             const active = category === cat.id;
             const Icon = cat.Icon;
+            const isEmpty = (categoryCounts[cat.id] || 0) === 0;
 
             return (
               <TouchableOpacity
                 key={cat.id}
-                activeOpacity={0.88}
+                activeOpacity={0.85}
                 style={[
-                  s.categoryCard,
-                  { backgroundColor: active ? cat.bg : "#21160D" },
-                  active && { borderColor: `${cat.color}55` },
+                  s.filterChip,
+                  active && { backgroundColor: `${cat.color}1F`, borderColor: `${cat.color}66` },
+                  isEmpty && !active && s.filterChipEmpty,
                 ]}
                 onPress={() => setCategory(cat.id)}
               >
-                <View
-                  style={[
-                    s.categoryIcon,
-                    {
-                      borderColor: `${cat.color}44`,
-                      backgroundColor: active ? "rgba(0,0,0,0.12)" : "rgba(242,178,51,0.06)",
-                    },
-                  ]}
-                >
-                  <Icon size={20} color={cat.color} strokeWidth={1.8} />
-                </View>
+                <Icon
+                  size={17}
+                  color={active ? cat.color : "#8A6030"}
+                  strokeWidth={1.9}
+                />
 
-                <Text style={[s.categoryLabel, { color: active ? cat.color : "#FDF0DC" }]}>
+                <Text
+                  style={[s.filterLabel, active && { color: cat.color }]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >
                   {cat.label}
                 </Text>
-
-                <Text style={s.categorySub}>{cat.sub}</Text>
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </View>
 
-        <View style={s.resultBox}>
-          <View>
-            <Text style={s.resultTitle}>النتائج</Text>
-            <Text style={s.resultSub}>
-              {selectedMeta.label} · {filteredChefs.length} نتيجة
-            </Text>
-          </View>
+        <View style={s.resultRow}>
+          <Text style={s.resultText}>
+            {selectedMeta.label} · {filteredChefs.length} متجر
+          </Text>
 
           {category !== "all" || search.trim() ? (
-            <TouchableOpacity activeOpacity={0.85} style={s.resetBtn} onPress={resetFilters}>
-              <Text style={s.resetText}>مسح</Text>
+            <TouchableOpacity activeOpacity={0.85} onPress={resetFilters}>
+              <Text style={s.resetText}>مسح الفلتر</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -361,6 +347,7 @@ export default function CategoriesScreen() {
     );
   }, [
     category,
+    categoryCounts,
     clearSearch,
     error,
     filteredChefs.length,
@@ -372,11 +359,13 @@ export default function CategoriesScreen() {
 
   const renderChef = useCallback(
     ({ item }: { item: Chef }) => {
-      const firstItem = item.menu?.find((m) => {
-        if (category === "all") return Boolean(m.image_url);
-        const aliases = categoryMeta(category).aliases;
-        return aliases.includes(cleanText(m.category, "").toLowerCase());
-      }) || item.menu?.[0];
+      // نعرض منتجاً من التصنيف المختار تحديداً، ونفضّل الذي له صورة
+      const inCategory = item.menu?.filter((m) => itemInCategory(m, category)) || [];
+      const firstItem =
+        inCategory.find((m) => Boolean(m.image_url)) ||
+        inCategory[0] ||
+        item.menu?.find((m) => Boolean(m.image_url)) ||
+        item.menu?.[0];
 
       const chefName = cleanText(item.users?.full_name, "أسرة منتجة");
       const city = cleanText(item.city, "المدينة");
@@ -435,7 +424,7 @@ export default function CategoriesScreen() {
 
             <View style={s.menuPreview}>
               <Text style={s.menuName} numberOfLines={1}>
-                {cleanText(firstItem?.name, "وجبات متنوعة")}
+                {cleanText(firstItem?.name, "منتجات متنوعة")}
               </Text>
 
               {firstItem?.price ? (
@@ -478,6 +467,7 @@ export default function CategoriesScreen() {
         renderItem={renderChef}
         ListHeaderComponent={ListHeader}
         contentContainerStyle={s.listContent}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B233" />
         }
@@ -492,13 +482,13 @@ export default function CategoriesScreen() {
             </View>
 
             <Text style={s.emptyTitle}>
-              {error ? "تعذر عرض النتائج" : "لا توجد نتائج مطابقة"}
+              {error ? "تعذر عرض النتائج" : `لا يوجد متاجر في ${selectedMeta.label} حالياً`}
             </Text>
 
             <Text style={s.emptySub}>
               {error
                 ? "اسحب للتحديث أو اضغط على صندوق الخطأ لإعادة المحاولة."
-                : "جرّب تصنيفًا آخر أو امسح البحث."}
+                : "جرّب تصنيفًا آخر أو تصفح كل المتاجر."}
             </Text>
 
             {!error ? (
@@ -536,60 +526,14 @@ const s = StyleSheet.create({
     fontFamily: "Almarai_700Bold",
   },
 
-  hero: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 8,
-    borderRadius: 22,
-    padding: 12,
-    backgroundColor: "#21160D",
-    borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.13)",
-  },
-
-  heroBadge: {
-    alignSelf: "flex-end",
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(242,178,51,0.08)",
-    borderColor: "rgba(242,178,51,0.16)",
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 999,
-    marginBottom: 8,
-  },
-
-  heroBadgeText: {
-    fontSize: 11,
-    fontFamily: "Almarai_800ExtraBold",
-  },
-
-  heroTitle: {
-    color: "#FDF0DC",
-    fontSize: 19,
-    lineHeight: 28,
-    textAlign: "right",
-    fontFamily: "Almarai_800ExtraBold",
-  },
-
-  heroSub: {
-    color: "#A98961",
-    fontSize: 11,
-    lineHeight: 18,
-    textAlign: "right",
-    marginTop: 6,
-    marginBottom: 10,
-    fontFamily: "Almarai_400Regular",
-  },
-
   searchWrap: {
-    minHeight: 44,
+    marginHorizontal: 16,
+    marginTop: 12,
+    minHeight: 46,
     flexDirection: "row-reverse",
     alignItems: "center",
-    backgroundColor: "#17100B",
-    borderRadius: 18,
+    backgroundColor: "#21160D",
+    borderRadius: 16,
     paddingHorizontal: 14,
     gap: 10,
     borderWidth: 1,
@@ -598,96 +542,64 @@ const s = StyleSheet.create({
 
   searchInput: {
     flex: 1,
-    height: 44,
+    height: 46,
     color: "#FDF0DC",
     fontSize: 14,
     fontFamily: "Almarai_400Regular",
   },
 
-  categoriesRow: {
+  // صف الفلترة: خمسة تصنيفات على سطر واحد بلا تمرير أفقي
+  filterRow: {
+    flexDirection: "row-reverse",
     paddingHorizontal: 16,
-    gap: 10,
-    paddingBottom: 14,
+    marginTop: 10,
+    gap: 6,
   },
 
-  categoryCard: {
-    width: 112,
-    minHeight: 112,
-    borderRadius: 22,
-    padding: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.08)",
-  },
-
-  categoryIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-  },
-
-  categoryLabel: {
-    fontSize: 11,
-    fontFamily: "Almarai_800ExtraBold",
-    textAlign: "center",
-  },
-
-  categorySub: {
-    marginTop: 4,
-    fontSize: 10,
-    color: "#8A6030",
-    fontFamily: "Almarai_400Regular",
-    textAlign: "center",
-  },
-
-  resultBox: {
-    marginHorizontal: 16,
-    marginBottom: 8,
-    borderRadius: 20,
+  filterChip: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 15,
     backgroundColor: "#21160D",
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.08)",
-    padding: 13,
+    borderColor: "rgba(242,178,51,0.09)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+    paddingVertical: 8,
+    gap: 5,
+  },
+
+  filterChipEmpty: {
+    opacity: 0.42,
+  },
+
+  filterLabel: {
+    color: "#A98961",
+    fontSize: 10,
+    textAlign: "center",
+    fontFamily: "Almarai_700Bold",
+  },
+
+  resultRow: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 18,
+    marginTop: 16,
+    marginBottom: 10,
   },
 
-  resultTitle: {
-    color: "#FDF0DC",
-    textAlign: "right",
-    fontSize: 14,
-    fontFamily: "Almarai_800ExtraBold",
-  },
-
-  resultSub: {
-    color: "#8A6030",
-    textAlign: "right",
-    marginTop: 3,
-    fontSize: 11,
-    fontFamily: "Almarai_400Regular",
-  },
-
-  resetBtn: {
-    minHeight: 34,
-    borderRadius: 13,
-    paddingHorizontal: 14,
-    backgroundColor: "rgba(242,178,51,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.14)",
+  resultText: {
+    color: "#A98961",
+    fontSize: 12,
+    fontFamily: "Almarai_700Bold",
   },
 
   resetText: {
     color: "#F2B233",
     fontSize: 12,
-    fontFamily: "Almarai_800ExtraBold",
+    fontFamily: "Almarai_700Bold",
   },
 
   errorBox: {

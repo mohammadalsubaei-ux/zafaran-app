@@ -10,3 +10,5 @@
 
 expo-env.d.ts
 # @end expo-cli
+# Firebase admin key - never commit
+zafaran-484f7-firebase-adminsdk-*.json

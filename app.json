@@ -2,7 +2,7 @@
   "expo": {
     "name": "زعفران",
     "slug": "zafaran-app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon-app.png",
     "scheme": "zafaranapp",
@@ -21,10 +21,11 @@
         "NSPhotoLibraryUsageDescription": "نحتاج الوصول للصور لرفع صور منتجاتك وشهادة العمل الحر",
         "NSCameraUsageDescription": "نحتاج الكاميرا لتصوير منتجاتك ورفع صورها"
       },
-      "buildNumber": "1"
+      "buildNumber": "2"
     },
     "android": {
       "package": "com.zafaran.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon-app.png",
         "backgroundColor": "#0A0500"
@@ -36,9 +37,10 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.READ_EXTERNAL_STORAGE"
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.POST_NOTIFICATIONS"
       ],
-      "versionCode": 1
+      "versionCode": 4
     },
     "web": {
       "output": "static",
@@ -67,6 +69,13 @@
         {
           "photosPermission": "نحتاج الوصول للصور لرفع صور منتجاتك وشهادة العمل الحر",
           "cameraPermission": "نحتاج الكاميرا لتصوير منتجاتك ورفع صورها"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon-app.png",
+          "color": "#F2B233"
         }
       ],
       "expo-localization"
