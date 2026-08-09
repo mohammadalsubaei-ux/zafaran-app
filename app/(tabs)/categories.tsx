@@ -23,13 +23,13 @@ import {
   CircleOff,
   Coffee,
   Croissant,
+  Flame,
   ImageOff,
   MapPin,
   RefreshCw,
   Search,
   Sparkles,
   Star,
-  UtensilsCrossed,
   X,
 } from "lucide-react-native";
 
@@ -70,10 +70,11 @@ const CATEGORIES = [
     id: "popular",
     label: "الطبخ",
     color: "#F2B233",
-    Icon: UtensilsCrossed,
+    Icon: Flame,
     aliases: [
       "popular", "kitchen", "main", "mains", "rice",
       "appetizers", "appetizer", "starters", "sides", "stew", "soup", "salad",
+      "spices", "sauces",
     ],
   },
   {
@@ -367,7 +368,7 @@ export default function CategoriesScreen() {
         item.menu?.find((m) => Boolean(m.image_url)) ||
         item.menu?.[0];
 
-      const chefName = cleanText(item.users?.full_name, "أسرة منتجة");
+      const chefName = cleanText(item.users?.full_name, "متجر");
       const city = cleanText(item.city, "المدينة");
       const neighborhood = cleanText(item.neighborhood, "الحي");
 

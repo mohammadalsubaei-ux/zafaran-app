@@ -25,7 +25,7 @@ import {
   MapPin,
   Search,
   Star,
-  UtensilsCrossed,
+  Store,
 } from "lucide-react-native";
 import {
   useFonts,
@@ -35,6 +35,15 @@ import {
 } from "@expo-google-fonts/almarai";
 
 const API = "https://zafaran-backend-production.up.railway.app";
+
+type MenuItem = {
+  id?: string;
+  name?: string | null;
+  price?: number | string | null;
+  image_url?: string | null;
+  category?: string | null;
+  status?: string | null;
+};
 
 type Chef = {
   id: string;
@@ -47,12 +56,7 @@ type Chef = {
   users?: {
     full_name?: string | null;
   } | null;
-  menu?: Array<{
-    id?: string;
-    name?: string | null;
-    price?: number | string | null;
-    image_url?: string | null;
-  }> | null;
+  menu?: MenuItem[] | null;
 };
 
 // المسميات هنا يجب أن تطابق شاشة التصنيفات حرفياً — أي اختلاف يربك المستخدم
@@ -64,7 +68,7 @@ const SECTIONS = [
     sub: "أطباق ومقبلات",
     color: "#F2B233",
     bg: "#2A1E00",
-    Icon: UtensilsCrossed,
+    Icon: Flame,
   },
   {
     id: "sweets",
@@ -106,9 +110,10 @@ function safeNumber(value: unknown, fallback = "0") {
   return String(value);
 }
 
-function formatPrice(value: unknown) {
-  if (value === null || value === undefined || value === "") return "—";
-  return String(value);
+// أول صورة منتج متاحة — بديل صورة الغلاف غير الموجودة في جدول chefs
+function chefImage(chef: Chef): string | null {
+  const withImage = chef.menu?.find((item) => Boolean(item.image_url));
+  return withImage?.image_url || null;
 }
 
 function getChefStatus(chef: Chef): "open" | "preorder" | "closed" {
@@ -310,7 +315,7 @@ export default function HomeScreen() {
             <Search size={18} color="#F2B233" strokeWidth={1.8} />
             <TextInput
               style={s.searchInput}
-              placeholder="ابحث عن شيف أو طبق..."
+              placeholder="ابحث عن متجر أو منتج..."
               placeholderTextColor="#7C6145"
               value={search}
               onChangeText={setSearch}
@@ -375,9 +380,9 @@ export default function HomeScreen() {
 
         <View style={s.statsRow}>
           <View style={s.statCard}>
-            <Flame size={18} color="#F2B233" />
+            <Store size={18} color="#F2B233" />
             <Text style={s.statValue}>{chefs.length}</Text>
-            <Text style={s.statLabel}>أسرة منتجة</Text>
+            <Text style={s.statLabel}>متجر</Text>
           </View>
 
           <View style={s.statCard}>
@@ -401,42 +406,50 @@ export default function HomeScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={s.topList}
         >
-          {mostOrderedChefs.map((chef) => (
-            <TouchableOpacity
-              key={chef.id}
-              activeOpacity={0.88}
-              style={s.topCard}
-              onPress={() => openChef(chef.id)}
-            >
-              <View style={s.topImgWrap}>
-                <View style={[s.topImg, s.topImgPlaceholder]}>
-                  <UtensilsCrossed size={30} color="#5A3A18" strokeWidth={1.5} />
+          {mostOrderedChefs.map((chef) => {
+            const cover = chefImage(chef);
+
+            return (
+              <TouchableOpacity
+                key={chef.id}
+                activeOpacity={0.88}
+                style={s.topCard}
+                onPress={() => openChef(chef.id)}
+              >
+                <View style={s.topImgWrap}>
+                  {cover ? (
+                    <Image source={{ uri: cover }} style={s.topImg} />
+                  ) : (
+                    <View style={[s.topImg, s.topImgPlaceholder]}>
+                      <Store size={30} color="#5A3A18" strokeWidth={1.5} />
+                    </View>
+                  )}
+
+                  <View style={s.topRatingBadge}>
+                    <Star size={10} color="#F2B233" fill="#F2B233" />
+                    <Text style={s.topRatingText}>
+                      {safeNumber(chef.rating_avg, "0")}
+                    </Text>
+                  </View>
                 </View>
 
-                <View style={s.topRatingBadge}>
-                  <Star size={10} color="#F2B233" fill="#F2B233" />
-                  <Text style={s.topRatingText}>
-                    {safeNumber(chef.rating_avg, "0")}
-                  </Text>
-                </View>
-              </View>
-
-              <Text style={s.topChefName} numberOfLines={1}>
-                {safeText(chef.users?.full_name, "أسرة منتجة")}
-              </Text>
-              <Text style={s.topChefBy} numberOfLines={1}>
-                {safeText(chef.city, "")}
-              </Text>
-              <Text style={s.topPrice}>{safeNumber(chef.total_orders, "0")} طلب</Text>
-            </TouchableOpacity>
-          ))}
+                <Text style={s.topChefName} numberOfLines={1}>
+                  {safeText(chef.users?.full_name, "متجر")}
+                </Text>
+                <Text style={s.topChefBy} numberOfLines={1}>
+                  {safeText(chef.city, "")}
+                </Text>
+                <Text style={s.topPrice}>{safeNumber(chef.total_orders, "0")} طلب</Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
 
         <View style={s.secHeader}>
           <TouchableOpacity activeOpacity={0.8}>
             <Text style={s.secMore}>الأقرب لك</Text>
           </TouchableOpacity>
-          <Text style={s.secTitle}>الأسر المميزة</Text>
+          <Text style={s.secTitle}>متاجر مميزة</Text>
         </View>
 
         {error ? (
@@ -455,9 +468,10 @@ export default function HomeScreen() {
       const isFavorite = favorites.includes(item.id);
       const city = safeText(item.city, "المدينة");
       const neighborhood = safeText(item.neighborhood, "الحي");
-      const fullName = safeText(item.users?.full_name, "أسرة منتجة");
+      const fullName = safeText(item.users?.full_name, "متجر");
       const statusKey = getChefStatus(item);
       const statusUi = CHEF_STATUS_UI[statusKey];
+      const cover = chefImage(item);
 
       return (
         <TouchableOpacity
@@ -465,9 +479,13 @@ export default function HomeScreen() {
           style={s.chefCard}
           onPress={() => openChef(item.id)}
         >
-          <View style={s.chefAvatarWrap}>
-            <UtensilsCrossed size={24} color="#F2B233" strokeWidth={1.5} />
-          </View>
+          {cover ? (
+            <Image source={{ uri: cover }} style={s.chefAvatarImg} />
+          ) : (
+            <View style={s.chefAvatarWrap}>
+              <Store size={24} color="#F2B233" strokeWidth={1.5} />
+            </View>
+          )}
 
           <View style={s.chefInfo}>
             <View style={s.chefNameRow}>
@@ -556,9 +574,9 @@ export default function HomeScreen() {
         }
         ListEmptyComponent={
           <View style={s.emptyWrap}>
-            <UtensilsCrossed size={54} color="#5A3A18" strokeWidth={1.5} />
+            <Store size={54} color="#5A3A18" strokeWidth={1.5} />
             <Text style={s.emptyTitle}>ما لقينا نتائج</Text>
-            <Text style={s.emptyText}>جرّب تبحث باسم شيف أو طبق مختلف.</Text>
+            <Text style={s.emptyText}>جرّب تبحث باسم متجر أو منتج مختلف.</Text>
           </View>
         }
       />
@@ -607,16 +625,6 @@ const s = StyleSheet.create({
     textAlign: "right",
     marginBottom: 8,
     fontFamily: "Almarai_800ExtraBold",
-  },
-
-  heroSub: {
-    color: "#A98961",
-    fontSize: 12,
-    lineHeight: 18,
-    textAlign: "right",
-    marginTop: 3,
-    marginBottom: 10,
-    fontFamily: "Almarai_400Regular",
   },
 
   bannersRow: { marginBottom: 4 },
@@ -770,6 +778,7 @@ const s = StyleSheet.create({
     width: 142,
     height: 112,
     resizeMode: "cover",
+    backgroundColor: "#2A1E00",
   },
 
   topImgPlaceholder: {
@@ -827,54 +836,6 @@ const s = StyleSheet.create({
     fontFamily: "Almarai_800ExtraBold",
   },
 
-  banner: {
-    marginHorizontal: 16,
-    marginVertical: 16,
-    backgroundColor: "#2A1E00",
-    borderRadius: 26,
-    padding: 18,
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.15)",
-  },
-
-  bannerContent: {
-    flex: 1,
-    alignItems: "flex-end",
-  },
-
-  bannerKicker: {
-    fontSize: 10,
-    color: "#A98961",
-    fontFamily: "Almarai_700Bold",
-    marginBottom: 3,
-  },
-
-  bannerBtn: {
-    backgroundColor: "#F2B233",
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-
-  bannerBtnText: {
-    fontSize: 12,
-    color: "#17100B",
-    fontFamily: "Almarai_800ExtraBold",
-  },
-
-  bannerIcon: {
-    width: 76,
-    height: 76,
-    borderRadius: 24,
-    backgroundColor: "rgba(242,178,51,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 14,
-  },
-
   errorBox: {
     marginHorizontal: 16,
     marginBottom: 14,
@@ -930,6 +891,14 @@ const s = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "rgba(242,178,51,0.16)",
+  },
+
+  chefAvatarImg: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: "#2A1E00",
+    resizeMode: "cover",
   },
 
   chefInfo: {

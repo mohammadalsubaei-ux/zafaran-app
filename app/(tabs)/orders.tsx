@@ -24,7 +24,6 @@ import {
   CalendarDays,
   Check,
   CheckCircle2,
-  ChefHat,
   ChevronLeft,
   CircleDollarSign,
   Clock3,
@@ -34,6 +33,7 @@ import {
   PackageCheck,
   RefreshCw,
   ShoppingBag,
+  Store,
   Truck,
   X,
   XCircle,
@@ -199,7 +199,7 @@ function getItemName(item: any) {
     item?.menu_items?.name ||
     item?.menu?.name ||
     item?.item_name ||
-    "وجبة"
+    "منتج"
   );
 }
 
@@ -475,7 +475,7 @@ export default function OrdersScreen() {
       const TRACK_STEPS = (item as any).delivery_address === "استلام شخصي" ? TRACK_STEPS_PICKUP : TRACK_STEPS_DELIVERY;
       const normalizedKey = item.status === "time_confirmed" ? "accepted" : item.status === "pending_time" ? "pending" : item.status;
       const currentStep = TRACK_STEPS.findIndex((step) => step.id === normalizedKey);
-      const chefName = cleanText(item.chefs?.users?.full_name, "أسرة منتجة");
+      const chefName = cleanText(item.chefs?.users?.full_name, "متجر");
       const isFinished = ["delivered", "cancelled"].includes(item.status);
 
       const isPreorder = item.order_type === "preorder";
@@ -515,11 +515,11 @@ export default function OrdersScreen() {
 
           <View style={s.chefRow}>
             <View style={s.chefIcon}>
-              <ChefHat size={17} color="#F2B233" strokeWidth={1.7} />
+              <Store size={17} color="#F2B233" strokeWidth={1.7} />
             </View>
 
             <View style={s.chefInfo}>
-              <Text style={s.chefLabel}>مقدم الطلب</Text>
+              <Text style={s.chefLabel}>المتجر</Text>
               <Text style={s.chefName} numberOfLines={1}>
                 {chefName}
               </Text>
@@ -601,11 +601,11 @@ export default function OrdersScreen() {
             ))}
 
             {orderItems.length === 0 ? (
-              <Text style={s.noItems}>لا توجد تفاصيل وجبات</Text>
+              <Text style={s.noItems}>لا توجد تفاصيل منتجات</Text>
             ) : null}
 
             {orderItems.length > 2 ? (
-              <Text style={s.moreItems}>+ {orderItems.length - 2} وجبات أخرى</Text>
+              <Text style={s.moreItems}>+ {orderItems.length - 2} منتجات أخرى</Text>
             ) : null}
           </View>
 
@@ -737,7 +737,7 @@ export default function OrdersScreen() {
 
             <Text style={s.emptySub}>
               {tab === "active"
-                ? "ابدأ طلبك من الأسر المنتجة والقهاوي والحلا."
+                ? "ابدأ طلبك من المتاجر المنزلية القريبة منك."
                 : "الطلبات المكتملة أو الملغية تظهر هنا."}
             </Text>
 

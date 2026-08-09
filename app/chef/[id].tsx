@@ -23,18 +23,16 @@ import {
   ArrowRight,
   BadgeCheck,
   CalendarDays,
-  ChefHat,
   ChevronLeft,
   Clock3,
   ImageOff,
   MapPin,
   Minus,
-  PackageCheck,
   Plus,
   RefreshCw,
   ShoppingCart,
   Star,
-  UtensilsCrossed,
+  Store,
   XCircle,
 } from "lucide-react-native";
 
@@ -145,7 +143,7 @@ export default function ChefScreen() {
     async (silent = false) => {
       if (!chefIdParam) {
         setChef(null);
-        setError("رقم الشيف غير موجود.");
+        setError("رقم المتجر غير موجود.");
         setLoading(false);
         setRefreshing(false);
         return;
@@ -166,13 +164,13 @@ export default function ChefScreen() {
 
         if (!response.ok) {
           setChef(null);
-          setError(json?.message || `تعذر تحميل صفحة الشيف. رمز الخطأ: ${response.status}`);
+          setError(json?.message || `تعذر تحميل صفحة المتجر. رمز الخطأ: ${response.status}`);
           return;
         }
 
         if (!json?.success || !json?.data) {
           setChef(null);
-          setError(json?.message || "لم يتم العثور على بيانات الشيف.");
+          setError(json?.message || "لم يتم العثور على بيانات المتجر.");
           return;
         }
 
@@ -205,8 +203,7 @@ export default function ChefScreen() {
     return menu.filter((item) => item.status !== "unavailable").length;
   }, [menu]);
 
-  const isMale = chef?.users?.gender === "male";
-  const chefName = text(chef?.users?.full_name, isMale ? "الشيف" : "الشيفة");
+  const chefName = text(chef?.users?.full_name, "متجر");
   const chefLocation = [chef?.city, chef?.neighborhood].filter(Boolean).join(" · ");
   const chefStatus = (chef?.status ?? (chef?.is_open ? "open" : "closed")) as "open" | "preorder" | "closed";
   const isOpen = chefStatus === "open";
@@ -223,7 +220,7 @@ export default function ChefScreen() {
     (item: MenuItem) => {
       const params =
         `/item/${item.id}` +
-        `?name=${encodeURIComponent(text(item.name, "وجبة"))}` +
+        `?name=${encodeURIComponent(text(item.name, "منتج"))}` +
         `&price=${encodeURIComponent(String(item.price || 0))}` +
         `&description=${encodeURIComponent(text(item.description, ""))}` +
         `&image_url=${encodeURIComponent(text(item.image_url, ""))}` +
@@ -246,13 +243,13 @@ export default function ChefScreen() {
       }
 
       if (item.status === "unavailable") {
-        Alert.alert("الوجبة غير متاحة", "هذه الوجبة غير متاحة للطلب حاليًا.");
+        Alert.alert("المنتج غير متاح", "هذا المنتج غير متاح للطلب حاليًا.");
         return;
       }
 
       const payload = {
         id: String(item.id),
-        name: text(item.name, "وجبة"),
+        name: text(item.name, "منتج"),
         price: numberValue(item.price),
         quantity: 1,
         chef_id: String(chef.id),
@@ -265,7 +262,7 @@ export default function ChefScreen() {
       if (chef_id && String(chef_id) !== String(chef.id)) {
         Alert.alert(
           "سلة جديدة",
-          "عندك وجبات من شيف ثاني. هل تريد مسح السلة والبدء من هنا؟",
+          "عندك منتجات من متجر ثاني. هل تريد مسح السلة والبدء من هنا؟",
           [
             { text: "إلغاء", style: "cancel" },
             {
@@ -295,8 +292,8 @@ export default function ChefScreen() {
           </TouchableOpacity>
 
           <View style={s.headerTitleWrap}>
-            <Text style={s.headerTitle}>{isMale ? "صفحة الشيف" : "صفحة الشيفة"}</Text>
-            <Text style={s.headerSub}>Zafaran Chef</Text>
+            <Text style={s.headerTitle}>صفحة المتجر</Text>
+            <Text style={s.headerSub}>متجر على زعفران</Text>
           </View>
 
           <TouchableOpacity activeOpacity={0.85} style={s.headerBtn} onPress={onRefresh}>
@@ -306,7 +303,7 @@ export default function ChefScreen() {
 
         <View style={s.heroCard}>
           <View style={s.avatarWrap}>
-            <ChefHat size={38} color="#F2B233" strokeWidth={1.5} />
+            <Store size={38} color="#F2B233" strokeWidth={1.5} />
           </View>
 
           <Text style={s.chefName} numberOfLines={1}>
@@ -323,9 +320,9 @@ export default function ChefScreen() {
           <View style={s.statusRow}>
             {(() => {
               const STATUS_UI: Record<string, { bg: string; dot: string; text: string; label: string }> = {
-                open:     { bg: "rgba(76,175,80,0.1)", dot: "#4CAF50", text: "#8AF0A5", label: isMale ? "مفتوح الآن" : "مفتوحة الآن" },
+                open:     { bg: "rgba(76,175,80,0.1)", dot: "#4CAF50", text: "#8AF0A5", label: "مفتوح الآن" },
                 preorder: { bg: "rgba(240,165,0,0.1)", dot: "#F0A500", text: "#FFD27A", label: "حجز مسبق فقط" },
-                closed:   { bg: "rgba(229,57,53,0.1)", dot: "#E53935", text: "#FF9A9A", label: isMale ? "مغلق حاليًا" : "مغلقة حاليًا" },
+                closed:   { bg: "rgba(229,57,53,0.1)", dot: "#E53935", text: "#FF9A9A", label: "مغلق حاليًا" },
               };
               const ui = STATUS_UI[chefStatus] ?? STATUS_UI.closed;
               return (
@@ -357,7 +354,7 @@ export default function ChefScreen() {
 
             <View style={s.statItem}>
               <Text style={s.statValue}>{availableCount}</Text>
-              <Text style={s.statLabel}>وجبة متاحة</Text>
+              <Text style={s.statLabel}>منتج متاح</Text>
             </View>
           </View>
 
@@ -367,7 +364,7 @@ export default function ChefScreen() {
               <Text style={[s.closedText, isPreorderOnly && { color: "#FFD27A" }]}>
                 {isPreorderOnly
                   ? "يستقبل حجوزات مسبقة فقط حاليًا — يمكنك تصفح القائمة."
-                  : isMale ? "الشيف مغلق حاليًا، يمكنك تصفح القائمة فقط." : "الشيفة مغلقة حاليًا، يمكنك تصفح القائمة فقط."}
+                  : "المتجر مغلق حاليًا، يمكنك تصفح القائمة فقط."}
               </Text>
             </View>
           ) : null}
@@ -375,12 +372,12 @@ export default function ChefScreen() {
 
         <View style={s.menuHeader}>
           <View style={s.menuTitleRow}>
-            <UtensilsCrossed size={17} color="#F2B233" strokeWidth={1.8} />
+            <Store size={17} color="#F2B233" strokeWidth={1.8} />
             <Text style={s.menuTitle}>القائمة</Text>
           </View>
 
           <View style={s.menuCountPill}>
-            <Text style={s.menuCountText}>{menu.length} وجبة</Text>
+            <Text style={s.menuCountText}>{menu.length} منتج</Text>
           </View>
         </View>
       </View>
@@ -391,7 +388,7 @@ export default function ChefScreen() {
     chef?.total_orders,
     chefLocation,
     chefName,
-    isMale,
+    chefStatus,
     isOpen,
     isPreorderOnly,
     menu.length,
@@ -422,7 +419,7 @@ export default function ChefScreen() {
               <View style={s.itemInfo}>
                 <View style={s.itemTop}>
                   <Text style={s.itemName} numberOfLines={2}>
-                    {text(item.name, "وجبة")}
+                    {text(item.name, "منتج")}
                   </Text>
 
                   <View style={[s.itemStatusBadge, { backgroundColor: status.bg }]}>
@@ -439,7 +436,7 @@ export default function ChefScreen() {
                   </Text>
                 ) : (
                   <Text style={s.itemDesc} numberOfLines={1}>
-                    وصف الوجبة غير مضاف حاليًا
+                    وصف المنتج غير مضاف حاليًا
                   </Text>
                 )}
 
@@ -503,7 +500,7 @@ export default function ChefScreen() {
       <SafeAreaView style={s.safe}>
         <View style={s.loadingWrap}>
           <ActivityIndicator color="#F2B233" size="large" />
-          <Text style={s.loadingText}>جاري تحميل صفحة الشيف...</Text>
+          <Text style={s.loadingText}>جاري تحميل صفحة المتجر...</Text>
         </View>
       </SafeAreaView>
     );
@@ -518,7 +515,7 @@ export default function ChefScreen() {
           </TouchableOpacity>
 
           <View style={s.headerTitleWrap}>
-            <Text style={s.headerTitle}>صفحة الشيف</Text>
+            <Text style={s.headerTitle}>صفحة المتجر</Text>
             <Text style={s.headerSub}>تعذر التحميل</Text>
           </View>
 
@@ -531,8 +528,8 @@ export default function ChefScreen() {
           <View style={s.emptyIcon}>
             <AlertCircle size={58} color="#E53935" strokeWidth={1.5} />
           </View>
-          <Text style={s.emptyTitle}>تعذر عرض الشيف</Text>
-          <Text style={s.emptySub}>{error || "لم نتمكن من العثور على بيانات هذا الشيف."}</Text>
+          <Text style={s.emptyTitle}>تعذر عرض المتجر</Text>
+          <Text style={s.emptySub}>{error || "لم نتمكن من العثور على بيانات هذا المتجر."}</Text>
 
           <TouchableOpacity activeOpacity={0.9} style={s.primaryBtn} onPress={onRefresh}>
             <Text style={s.primaryBtnText}>إعادة المحاولة</Text>
@@ -559,10 +556,10 @@ export default function ChefScreen() {
         ListEmptyComponent={
           <View style={s.emptyWrap}>
             <View style={s.emptyIcon}>
-              <UtensilsCrossed size={54} color="#5A3A18" strokeWidth={1.5} />
+              <Store size={54} color="#5A3A18" strokeWidth={1.5} />
             </View>
-            <Text style={s.emptyTitle}>لا توجد وجبات حاليًا</Text>
-            <Text style={s.emptySub}>القائمة لم يتم تحديثها من الشيف بعد.</Text>
+            <Text style={s.emptyTitle}>لا توجد منتجات حاليًا</Text>
+            <Text style={s.emptySub}>القائمة لم يتم تحديثها من المتجر بعد.</Text>
           </View>
         }
       />

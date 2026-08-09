@@ -20,12 +20,10 @@ import {
 import {
   Bell,
   ChevronLeft,
-  ChefHat,
   CircleDollarSign,
   FileText,
   Globe2,
   Headphones,
-  Home,
   Languages,
   LayoutDashboard,
   LogIn,
@@ -35,6 +33,7 @@ import {
   ShieldCheck,
   Smartphone,
   Sparkles,
+  Store,
   Truck,
   User,
   UserRound,
@@ -61,17 +60,17 @@ const T: any = {
     guestSub: "سجل دخولك للوصول إلى الطلبات، المحفظة، العناوين، ولوحات التحكم.",
     login: "تسجيل الدخول",
     guestRegister: "إنشاء حساب جديد",
-    guestChef: "سجّل مشروعك البيتي",
+    guestChef: "سجّل متجرك المنزلي",
     guestDriver: "انضم كمندوب توصيل",
     profile: "الملف الشخصي",
     verified: "حساب موثق",
     customer: "عميل",
-    chef: "شيف",
-    chefFemale: "شيفة",
+    chef: "صاحب متجر",
+    chefFemale: "صاحبة متجر",
     driver: "مندوب توصيل",
     services: "الخدمات",
-    chefDashboard: "لوحة الشيف",
-    chefDashboardSub: "إدارة الطلبات والوجبات",
+    chefDashboard: "لوحة متجري",
+    chefDashboardSub: "إدارة الطلبات والمنتجات",
     driverDashboard: "لوحة المندوب",
     driverDashboardSub: "إدارة التوصيلات",
     orders: "طلباتي",
@@ -100,7 +99,7 @@ const T: any = {
     logoutMsg: "هل تريد الخروج من حسابك؟",
     yes: "نعم",
     no: "لا",
-    appFooter: "زعفران · أكل بيتي · طعم أصيل",
+    appFooter: "زعفران · من بيتنا لبيتك",
   },
   en: {
     account: "My Account",
@@ -108,17 +107,17 @@ const T: any = {
     guestSub: "Sign in to access orders, wallet, addresses, and dashboards.",
     login: "Login",
     guestRegister: "Create a new account",
-    guestChef: "Register your home business",
+    guestChef: "Register your home store",
     guestDriver: "Join as a delivery driver",
     profile: "Profile",
     verified: "Verified Account",
     customer: "Customer",
-    chef: "Chef",
-    chefFemale: "Chef",
+    chef: "Store Owner",
+    chefFemale: "Store Owner",
     driver: "Delivery Driver",
     services: "Services",
-    chefDashboard: "Chef Dashboard",
-    chefDashboardSub: "Manage orders and meals",
+    chefDashboard: "My Store Dashboard",
+    chefDashboardSub: "Manage orders and products",
     driverDashboard: "Driver Dashboard",
     driverDashboardSub: "Manage deliveries",
     orders: "My Orders",
@@ -147,7 +146,7 @@ const T: any = {
     logoutMsg: "Are you sure you want to logout?",
     yes: "Yes",
     no: "No",
-    appFooter: "Zafaran · Home Food · Authentic Taste",
+    appFooter: "Zafaran · From our home to yours",
   },
 };
 
@@ -212,7 +211,7 @@ export default function ProfileScreen() {
         label: user?.gender === "female" ? t.chefFemale : t.chef,
         color: "#F2B233",
         bg: "rgba(242,178,51,0.12)",
-        Icon: ChefHat,
+        Icon: Store,
       };
     }
 
@@ -373,7 +372,7 @@ export default function ProfileScreen() {
             style={s.guestRoleBtn}
             onPress={() => router.push({ pathname: "/login", params: { step: "chef_register" } } as any)}
           >
-            <ChefHat size={17} color="#F2B233" strokeWidth={1.8} />
+            <Store size={17} color="#F2B233" strokeWidth={1.8} />
             <Text style={s.guestRoleText}>{t.guestChef}</Text>
           </TouchableOpacity>
 
@@ -546,7 +545,7 @@ export default function ProfileScreen() {
             </View>
             <View style={s.menuInfo}>
               <Text style={s.menuTitle}>{t.version}</Text>
-              <Text style={s.menuSub}>v1.0.0</Text>
+              <Text style={s.menuSub}>v1.0.1</Text>
             </View>
           </View>
         </Section>

@@ -4,7 +4,9 @@ import {
   Alert,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -25,7 +27,6 @@ import {
   useFonts,
 } from "@expo-google-fonts/almarai";
 import {
-  AlertCircle,
   ArrowRight,
   BadgeCheck,
   CalendarDays,
@@ -65,6 +66,8 @@ type MenuItem = {
 
 type Chef = { id: string };
 
+// معرّفات التصنيفات يجب أن تطابق aliases في شاشة التصنيفات
+// drinks كان مفقوداً كلياً — لذلك القهوة لم تظهر تحت أي تصنيف
 const CATEGORIES = [
   { id: "rice",      label: "أرز" },
   { id: "popular",   label: "شعبيات" },
@@ -74,6 +77,7 @@ const CATEGORIES = [
   { id: "sauces",    label: "شطات" },
   { id: "sweets",    label: "حلويات" },
   { id: "pastries",  label: "معجنات" },
+  { id: "drinks",    label: "قهوة ومشروبات" },
 ];
 
 const ITEM_STATUS: Array<{
@@ -117,16 +121,6 @@ function money(value: unknown) {
 
 function categoryLabel(id?: string | null) {
   return CATEGORIES.find((c) => c.id === id)?.label || "غير مصنف";
-}
-
-function formatPrepTime(totalMinutes: number): string {
-  if (!totalMinutes || totalMinutes <= 0) return "";
-  const hours   = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  const parts: string[] = [];
-  if (hours   > 0) parts.push(`${hours} ساعة`);
-  if (minutes > 0) parts.push(`${minutes} دقيقة`);
-  return parts.join(" و ");
 }
 
 function normalizeStatus(status?: string | null): MenuStatus {
@@ -235,7 +229,7 @@ export default function MenuScreen() {
       if (json?.success && Array.isArray(json.data) && json.data.length > 0) {
         setChefId(String(json.data[0].id)); return;
       }
-      setError("هذا الحساب غير مرتبط بملف شيف."); setLoading(false);
+      setError("هذا الحساب غير مرتبط بمتجر."); setLoading(false);
     } catch {
       setError("تعذر الاتصال بالخادم."); setLoading(false);
     }
@@ -278,15 +272,15 @@ export default function MenuScreen() {
     setUploading(true); setUploadMessage("جاري رفع الصورة...");
     try {
       const url = await uploadImageToBucket("menu-images", "menu", uri);
-      if (url) setUploadMessage("تم رفع الصورة، جاري حفظ الوجبة...");
+      if (url) setUploadMessage("تم رفع الصورة، جاري حفظ المنتج...");
       return url;
     } catch { return null; }
     finally { setUploading(false); }
   }, []);
 
   const validateForm = useCallback(() => {
-    if (!chefId)                        { Alert.alert("خطأ", "لم يتم العثور على حساب الشيف."); return false; }
-    if (!name.trim())                   { Alert.alert("تنبيه", "اكتب اسم الوجبة."); return false; }
+    if (!chefId)                        { Alert.alert("خطأ", "لم يتم العثور على متجرك."); return false; }
+    if (!name.trim())                   { Alert.alert("تنبيه", "اكتب اسم المنتج."); return false; }
     if (!price || Number(price) <= 0)   { Alert.alert("تنبيه", "اكتب سعر صحيح أكبر من صفر."); return false; }
     if (status === "preorder") {
       const total = Number(prepHours || 0) * 60 + Number(prepMinutes || 0);
@@ -327,26 +321,26 @@ export default function MenuScreen() {
       const json   = await res.json().catch(() => null);
       if (!res.ok) { Alert.alert("تعذر الحفظ", json?.message || `خطأ ${res.status}`); return; }
       if (json?.success) {
-        Alert.alert("تم", editItem ? "تم تعديل الوجبة." : "تم إضافة الوجبة.");
+        Alert.alert("تم", editItem ? "تم تعديل المنتج." : "تم إضافة المنتج.");
         setShowAdd(false); resetForm(); await loadItems(true); return;
       }
       Alert.alert("تعذر الحفظ", json?.message || "لم تتم العملية.");
     } catch {
-      Alert.alert("خطأ", "تعذر حفظ الوجبة.");
+      Alert.alert("خطأ", "تعذر حفظ المنتج.");
     } finally {
       setSaving(false); setUploadMessage("");
     }
   }, [saving, uploading, validateForm, editItem, imageUri, uploadImage, chefId, name, price, category, status, prepHours, prepMinutes, description, resetForm, loadItems]);
 
   const deleteItem = useCallback((id: string) => {
-    Alert.alert("حذف الوجبة", "هل تريد حذف هذه الوجبة؟", [
+    Alert.alert("حذف المنتج", "هل تريد حذف هذا المنتج؟", [
       { text: "إلغاء", style: "cancel" },
       { text: "حذف", style: "destructive", onPress: async () => {
         try {
           const res = await fetch(`${API}/api/menu/${id}`, { method: "DELETE" });
           if (!res.ok) { Alert.alert("تعذر الحذف", `خطأ ${res.status}`); return; }
           await loadItems(true);
-        } catch { Alert.alert("خطأ", "تعذر حذف الوجبة."); }
+        } catch { Alert.alert("خطأ", "تعذر حذف المنتج."); }
       }},
     ]);
   }, [loadItems]);
@@ -362,7 +356,7 @@ export default function MenuScreen() {
       });
       if (!res.ok) { Alert.alert("تعذر تغيير الحالة", `خطأ ${res.status}`); return; }
       await loadItems(true);
-    } catch { Alert.alert("خطأ", "تعذر تغيير حالة الوجبة."); }
+    } catch { Alert.alert("خطأ", "تعذر تغيير حالة المنتج."); }
   }, [loadItems]);
 
   const renderItem = useCallback(({ item }: { item: MenuItem }) => {
@@ -384,7 +378,7 @@ export default function MenuScreen() {
           )}
 
           <View style={s.cardInfo}>
-            <Text style={s.itemName} numberOfLines={2}>{text(item.name, "وجبة")}</Text>
+            <Text style={s.itemName} numberOfLines={2}>{text(item.name, "منتج")}</Text>
             <Text style={s.itemCat}>{categoryLabel(item.category)}</Text>
 
             {st === "preorder" && total > 0 && (
@@ -439,7 +433,7 @@ export default function MenuScreen() {
       <SafeAreaView style={s.safe}>
         <View style={s.loadingWrap}>
           <ActivityIndicator color="#F2B233" size="large" />
-          <Text style={s.loadingText}>جاري تحميل وجباتك...</Text>
+          <Text style={s.loadingText}>جاري تحميل منتجاتك...</Text>
         </View>
       </SafeAreaView>
     );
@@ -453,7 +447,7 @@ export default function MenuScreen() {
         </TouchableOpacity>
         <View style={s.headerTitleRow}>
           <ChefHat size={17} color="#F2B233" strokeWidth={1.8} />
-          <Text style={s.title}>وجباتي</Text>
+          <Text style={s.title}>منتجاتي</Text>
         </View>
         <TouchableOpacity activeOpacity={0.88} style={s.addBtnWrap} onPress={openAdd}>
           <Plus size={19} color="#17100B" strokeWidth={2.3} />
@@ -474,14 +468,14 @@ export default function MenuScreen() {
               </View>
               <View style={s.heroInfo}>
                 <Text style={s.heroTitle}>قائمتي</Text>
-                <Text style={s.heroSub}>أضف وجباتك، حدّث الأسعار، وارفع صور جذابة للعملاء.</Text>
+                <Text style={s.heroSub}>أضف منتجاتك، حدّث الأسعار، وارفع صور جذابة للعملاء.</Text>
               </View>
             </View>
 
             <View style={s.statsRow}>
               <View style={s.statCard}>
                 <Text style={s.statValue}>{items.length}</Text>
-                <Text style={s.statLabel}>كل الوجبات</Text>
+                <Text style={s.statLabel}>كل المنتجات</Text>
               </View>
               <View style={s.statCard}>
                 <Text style={[s.statValue, { color: "#4CAF50" }]}>{availableCount}</Text>
@@ -501,7 +495,7 @@ export default function MenuScreen() {
               <Search size={18} color="#F2B233" strokeWidth={1.8} />
               <TextInput
                 value={search} onChangeText={setSearch}
-                placeholder="ابحث في وجباتك..." placeholderTextColor="#7C6145"
+                placeholder="ابحث في منتجاتك..." placeholderTextColor="#7C6145"
                 style={s.searchInput} textAlign="right"
               />
               {search.trim() ? (
@@ -528,16 +522,16 @@ export default function MenuScreen() {
               <UtensilsCrossed size={54} color="#5A3A18" strokeWidth={1.5} />
             </View>
             <Text style={s.emptyTitle}>
-              {search.trim() ? "لا توجد نتائج مطابقة" : "ما أضفت وجبات بعد"}
+              {search.trim() ? "لا توجد نتائج مطابقة" : "ما أضفت منتجات بعد"}
             </Text>
             <Text style={s.emptySub}>
               {search.trim()
                 ? "غيّر كلمة البحث أو امسح الفلتر."
-                : "ابدأ بإضافة أول وجبة تظهر للعملاء في صفحة الشيف."}
+                : "ابدأ بإضافة أول منتج يظهر للعملاء في صفحة متجرك."}
             </Text>
             <TouchableOpacity activeOpacity={0.9} style={s.primaryBtn}
               onPress={search.trim() ? () => setSearch("") : openAdd}>
-              <Text style={s.primaryBtnText}>{search.trim() ? "مسح البحث" : "إضافة أول وجبة"}</Text>
+              <Text style={s.primaryBtnText}>{search.trim() ? "مسح البحث" : "إضافة أول منتج"}</Text>
             </TouchableOpacity>
           </View>
         }
@@ -551,136 +545,147 @@ export default function MenuScreen() {
             </TouchableOpacity>
             <View style={s.headerTitleRow}>
               <UtensilsCrossed size={17} color="#F2B233" strokeWidth={1.8} />
-              <Text style={s.title}>{editItem ? "تعديل وجبة" : "إضافة وجبة"}</Text>
+              <Text style={s.title}>{editItem ? "تعديل منتج" : "إضافة منتج"}</Text>
             </View>
             <View style={s.headerBtnGhost} />
           </View>
 
-          <ScrollView contentContainerStyle={s.modalContent} showsVerticalScrollIndicator={false}>
-            <Text style={s.label}>صورة الوجبة</Text>
-            <TouchableOpacity activeOpacity={0.9} style={s.imagePicker} onPress={pickImage}>
-              {imageUri ? (
-                <Image source={{ uri: imageUri }} style={s.imagePreview} />
-              ) : (
-                <View style={s.imagePlaceholder}>
-                  <Camera size={38} color="#8A6030" strokeWidth={1.5} />
-                  <Text style={s.imagePlaceholderText}>اضغط لإضافة صورة</Text>
-                  <Text style={s.imagePlaceholderSub}>يفضل صورة واضحة للوجبة</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-
-            {imageUri ? (
-              <TouchableOpacity activeOpacity={0.86} style={s.removeImg}
-                onPress={() => setImageUri(null)} disabled={saving || uploading}>
-                <Trash2 size={14} color="#E53935" strokeWidth={1.8} />
-                <Text style={s.removeImgText}>حذف الصورة</Text>
+          {/* حماية الكيبورد: بدونها حقل الوصف يختفي خلف لوحة المفاتيح */}
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+          >
+            <ScrollView
+              contentContainerStyle={s.modalContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={s.label}>صورة المنتج</Text>
+              <TouchableOpacity activeOpacity={0.9} style={s.imagePicker} onPress={pickImage}>
+                {imageUri ? (
+                  <Image source={{ uri: imageUri }} style={s.imagePreview} />
+                ) : (
+                  <View style={s.imagePlaceholder}>
+                    <Camera size={38} color="#8A6030" strokeWidth={1.5} />
+                    <Text style={s.imagePlaceholderText}>اضغط لإضافة صورة</Text>
+                    <Text style={s.imagePlaceholderSub}>يفضل صورة واضحة للمنتج</Text>
+                  </View>
+                )}
               </TouchableOpacity>
-            ) : null}
 
-            {saving || uploading || uploadMessage ? (
-              <View style={s.uploadBox}>
-                {saving || uploading
-                  ? <ActivityIndicator color="#F2B233" />
-                  : <UploadCloud size={17} color="#F2B233" />}
-                <Text style={s.uploadText}>{uploadMessage || "جاري الحفظ..."}</Text>
+              {imageUri ? (
+                <TouchableOpacity activeOpacity={0.86} style={s.removeImg}
+                  onPress={() => setImageUri(null)} disabled={saving || uploading}>
+                  <Trash2 size={14} color="#E53935" strokeWidth={1.8} />
+                  <Text style={s.removeImgText}>حذف الصورة</Text>
+                </TouchableOpacity>
+              ) : null}
+
+              {saving || uploading || uploadMessage ? (
+                <View style={s.uploadBox}>
+                  {saving || uploading
+                    ? <ActivityIndicator color="#F2B233" />
+                    : <UploadCloud size={17} color="#F2B233" />}
+                  <Text style={s.uploadText}>{uploadMessage || "جاري الحفظ..."}</Text>
+                </View>
+              ) : null}
+
+              <Text style={s.label}>اسم المنتج *</Text>
+              <View style={s.inputWrap}>
+                <TextInput style={s.input} placeholder="مثال: كبسة دجاج، لاتيه، كنافة"
+                  placeholderTextColor="#5A3A18" value={name} onChangeText={setName} textAlign="right" />
               </View>
-            ) : null}
 
-            <Text style={s.label}>اسم الوجبة *</Text>
-            <View style={s.inputWrap}>
-              <TextInput style={s.input} placeholder="مثال: كبسة دجاج"
-                placeholderTextColor="#5A3A18" value={name} onChangeText={setName} textAlign="right" />
-            </View>
+              <Text style={s.label}>السعر *</Text>
+              <View style={s.inputWrap}>
+                <TextInput style={s.input} placeholder="35" placeholderTextColor="#5A3A18"
+                  keyboardType="numeric" value={price} onChangeText={setPrice} textAlign="right" />
+              </View>
 
-            <Text style={s.label}>السعر *</Text>
-            <View style={s.inputWrap}>
-              <TextInput style={s.input} placeholder="35" placeholderTextColor="#5A3A18"
-                keyboardType="numeric" value={price} onChangeText={setPrice} textAlign="right" />
-            </View>
+              <Text style={s.label}>الوصف</Text>
+              <View style={[s.inputWrap, s.textAreaWrap]}>
+                <TextInput style={[s.input, s.textArea]} placeholder="اكتب وصفًا مختصرًا للمنتج..."
+                  placeholderTextColor="#5A3A18" value={description} onChangeText={setDescription}
+                  textAlign="right" multiline />
+              </View>
 
-            <Text style={s.label}>الوصف</Text>
-            <View style={[s.inputWrap, s.textAreaWrap]}>
-              <TextInput style={[s.input, s.textArea]} placeholder="اكتب وصفًا مختصرًا للوجبة..."
-                placeholderTextColor="#5A3A18" value={description} onChangeText={setDescription}
-                textAlign="right" multiline />
-            </View>
+              <Text style={s.label}>التصنيف</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.catRow}>
+                {CATEGORIES.map(c => (
+                  <TouchableOpacity key={c.id} activeOpacity={0.86}
+                    style={[s.catBtn, category === c.id && s.catBtnActive]}
+                    onPress={() => setCategory(c.id)}>
+                    <Text style={[s.catText, category === c.id && s.catTextActive]}>{c.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
 
-            <Text style={s.label}>التصنيف</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.catRow}>
-              {CATEGORIES.map(c => (
-                <TouchableOpacity key={c.id} activeOpacity={0.86}
-                  style={[s.catBtn, category === c.id && s.catBtnActive]}
-                  onPress={() => setCategory(c.id)}>
-                  <Text style={[s.catText, category === c.id && s.catTextActive]}>{c.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <Text style={s.label}>حالة الوجبة</Text>
-            {ITEM_STATUS.map(st => {
-              const Icon   = st.Icon;
-              const active = status === st.id;
-              return (
-                <TouchableOpacity key={st.id} activeOpacity={0.9}
-                  style={[s.statusOption, active && { borderColor: st.color, backgroundColor: `${st.color}12` }]}
-                  onPress={() => setStatus(st.id)}>
-                  <View style={s.statusLeft}>
-                    <View style={[s.statusIconBox, { backgroundColor: `${st.color}12` }]}>
-                      <Icon size={19} color={st.color} strokeWidth={1.8} />
+              <Text style={s.label}>حالة المنتج</Text>
+              {ITEM_STATUS.map(st => {
+                const Icon   = st.Icon;
+                const active = status === st.id;
+                return (
+                  <TouchableOpacity key={st.id} activeOpacity={0.9}
+                    style={[s.statusOption, active && { borderColor: st.color, backgroundColor: `${st.color}12` }]}
+                    onPress={() => setStatus(st.id)}>
+                    <View style={s.statusLeft}>
+                      <View style={[s.statusIconBox, { backgroundColor: `${st.color}12` }]}>
+                        <Icon size={19} color={st.color} strokeWidth={1.8} />
+                      </View>
+                      <View>
+                        <Text style={[s.statusLabel, { color: st.color }]}>{st.label}</Text>
+                        <Text style={s.statusDesc}>{st.desc}</Text>
+                      </View>
                     </View>
-                    <View>
-                      <Text style={[s.statusLabel, { color: st.color }]}>{st.label}</Text>
-                      <Text style={s.statusDesc}>{st.desc}</Text>
+                    {active ? <Check size={19} color={st.color} strokeWidth={2.2} /> : null}
+                  </TouchableOpacity>
+                );
+              })}
+
+              {status === "preorder" && (
+                <>
+                  <Text style={s.label}>وقت التحضير</Text>
+                  <View style={s.timePickerWrap}>
+                    <View style={s.pickerBox}>
+                      <Text style={s.pickerTitle}>دقيقة</Text>
+                      <Picker selectedValue={prepMinutes} onValueChange={setPrepMinutes}
+                        itemStyle={s.pickerItem} style={s.picker}>
+                        {Array.from({ length: 60 }, (_, i) => (
+                          <Picker.Item key={i} label={`${i}`} value={String(i)} />
+                        ))}
+                      </Picker>
+                    </View>
+                    <View style={s.pickerBox}>
+                      <Text style={s.pickerTitle}>ساعة</Text>
+                      <Picker selectedValue={prepHours} onValueChange={setPrepHours}
+                        itemStyle={s.pickerItem} style={s.picker}>
+                        {Array.from({ length: 49 }, (_, i) => (
+                          <Picker.Item key={i} label={`${i}`} value={String(i)} />
+                        ))}
+                      </Picker>
                     </View>
                   </View>
-                  {active ? <Check size={19} color={st.color} strokeWidth={2.2} /> : null}
-                </TouchableOpacity>
-              );
-            })}
-
-            {status === "preorder" && (
-              <>
-                <Text style={s.label}>وقت التحضير</Text>
-                <View style={s.timePickerWrap}>
-                  <View style={s.pickerBox}>
-                    <Text style={s.pickerTitle}>دقيقة</Text>
-                    <Picker selectedValue={prepMinutes} onValueChange={setPrepMinutes}
-                      itemStyle={s.pickerItem} style={s.picker}>
-                      {Array.from({ length: 60 }, (_, i) => (
-                        <Picker.Item key={i} label={`${i}`} value={String(i)} />
-                      ))}
-                    </Picker>
-                  </View>
-                  <View style={s.pickerBox}>
-                    <Text style={s.pickerTitle}>ساعة</Text>
-                    <Picker selectedValue={prepHours} onValueChange={setPrepHours}
-                      itemStyle={s.pickerItem} style={s.picker}>
-                      {Array.from({ length: 49 }, (_, i) => (
-                        <Picker.Item key={i} label={`${i}`} value={String(i)} />
-                      ))}
-                    </Picker>
-                  </View>
-                </View>
-              </>
-            )}
-
-            <TouchableOpacity activeOpacity={0.92}
-              style={[s.saveBtn, (saving || uploading) && s.saveBtnDisabled]}
-              onPress={saveItem} disabled={saving || uploading}>
-              {saving || uploading ? (
-                <View style={s.saveLoadingWrap}>
-                  <ActivityIndicator color="#17100B" />
-                  <Text style={s.saveBtnText}>{uploading ? "جاري رفع الصورة..." : "جاري الحفظ..."}</Text>
-                </View>
-              ) : (
-                <View style={s.saveLoadingWrap}>
-                  <Save size={18} color="#17100B" strokeWidth={2.1} />
-                  <Text style={s.saveBtnText}>{editItem ? "حفظ التعديلات" : "إضافة الوجبة"}</Text>
-                </View>
+                </>
               )}
-            </TouchableOpacity>
-          </ScrollView>
+
+              <TouchableOpacity activeOpacity={0.92}
+                style={[s.saveBtn, (saving || uploading) && s.saveBtnDisabled]}
+                onPress={saveItem} disabled={saving || uploading}>
+                {saving || uploading ? (
+                  <View style={s.saveLoadingWrap}>
+                    <ActivityIndicator color="#17100B" />
+                    <Text style={s.saveBtnText}>{uploading ? "جاري رفع الصورة..." : "جاري الحفظ..."}</Text>
+                  </View>
+                ) : (
+                  <View style={s.saveLoadingWrap}>
+                    <Save size={18} color="#17100B" strokeWidth={2.1} />
+                    <Text style={s.saveBtnText}>{editItem ? "حفظ التعديلات" : "إضافة المنتج"}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -741,7 +746,7 @@ const s = StyleSheet.create({
   emptySub:      { color: "#8A6030", textAlign: "center", marginTop: 8, marginBottom: 18, fontSize: 12, lineHeight: 21, fontFamily: "Almarai_400Regular" },
   primaryBtn:    { minWidth: 170, minHeight: 48, borderRadius: 16, backgroundColor: "#F2B233", alignItems: "center", justifyContent: "center", paddingHorizontal: 22 },
   primaryBtnText:{ color: "#17100B", fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
-  modalContent:  { padding: 20, paddingBottom: 46 },
+  modalContent:  { padding: 20, paddingBottom: 60 },
   label:         { color: "#F2B233", textAlign: "right", fontSize: 12, marginBottom: 7, fontFamily: "Almarai_800ExtraBold" },
   inputWrap:     { backgroundColor: "#21160D", borderRadius: 17, borderWidth: 1, borderColor: "rgba(242,178,51,0.12)", paddingHorizontal: 14, marginBottom: 16 },
   input:         { height: 50, color: "#FDF0DC", fontSize: 14, fontFamily: "Almarai_400Regular" },

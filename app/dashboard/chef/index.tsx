@@ -38,7 +38,7 @@ const STATUS: any = {
 
 const CHEF_STATUS = [
   { id: "open",          label: "مفتوح",          desc: "يستقبل طلبات فورية",          color: "#4CAF50" },
-  { id: "preorder",      label: "حجز مسبق فقط",   desc: "للبوفيهات والمطابخ الكبيرة", color: "#F0A500" },
+  { id: "preorder",      label: "حجز مسبق فقط",   desc: "للبوفيهات والطلبات الكبيرة", color: "#F0A500" },
   { id: "closed",        label: "غير متاح",        desc: "يختفي من القائمة كلياً",     color: "#E53935" },
 ];
 
@@ -74,6 +74,9 @@ export default function DashboardScreen() {
   });
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [savingLocation, setSavingLocation] = useState(false);
+  // إذن الموقع: showsUserLocation بدون إذن ممنوح يسبب انهيار التطبيق على أندرويد
+  const [hasLocationPermission, setHasLocationPermission] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [graceDays, setGraceDays]       = useState(30);
   const [certUploading, setCertUploading] = useState(false);
   const [chefStatus, setChefStatus]   = useState("open");
@@ -199,14 +202,23 @@ export default function DashboardScreen() {
     ]);
   };
 
+  // فتح الخريطة: كل نداءات الموقع محاطة بحماية — أي فشل GPS أو إذن
+  // كان يخرج المستخدم من التطبيق بدل عرض رسالة
   const openLocationMap = async () => {
-    // نطلب موقع الجوال الحالي فعلياً دايماً (نفس سلوك شاشة العميل) —
-    // بدل الاعتماد بصمت على إحداثيات قديمة قد تكون بيانات تجريبية غير حقيقية
-    const { status } = await Location.requestForegroundPermissionsAsync();
+    let granted = false;
 
-    if (status === "granted") {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      granted = status === "granted";
+    } catch {
+      granted = false;
+    }
+
+    setHasLocationPermission(granted);
+
+    if (granted) {
       try {
-        const loc = await Location.getCurrentPositionAsync({});
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         setMapRegion({ latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 });
         setSelectedLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
       } catch {
@@ -221,26 +233,41 @@ export default function DashboardScreen() {
       setMapRegion({ latitude: chef.lat, longitude: chef.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 });
       setSelectedLocation({ lat: chef.lat, lng: chef.lng });
     } else {
-      Alert.alert("إذن الموقع مطلوب", "فعّل إذن الموقع من إعدادات الجوال، أو حدد موقعك يدوياً على الخريطة.");
+      Alert.alert("إذن الموقع مطلوب", "فعّل إذن الموقع من إعدادات الجوال، أو حدد موقعك يدوياً بالضغط على الخريطة.");
     }
 
     setShowLocationMap(true);
   };
 
   const useMyCurrentLocation = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("إذن الموقع مطلوب", "فعّل إذن الموقع من إعدادات الجوال.");
-      return;
+    if (locating) return;
+    setLocating(true);
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        setHasLocationPermission(false);
+        Alert.alert("إذن الموقع مطلوب", "فعّل إذن الموقع من إعدادات الجوال، أو حدد موقعك يدوياً بالضغط على الخريطة.");
+        return;
+      }
+
+      setHasLocationPermission(true);
+
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setMapRegion({ latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+      setSelectedLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+    } catch {
+      Alert.alert("تعذر تحديد الموقع", "تأكد من تشغيل خدمة الموقع، أو حدد موقعك يدوياً بالضغط على الخريطة.");
+    } finally {
+      setLocating(false);
     }
-    const loc = await Location.getCurrentPositionAsync({});
-    setMapRegion({ latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 });
-    setSelectedLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
   };
 
   const handleMapPress = (e: any) => {
-    const { latitude, longitude } = e.nativeEvent.coordinate;
-    setSelectedLocation({ lat: latitude, lng: longitude });
+    const coord = e?.nativeEvent?.coordinate;
+    if (!coord) return;
+    setSelectedLocation({ lat: coord.latitude, lng: coord.longitude });
   };
 
   const saveLocation = async () => {
@@ -472,7 +499,7 @@ export default function DashboardScreen() {
             <LogOut size={18} color="#E53935" strokeWidth={1.8} />
           </TouchableOpacity>
         </View>
-        <Text style={s.title}>{chef?.offers_drinks ? "لوحة الباريستا" : "لوحة الشيف"}</Text>
+        <Text style={s.title}>{chef?.offers_drinks ? "لوحة الباريستا" : "لوحة متجري"}</Text>
         <TouchableOpacity onPress={() => load(true)} style={s.refreshBtn}>
           <RefreshCw size={18} color="#F0A500" />
         </TouchableOpacity>
@@ -492,7 +519,7 @@ export default function DashboardScreen() {
               <Text style={[s.statusChange, { color: currentStatus.color }]}>تغيير</Text>
             </View>
             <View>
-              <Text style={s.statusTitle}>حالة مطبخي</Text>
+              <Text style={s.statusTitle}>حالة متجري</Text>
               <Text style={[s.statusVal, { color: currentStatus.color }]}>● {currentStatus.label}</Text>
               <Text style={s.statusDesc}>{currentStatus.desc}</Text>
             </View>
@@ -687,11 +714,11 @@ export default function DashboardScreen() {
             }
           />
 
-      {/* Modal حالة المطبخ */}
+      {/* Modal حالة المتجر */}
       <Modal visible={showStatus} transparent animationType="slide">
         <View style={s.modalOverlay}>
           <View style={s.modalBox}>
-            <Text style={s.modalTitle}>اختر حالة مطبخك</Text>
+            <Text style={s.modalTitle}>اختر حالة متجرك</Text>
             {CHEF_STATUS.map(st => (
               <TouchableOpacity key={st.id}
                 style={[s.statusOption, chefStatus === st.id && { borderColor: st.color, backgroundColor: st.color + "11" }]}
@@ -718,11 +745,12 @@ export default function DashboardScreen() {
               {timeAction === "confirm" ? "تأكيد وقت التسليم" : "اقتراح وقت بديل"}
             </Text>
 
-            {timeModalOrder?.requested_time && (
+            {/* الباك إند يخزّن وقت العميل في proposed_time — requested_time اسم بديل فقط */}
+            {(timeModalOrder?.proposed_time || timeModalOrder?.requested_time) && (
               <View style={s.requestedTimeBox}>
                 <CalendarDays size={14} color="#FF9800" strokeWidth={1.8} />
                 <Text style={s.requestedTimeText}>
-                  طلب العميل: {formatArabicDateTime(timeModalOrder.requested_time)}
+                  طلب العميل: {formatArabicDateTime(timeModalOrder.proposed_time || timeModalOrder.requested_time)}
                 </Text>
               </View>
             )}
@@ -794,21 +822,23 @@ export default function DashboardScreen() {
       </Modal>
 
       {/* مودال تحديد الموقع على الخريطة */}
-      <Modal visible={showLocationMap} animationType="slide">
+      <Modal visible={showLocationMap} animationType="slide" onRequestClose={() => setShowLocationMap(false)}>
         <SafeAreaView style={{ flex: 1, backgroundColor: "#17100B" }}>
           <View style={s.mapHeader}>
             <TouchableOpacity onPress={() => setShowLocationMap(false)}>
-              <Text style={s.mapHeaderBtn}>✕ إلغاء</Text>
+              <Text style={s.mapHeaderBtn}>إلغاء</Text>
             </TouchableOpacity>
-            <Text style={s.mapHeaderTitle}>حدد موقع مطبخك</Text>
+            <Text style={s.mapHeaderTitle}>حدد موقع متجرك</Text>
             <View style={{ width: 60 }} />
           </View>
 
+          {/* showsUserLocation فقط عند وجود إذن — بدونه ينهار التطبيق على أندرويد */}
           <MapView
             style={{ flex: 1 }}
             region={mapRegion}
             onPress={handleMapPress}
-            showsUserLocation
+            showsUserLocation={hasLocationPermission}
+            showsMyLocationButton={false}
           >
             {selectedLocation && (
               <Marker
@@ -819,10 +849,14 @@ export default function DashboardScreen() {
           </MapView>
 
           <View style={s.mapFooter}>
-            <Text style={s.mapHint}>اضغط على الخريطة لتحديد موقع مطبخك بدقة</Text>
-            <TouchableOpacity style={s.useCurrentBtn} onPress={useMyCurrentLocation}>
-              <MapPin size={14} color="#F0A500" strokeWidth={1.8} />
-              <Text style={s.useCurrentBtnText}>استخدم موقعي الحالي</Text>
+            <Text style={s.mapHint}>اضغط على الخريطة لتحديد موقع متجرك بدقة</Text>
+            <TouchableOpacity style={s.useCurrentBtn} onPress={useMyCurrentLocation} disabled={locating}>
+              {locating ? <ActivityIndicator color="#F0A500" size="small" /> : (
+                <>
+                  <MapPin size={14} color="#F0A500" strokeWidth={1.8} />
+                  <Text style={s.useCurrentBtnText}>استخدم موقعي الحالي</Text>
+                </>
+              )}
             </TouchableOpacity>
             <TouchableOpacity
               style={s.saveLocationBtn}
@@ -868,7 +902,7 @@ const s = StyleSheet.create({
   mapHint:            { color: "#A98961", fontSize: 12, fontFamily: "Almarai_400Regular", textAlign: "center", marginBottom: 12 },
   saveLocationBtn:     { backgroundColor: "#F2B233", borderRadius: 14, paddingVertical: 14, alignItems: "center" },
   saveLocationBtnText: { color: "#17100B", fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
-  useCurrentBtn:       { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 10, paddingVertical: 10 },
+  useCurrentBtn:       { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 10, paddingVertical: 10, minHeight: 40 },
   useCurrentBtnText:   { color: "#F0A500", fontSize: 13, fontFamily: "Almarai_700Bold" },
   statusTitle:       { fontSize: 11, color: "#8A6030", textAlign: "right", fontFamily: "Almarai_400Regular", marginBottom: 4 },
   statusVal:         { fontSize: 15, fontWeight: "800", textAlign: "right", fontFamily: "Almarai_700Bold" },

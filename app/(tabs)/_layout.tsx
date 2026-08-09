@@ -75,15 +75,15 @@ function AddrIcon({ label }: { label?: string | null }) {
   return <MapPin size={18} color="#F2B233" strokeWidth={1.8} />;
 }
 
+// النقطة السفلية أُزيلت — كانت تدفع الاسم خارج حدود الشريط فيُقصّ
 function TabIcon({ focused, color, Icon }: TabIconProps) {
   return (
     <View style={[t.tabIconWrap, focused && t.tabIconWrapActive]}>
       <Icon
-        size={21}
+        size={20}
         color={focused ? "#F2B233" : color}
         strokeWidth={focused ? 2.1 : 1.75}
       />
-      {focused ? <View style={t.activeTabDot} /> : null}
     </View>
   );
 }
@@ -337,6 +337,9 @@ export default function TabLayout() {
           ),
           tabBarActiveTintColor: "#F2B233",
           tabBarInactiveTintColor: "#8A6030",
+          // إظهار الاسم صراحةً — الاعتماد على السلوك الافتراضي كان يخفيه
+          tabBarShowLabel: true,
+          tabBarLabelPosition: "below-icon",
           tabBarLabelStyle: t.tabLabel,
           tabBarItemStyle: t.tabItem,
         }}
@@ -345,6 +348,7 @@ export default function TabLayout() {
           name="index"
           options={{
             title: "الرئيسية",
+            tabBarLabel: "الرئيسية",
             tabBarIcon: ({ color, focused }) => (
               <TabIcon color={color} focused={focused} Icon={Home} />
             ),
@@ -355,6 +359,7 @@ export default function TabLayout() {
           name="categories"
           options={{
             title: "التصنيفات",
+            tabBarLabel: "التصنيفات",
             tabBarIcon: ({ color, focused }) => (
               <TabIcon color={color} focused={focused} Icon={LayoutGrid} />
             ),
@@ -365,6 +370,7 @@ export default function TabLayout() {
           name="orders"
           options={{
             title: "طلباتي",
+            tabBarLabel: "طلباتي",
             tabBarIcon: ({ color, focused }) => (
               <TabIcon color={color} focused={focused} Icon={ShoppingBag} />
             ),
@@ -375,6 +381,7 @@ export default function TabLayout() {
           name="favorites"
           options={{
             title: "المفضلة",
+            tabBarLabel: "المفضلة",
             tabBarIcon: ({ color, focused }) => (
               <TabIcon color={color} focused={focused} Icon={Heart} />
             ),
@@ -385,6 +392,7 @@ export default function TabLayout() {
           name="profile"
           options={{
             title: "حسابي",
+            tabBarLabel: "حسابي",
             tabBarIcon: ({ color, focused }) => (
               <TabIcon color={color} focused={focused} Icon={User} />
             ),
@@ -407,14 +415,15 @@ const t = StyleSheet.create({
     backgroundColor: "#17100B",
   },
 
+  // الارتفاع وُسّع ليتسع للأيقونة والاسم معاً بدل قصّ الاسم
   tabBar: {
     position: "absolute",
     left: 12,
     right: 12,
     bottom: 14,
-    height: 76,
-    paddingTop: 8,
-    paddingBottom: 9,
+    height: 84,
+    paddingTop: 10,
+    paddingBottom: 12,
     paddingHorizontal: 7,
     borderRadius: 28,
     backgroundColor: "rgba(18,11,7,0.92)",
@@ -431,37 +440,29 @@ const t = StyleSheet.create({
 
   tabLabel: {
     fontSize: 10,
-    fontWeight: "800",
+    lineHeight: 15,
     fontFamily: "Almarai_700Bold",
-    marginTop: 2,
+    marginTop: 3,
+    includeFontPadding: false,
   },
 
   tabItem: {
-    paddingTop: 2,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
 
   tabIconWrap: {
     minWidth: 38,
-    minHeight: 28,
-    borderRadius: 14,
+    height: 30,
+    borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
-    position: "relative",
   },
 
   tabIconWrapActive: {
     backgroundColor: "rgba(242,178,51,0.095)",
     borderWidth: 1,
     borderColor: "rgba(242,178,51,0.16)",
-  },
-
-  activeTabDot: {
-    position: "absolute",
-    bottom: -4,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#F2B233",
   },
 });
 
