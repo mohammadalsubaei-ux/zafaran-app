@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -48,38 +48,73 @@ function GenderPicker({ gender, setGender }: {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  نافذة اختيار المدينة — مكوّن مشترك يُستخدم بشاشتي الشيف والمندوب
-//  (كانت النافذة موجودة بشاشة المندوب فقط، وزر المدينة بشاشة الشيف معطّل)
+//  نافذة اختيار المدينة — مكوّن مشترك يُستخدم بشاشتي المتجر والمندوب
+//  القائمة تغطي مناطق المملكة كاملة، لذلك أُضيف بحث بدل التمرير الطويل
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function CityPickerModal({ visible, onClose, cities, city, setCity }: {
   visible: boolean;
   onClose: () => void;
-  cities: { id: number; name_ar: string }[];
+  cities: { id: number; name_ar: string; region?: string | null }[];
   city: string;
   setCity: (c: string) => void;
 }) {
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = query.trim();
+    if (!q) return cities;
+    return cities.filter(
+      (c) => c.name_ar.includes(q) || String(c.region || "").includes(q)
+    );
+  }, [cities, query]);
+
+  const close = () => {
+    setQuery("");
+    onClose();
+  };
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={onClose}>
-        <View style={s.modalBox}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
+      <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={close}>
+        <TouchableOpacity style={s.modalBox} activeOpacity={1}>
           <Text style={s.modalTitle}>اختر مدينتك</Text>
+
+          <View style={s.citySearchWrap}>
+            <TextInput
+              style={s.citySearchInput}
+              placeholder="ابحث عن مدينتك أو منطقتك..."
+              placeholderTextColor="#5A3A18"
+              value={query}
+              onChangeText={setQuery}
+              textAlign="right"
+            />
+          </View>
+
           <FlatList
-            data={cities}
+            data={filtered}
             keyExtractor={(item) => String(item.id)}
-            style={{ maxHeight: 360 }}
+            style={{ maxHeight: 340 }}
+            keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={s.cityRow}
-                onPress={() => { setCity(item.name_ar); onClose(); }}
+                onPress={() => { setCity(item.name_ar); close(); }}
               >
                 <Text style={[s.cityRowText, city === item.name_ar && { color: "#F0A500" }]}>
                   {item.name_ar}
                 </Text>
+                {item.region ? (
+                  <Text style={s.cityRegionText}>{item.region}</Text>
+                ) : null}
               </TouchableOpacity>
             )}
-            ListEmptyComponent={<ActivityIndicator color="#F0A500" style={{ marginVertical: 20 }} />}
+            ListEmptyComponent={
+              cities.length === 0
+                ? <ActivityIndicator color="#F0A500" style={{ marginVertical: 20 }} />
+                : <Text style={s.cityEmpty}>ما لقينا مدينة بهذا الاسم</Text>
+            }
           />
-        </View>
+        </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
   );
@@ -91,7 +126,7 @@ export default function LoginScreen() {
   const [name, setName]                 = useState("");
   const [gender, setGender]             = useState<"male" | "female">("male");
   const [city, setCity]                 = useState("");
-  const [cities, setCities]             = useState<{ id: number; name_ar: string }[]>([]);
+  const [cities, setCities]             = useState<{ id: number; name_ar: string; region?: string | null }[]>([]);
   const [showCityPicker, setShowCityPicker] = useState(false);
 
   useEffect(() => {
@@ -107,7 +142,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ step?: string }>();
 
-  // القدوم من شاشة "حسابي" للضيف بخطوة محددة (تسجيل عميل/شيف/مندوب)
+  // القدوم من شاشة "حسابي" للضيف بخطوة محددة (تسجيل عميل/متجر/مندوب)
   useEffect(() => {
     const target = String(params?.step || "");
     if (["register", "chef_register", "driver_register"].includes(target)) {
@@ -148,7 +183,7 @@ export default function LoginScreen() {
     if (!name.trim()) { Alert.alert("تنبيه", "ادخل اسمك"); return; }
     if (password.length < 6) { Alert.alert("تنبيه", "ادخل كلمة مرور (6 احرف على الاقل)"); return; }
     if (password !== password2) { Alert.alert("تنبيه", "كلمتا المرور غير متطابقتين"); return; }
-    if ((role === "chef" || role === "driver") && !city.trim()) { Alert.alert("تنبيه", "ادخل مدينتك"); return; }
+    if ((role === "chef" || role === "driver") && !city.trim()) { Alert.alert("تنبيه", "اختر مدينتك"); return; }
     setLoading(true);
     try {
       const res  = await fetch(`${API}/api/users/register`, {
@@ -218,7 +253,7 @@ export default function LoginScreen() {
                 <View style={s.dividerLine}/>
               </View>
               <TouchableOpacity style={s.chefBtn} onPress={() => setStep("chef_register")}>
-                <Text style={s.chefBtnText}>سجّل مشروعك البيتي</Text>
+                <Text style={s.chefBtnText}>سجّل متجرك المنزلي</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[s.chefBtn, { marginTop: 10, borderColor: "rgba(33,150,243,0.3)", backgroundColor: "rgba(33,150,243,0.08)" }]}
@@ -278,7 +313,7 @@ export default function LoginScreen() {
     );
   }
 
-  // شاشة تسجيل شيف
+  // شاشة تسجيل متجر منزلي
   if (step === "chef_register") {
     return (
       <SafeAreaView key="step-chef" style={s.safe}>
@@ -288,8 +323,8 @@ export default function LoginScreen() {
               <Image source={require("../assets/images/logo-mark.png")} style={s.logoMark} />
             </View>
             <View style={s.form}>
-              <Text style={s.formTitle}>سجّل مشروعك</Text>
-              <Text style={s.formHint}>سجّل للبدء بمشروعك — طبخ، حلا، قهوة، مخبوزات وكل التخصصات</Text>
+              <Text style={s.formTitle}>سجّل متجرك</Text>
+              <Text style={s.formHint}>طبخ، حلا، قهوة، مخبوزات — كل التخصصات المنزلية</Text>
               <Text style={s.label}>الاسم</Text>
               <View style={s.inputWrap}>
                 <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor="#5A3A18" onChangeText={setName} textAlign="right"/>
@@ -319,7 +354,7 @@ export default function LoginScreen() {
               </View>
               <Text style={s.certHint}>شهادة العمل الحر غير إلزامية للتسجيل — يمكنك رفعها لاحقًا من لوحتك خلال المهلة المحددة</Text>
               <TouchableOpacity style={s.btn} onPress={() => handleRegister("chef")} disabled={loading}>
-                {loading ? <ActivityIndicator color="#1C0F00" /> : <Text style={s.btnText}>سجّل مشروعي</Text>}
+                {loading ? <ActivityIndicator color="#1C0F00" /> : <Text style={s.btnText}>سجّل متجري</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={s.switchBtn} onPress={() => setStep("login")}>
                 <Text style={s.switchText}>رجوع</Text>
@@ -429,6 +464,13 @@ const s = StyleSheet.create({
     padding: 20, paddingBottom: 32, borderTopWidth: 1, borderColor: "rgba(240,165,0,0.15)",
   },
   modalTitle: { fontSize: 16, fontWeight: "800", color: "#FDF0DC", textAlign: "right", marginBottom: 14, fontFamily: "Almarai_800ExtraBold" },
-  cityRow: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.08)" },
+  citySearchWrap: {
+    backgroundColor: "#251400", borderRadius: 14, borderWidth: 1,
+    borderColor: "rgba(240,165,0,0.2)", paddingHorizontal: 14, marginBottom: 12,
+  },
+  citySearchInput: { height: 46, color: "#FDF0DC", fontSize: 14, fontFamily: "Almarai_400Regular" },
+  cityRow: { paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.08)" },
   cityRowText: { fontSize: 15, color: "#FDF0DC", textAlign: "right", fontFamily: "Almarai_400Regular" },
+  cityRegionText: { fontSize: 11, color: "#8A6030", textAlign: "right", marginTop: 3, fontFamily: "Almarai_400Regular" },
+  cityEmpty: { fontSize: 13, color: "#8A6030", textAlign: "center", marginVertical: 24, fontFamily: "Almarai_400Regular" },
 });

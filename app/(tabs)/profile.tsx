@@ -20,9 +20,7 @@ import {
 import {
   Bell,
   ChevronLeft,
-  CircleDollarSign,
   FileText,
-  Globe2,
   Headphones,
   Languages,
   LayoutDashboard,
@@ -74,9 +72,7 @@ const T: any = {
     driverDashboard: "لوحة المندوب",
     driverDashboardSub: "إدارة التوصيلات",
     orders: "طلباتي",
-    ordersSub: "متابعة الطلبات السابقة والحالية",
     wallet: "محفظتي",
-    walletSub: "الرصيد وسجل المعاملات",
     addresses: "عناويني",
     addressesSub: "عناوين التوصيل المحفوظة",
     settings: "الإعدادات",
@@ -84,8 +80,6 @@ const T: any = {
     languageSub: "التبديل بين العربية والإنجليزية",
     changePw: "تغيير كلمة المرور",
     changePwSub: "حدّث كلمة مرور حسابك",
-    region: "المنطقة",
-    regionSub: "القصيم، المملكة العربية السعودية",
     notifications: "الإشعارات",
     notificationsSub: "إشعارات الطلبات والتحديثات",
     support: "الدعم والمساعدة",
@@ -121,9 +115,7 @@ const T: any = {
     driverDashboard: "Driver Dashboard",
     driverDashboardSub: "Manage deliveries",
     orders: "My Orders",
-    ordersSub: "Track current and previous orders",
     wallet: "My Wallet",
-    walletSub: "Balance and transaction history",
     addresses: "My Addresses",
     addressesSub: "Saved delivery addresses",
     settings: "Settings",
@@ -131,8 +123,6 @@ const T: any = {
     languageSub: "Switch between Arabic and English",
     changePw: "Change Password",
     changePwSub: "Update your account password",
-    region: "Region",
-    regionSub: "Al-Qassim, Saudi Arabia",
     notifications: "Notifications",
     notificationsSub: "Order and update alerts",
     support: "Support",
@@ -392,6 +382,7 @@ export default function ProfileScreen() {
   const RoleIcon = roleInfo.Icon;
   const fullName = cleanText(user.full_name, isArabic ? "مستخدم زعفران" : "Zafaran User");
   const phone = cleanText(user.phone, "—");
+  const hasDashboard = user.role === "chef" || user.role === "driver";
 
   return (
     <SafeAreaView style={s.safe}>
@@ -430,6 +421,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* الوصول السريع — طلباتي والمحفظة هنا فقط، وأُزيل تكرارهما من قائمة الخدمات */}
         <View style={s.quickGrid}>
           <TouchableOpacity
             activeOpacity={0.88}
@@ -470,20 +462,6 @@ export default function ProfileScreen() {
           ) : null}
 
           <MenuItem
-            title={t.orders}
-            subtitle={t.ordersSub}
-            Icon={PackageCheck}
-            onPress={() => router.push("/(tabs)/orders" as any)}
-          />
-
-          <MenuItem
-            title={t.wallet}
-            subtitle={t.walletSub}
-            Icon={CircleDollarSign}
-            onPress={() => router.push("/(tabs)/wallet" as any)}
-          />
-
-          <MenuItem
             title={t.addresses}
             subtitle={t.addressesSub}
             Icon={MapPin}
@@ -492,20 +470,6 @@ export default function ProfileScreen() {
         </Section>
 
         <Section title={t.settings}>
-          <MenuItem
-            title={t.language}
-            subtitle={t.languageSub}
-            Icon={Languages}
-            onPress={toggleLang}
-          />
-
-          <MenuItem
-            title={t.region}
-            subtitle={t.regionSub}
-            Icon={Globe2}
-            onPress={() => router.push("/addresses" as any)}
-          />
-
           <MenuItem
             title={t.notifications}
             subtitle={t.notificationsSub}
@@ -518,6 +482,13 @@ export default function ProfileScreen() {
             subtitle={t.changePwSub}
             Icon={KeyRound}
             onPress={() => router.push("/change-password" as any)}
+          />
+
+          <MenuItem
+            title={t.language}
+            subtitle={t.languageSub}
+            Icon={Languages}
+            onPress={toggleLang}
           />
         </Section>
 
