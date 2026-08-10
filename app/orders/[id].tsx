@@ -16,9 +16,9 @@ import {
   Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold, useFonts,
 } from "@expo-google-fonts/almarai";
 import {
-  AlertCircle, ArrowRight, Banknote, CalendarDays, CheckCircle2, ChefHat, Clock3,
+  AlertCircle, ArrowRight, Banknote, CalendarDays, CheckCircle2, Clock3,
   CreditCard, Flame, Gift, Home, MapPin, Navigation, PackageCheck,
-  ReceiptText, RefreshCw, Smartphone, Star, Truck, UtensilsCrossed,
+  ReceiptText, RefreshCw, ShoppingBag, Smartphone, Star, Store, Truck,
   Wallet, XCircle,
 } from "lucide-react-native";
 
@@ -173,7 +173,7 @@ function paymentStatusColor(status?: PaymentStatus | null, method?: PaymentMetho
   return "#F2B233";
 }
 
-// خريطة بسيطة بدون react-native-maps (WebView بديل)
+// خريطة تتبع المندوب
 function SimpleMap({ driverLat, driverLng, destLat, destLng }: {
   driverLat: number; driverLng: number;
   destLat?: number | null; destLng?: number | null;
@@ -372,7 +372,7 @@ export default function OrderDetailScreen() {
   const switchToPickup = useCallback(() => {
     Alert.alert(
       "التحويل لاستلام شخصي",
-      "بيلغى التوصيل وتستلم طلبك بنفسك من موقع الأسرة المنتجة بدون رسوم توصيل — نكمل؟",
+      "بيلغى التوصيل وتستلم طلبك بنفسك من موقع المتجر بدون رسوم توصيل — نكمل؟",
       [
         { text: "تراجع", style: "cancel" },
         {
@@ -489,13 +489,12 @@ export default function OrderDetailScreen() {
   const waitedMs = waitingDriver && order?.ready_at ? nowTick - new Date(order.ready_at).getTime() : 0;
   const showNoDriverCard = waitingDriver && waitedMs > 90 * 1000 && nowTick > snoozeUntil;
   const isPreorder  = order.order_type === "preorder";
-  const isMale      = order.chefs?.users?.gender === "male";
   const isPickup    = order.delivery_type === "pickup" || text(order.delivery_address, "") === "استلام شخصي";
   const isCash      = order.payment_method === "cash";
   const subtotal    = numberValue(order.subtotal);
   const deliveryFee = isPickup ? 0 : numberValue(order.delivery_fee);
   const total       = numberValue(order.total_amount || order.total || subtotal + deliveryFee);
-  const chefName    = text(order.chefs?.users?.full_name, isMale ? "الشيف" : "الشيفة");
+  const chefName    = text(order.chefs?.users?.full_name, "متجر");
   const chefLocation = [order.chefs?.city, order.chefs?.neighborhood].filter(Boolean).join(" · ");
   const paymentColor = paymentStatusColor(order.payment_status, order.payment_method);
 
@@ -544,7 +543,7 @@ export default function OrderDetailScreen() {
         {showNoDriverCard ? (
           <View style={s.noDriverCard}>
             <Text style={s.noDriverTitle}>لا يوجد مندوب متاح حالياً</Text>
-            <Text style={s.noDriverSub}>طلبك جاهز عند الأسرة المنتجة — اختر ما يناسبك:</Text>
+            <Text style={s.noDriverSub}>طلبك جاهز عند المتجر — اختر ما يناسبك:</Text>
             <View style={s.noDriverBtns}>
               <TouchableOpacity style={s.ndWaitBtn} onPress={renotifyDrivers} disabled={noDriverLoading} activeOpacity={0.85}>
                 {noDriverLoading
@@ -615,10 +614,10 @@ export default function OrderDetailScreen() {
               </View>
             )}
 
-            {/* الشيف اقترح وقتاً بديلاً — بانتظار رد العميل */}
+            {/* المتجر اقترح وقتاً بديلاً — بانتظار رد العميل */}
             {order.time_negotiation_status === "chef_countered" && order.confirmed_time && (
               <View style={s.counterBox}>
-                <Text style={s.counterTitle}>الشيف اقترح وقتاً بديلاً</Text>
+                <Text style={s.counterTitle}>المتجر اقترح وقتاً بديلاً</Text>
                 <Text style={s.counterTime}>{formatDateTime(order.confirmed_time)}</Text>
                 <Text style={s.counterSub}>وافق على الوقت الجديد أو ألغِ الطلب بدون أي رسوم</Text>
 
@@ -647,11 +646,11 @@ export default function OrderDetailScreen() {
               </View>
             )}
 
-            {/* بانتظار رد الشيف على الوقت المقترح من العميل */}
+            {/* بانتظار رد المتجر على الوقت المقترح من العميل */}
             {order.time_negotiation_status === "pending" && (
               <View style={s.waitingBox}>
                 <Clock3 size={14} color="#F0A500" strokeWidth={1.8} />
-                <Text style={s.waitingText}>بانتظار تأكيد الشيف للوقت</Text>
+                <Text style={s.waitingText}>بانتظار تأكيد المتجر للوقت</Text>
               </View>
             )}
 
@@ -721,11 +720,11 @@ export default function OrderDetailScreen() {
           </View>
         )}
 
-        {/* الشيف */}
+        {/* المتجر */}
         <View style={s.card}>
           <View style={s.cardTitleRow}>
-            <ChefHat size={17} color="#F2B233" strokeWidth={1.8} />
-            <Text style={s.cardTitle}>{isMale ? "الشيف" : "الشيفة"}</Text>
+            <Store size={17} color="#F2B233" strokeWidth={1.8} />
+            <Text style={s.cardTitle}>المتجر</Text>
           </View>
           <Text style={s.chefName}>{chefName}</Text>
           <View style={s.inlineRow}>
@@ -734,14 +733,14 @@ export default function OrderDetailScreen() {
           </View>
         </View>
 
-        {/* الوجبات */}
+        {/* المنتجات */}
         <View style={s.card}>
           <View style={s.cardTitleRow}>
-            <UtensilsCrossed size={17} color="#F2B233" strokeWidth={1.8} />
-            <Text style={s.cardTitle}>الوجبات</Text>
+            <ShoppingBag size={17} color="#F2B233" strokeWidth={1.8} />
+            <Text style={s.cardTitle}>المنتجات</Text>
           </View>
           {orderItems.length ? orderItems.map((item, index) => {
-            const name         = text(item.name || item.menu_items?.name, "وجبة");
+            const name         = text(item.name || item.menu_items?.name, "منتج");
             const qty          = numberValue(item.quantity || 1);
             const itemPrice    = numberValue(item.price || item.menu_items?.price);
             const itemSubtotal = numberValue(item.subtotal || itemPrice * qty);
@@ -754,7 +753,7 @@ export default function OrderDetailScreen() {
                 <Text style={s.itemPrice}>{money(itemSubtotal)}</Text>
               </View>
             );
-          }) : <Text style={s.emptyMiniText}>لا توجد وجبات مسجلة.</Text>}
+          }) : <Text style={s.emptyMiniText}>لا توجد منتجات مسجلة.</Text>}
         </View>
 
         {/* الدفع */}
@@ -783,7 +782,7 @@ export default function OrderDetailScreen() {
             <Text style={s.cardTitle}>ملخص المبالغ</Text>
           </View>
           <View style={s.summaryRow}>
-            <Text style={s.summaryLabel}>الوجبات</Text>
+            <Text style={s.summaryLabel}>المنتجات</Text>
             <Text style={s.summaryValue}>{money(subtotal)}</Text>
           </View>
           <View style={s.summaryRow}>
@@ -807,7 +806,7 @@ export default function OrderDetailScreen() {
             <Text style={s.cardTitle}>{isPickup ? "طريقة الاستلام" : "عنوان التوصيل"}</Text>
           </View>
           <Text style={s.addressText}>
-            {isPickup ? "استلام شخصي من الشيف" : text(order.delivery_address, "العنوان غير محدد")}
+            {isPickup ? "استلام شخصي من المتجر" : text(order.delivery_address, "العنوان غير محدد")}
           </Text>
         </View>
 
