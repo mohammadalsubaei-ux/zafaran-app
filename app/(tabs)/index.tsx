@@ -26,6 +26,7 @@ import {
   Search,
   Star,
   Store,
+  X,
 } from "lucide-react-native";
 import {
   useFonts,
@@ -305,27 +306,9 @@ export default function HomeScreen() {
     [router]
   );
 
-  const ListHeader = useCallback(() => {
+  const ListHeader = useMemo(() => {
     return (
       <View>
-        <View style={s.hero}>
-          <Text style={s.heroTitle}>من بيتنا لبيتك</Text>
-
-          <View style={s.searchWrap}>
-            <Search size={18} color="#F2B233" strokeWidth={1.8} />
-            <TextInput
-              style={s.searchInput}
-              placeholder="ابحث عن متجر أو منتج..."
-              placeholderTextColor="#7C6145"
-              value={search}
-              onChangeText={setSearch}
-              textAlign="right"
-              returnKeyType="search"
-            />
-            {searching ? <ActivityIndicator size="small" color="#F2B233" /> : null}
-          </View>
-        </View>
-
         {banners.length > 0 ? (
           <ScrollView
             horizontal
@@ -461,7 +444,7 @@ export default function HomeScreen() {
         ) : null}
       </View>
     );
-  }, [banners, chefs, error, mostOrderedChefs, onRefresh, openChef, openSection, router, search, searching]);
+  }, [banners, chefs, error, mostOrderedChefs, onRefresh, openChef, openSection, router]);
 
   const renderChef = useCallback(
     ({ item }: { item: Chef }) => {
@@ -546,40 +529,62 @@ export default function HomeScreen() {
     );
   }
 
-  if (loading) {
-    return (
-      <View style={s.safe}>
+  return (
+    <View style={s.safe}>
+      {/* البحث خارج FlatList — داخله كان يُعاد بناؤه مع كل حرف فيختفي الكيبورد */}
+      <View style={s.hero}>
+        <Text style={s.heroTitle}>من بيتنا لبيتك</Text>
+
+        <View style={s.searchWrap}>
+          <Search size={18} color="#F2B233" strokeWidth={1.8} />
+          <TextInput
+            style={s.searchInput}
+            placeholder="ابحث عن متجر أو منتج..."
+            placeholderTextColor="#7C6145"
+            value={search}
+            onChangeText={setSearch}
+            textAlign="right"
+            returnKeyType="search"
+          />
+          {searching ? <ActivityIndicator size="small" color="#F2B233" /> : null}
+          {!searching && search.trim() ? (
+            <TouchableOpacity activeOpacity={0.85} onPress={() => setSearch("")}>
+              <X size={17} color="#8A6030" strokeWidth={2} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
+
+      {loading ? (
         <View style={s.loadingWrap}>
           <ActivityIndicator color="#F2B233" size="large" />
           <Text style={s.loadingText}>جاري تجهيز زعفران...</Text>
         </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={s.safe}>
-      <FlatList
-        data={chefs}
-        keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={s.listContent}
-        ListHeaderComponent={ListHeader}
-        renderItem={renderChef}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#F2B233"
-          />
-        }
-        ListEmptyComponent={
-          <View style={s.emptyWrap}>
-            <Store size={54} color="#5A3A18" strokeWidth={1.5} />
-            <Text style={s.emptyTitle}>ما لقينا نتائج</Text>
-            <Text style={s.emptyText}>جرّب تبحث باسم متجر أو منتج مختلف.</Text>
-          </View>
-        }
-      />
+      ) : (
+        <FlatList
+          data={chefs}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={s.listContent}
+          ListHeaderComponent={ListHeader}
+          renderItem={renderChef}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#F2B233"
+            />
+          }
+          ListEmptyComponent={
+            <View style={s.emptyWrap}>
+              <Store size={54} color="#5A3A18" strokeWidth={1.5} />
+              <Text style={s.emptyTitle}>ما لقينا نتائج</Text>
+              <Text style={s.emptyText}>جرّب تبحث باسم متجر أو منتج مختلف.</Text>
+            </View>
+          }
+        />
+      )}
     </View>
   );
 }

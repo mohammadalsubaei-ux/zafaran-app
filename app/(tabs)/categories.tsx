@@ -255,108 +255,10 @@ export default function CategoriesScreen() {
     [router]
   );
 
-  const clearSearch = useCallback(() => {
-    setSearch("");
-  }, []);
-
   const resetFilters = useCallback(() => {
     setCategory("all");
     setSearch("");
   }, []);
-
-  const ListHeader = useCallback(() => {
-    return (
-      <View>
-        {/* البحث أولاً — التصنيفات تحته مباشرة كصف فلترة واحد بلا تمرير أفقي */}
-        <View style={s.searchWrap}>
-          <Search size={18} color="#F2B233" strokeWidth={1.8} />
-
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="ابحث عن متجر أو منتج..."
-            placeholderTextColor="#7C6145"
-            style={s.searchInput}
-            textAlign="right"
-            returnKeyType="search"
-          />
-
-          {search.trim() ? (
-            <TouchableOpacity activeOpacity={0.85} onPress={clearSearch}>
-              <X size={17} color="#8A6030" strokeWidth={2} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-
-        <View style={s.filterRow}>
-          {CATEGORIES.map((cat) => {
-            const active = category === cat.id;
-            const Icon = cat.Icon;
-            const isEmpty = (categoryCounts[cat.id] || 0) === 0;
-
-            return (
-              <TouchableOpacity
-                key={cat.id}
-                activeOpacity={0.85}
-                style={[
-                  s.filterChip,
-                  active && { backgroundColor: `${cat.color}1F`, borderColor: `${cat.color}66` },
-                  isEmpty && !active && s.filterChipEmpty,
-                ]}
-                onPress={() => setCategory(cat.id)}
-              >
-                <Icon
-                  size={17}
-                  color={active ? cat.color : "#8A6030"}
-                  strokeWidth={1.9}
-                />
-
-                <Text
-                  style={[s.filterLabel, active && { color: cat.color }]}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                >
-                  {cat.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        <View style={s.resultRow}>
-          <Text style={s.resultText}>
-            {selectedMeta.label} · {filteredChefs.length} متجر
-          </Text>
-
-          {category !== "all" || search.trim() ? (
-            <TouchableOpacity activeOpacity={0.85} onPress={resetFilters}>
-              <Text style={s.resetText}>مسح الفلتر</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-
-        {error ? (
-          <TouchableOpacity activeOpacity={0.85} style={s.errorBox} onPress={onRefresh}>
-            <RefreshCw size={17} color="#F2B233" strokeWidth={1.8} />
-            <View style={s.errorInfo}>
-              <Text style={s.errorTitle}>حدثت مشكلة</Text>
-              <Text style={s.errorText}>{error}</Text>
-            </View>
-          </TouchableOpacity>
-        ) : null}
-      </View>
-    );
-  }, [
-    category,
-    categoryCounts,
-    clearSearch,
-    error,
-    filteredChefs.length,
-    onRefresh,
-    resetFilters,
-    search,
-    selectedMeta,
-  ]);
 
   const renderChef = useCallback(
     ({ item }: { item: Chef }) => {
@@ -449,57 +351,139 @@ export default function CategoriesScreen() {
     [category, openChef]
   );
 
-  if (!fontsLoaded || loading) {
+  if (!fontsLoaded) {
     return (
       <View style={s.safe}>
-        <View style={s.loadingWrap}>
-          <ActivityIndicator color="#F2B233" size="large" />
-          <Text style={s.loadingText}>جاري تحميل التصنيفات...</Text>
-        </View>
+        <ActivityIndicator color="#F2B233" style={{ marginTop: 120 }} />
       </View>
     );
   }
 
   return (
     <View style={s.safe}>
-      <FlatList
-        data={filteredChefs}
-        keyExtractor={(item) => String(item.id)}
-        renderItem={renderChef}
-        ListHeaderComponent={ListHeader}
-        contentContainerStyle={s.listContent}
-        keyboardShouldPersistTaps="handled"
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B233" />
-        }
-        ListEmptyComponent={
-          <View style={s.emptyWrap}>
-            <View style={s.emptyIcon}>
-              {error ? (
-                <RefreshCw size={54} color="#5A3A18" strokeWidth={1.5} />
-              ) : (
-                <CircleOff size={54} color="#5A3A18" strokeWidth={1.5} />
-              )}
-            </View>
+      {/* البحث والفلترة خارج FlatList — داخله كان الحقل يُعاد بناؤه مع كل حرف فيختفي الكيبورد */}
+      <View style={s.searchWrap}>
+        <Search size={18} color="#F2B233" strokeWidth={1.8} />
 
-            <Text style={s.emptyTitle}>
-              {error ? "تعذر عرض النتائج" : `لا يوجد متاجر في ${selectedMeta.label} حالياً`}
-            </Text>
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder="ابحث عن متجر أو منتج..."
+          placeholderTextColor="#7C6145"
+          style={s.searchInput}
+          textAlign="right"
+          returnKeyType="search"
+        />
 
-            <Text style={s.emptySub}>
-              {error
-                ? "اسحب للتحديث أو اضغط على صندوق الخطأ لإعادة المحاولة."
-                : "جرّب تصنيفًا آخر أو تصفح كل المتاجر."}
-            </Text>
+        {search.trim() ? (
+          <TouchableOpacity activeOpacity={0.85} onPress={() => setSearch("")}>
+            <X size={17} color="#8A6030" strokeWidth={2} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
 
-            {!error ? (
-              <TouchableOpacity activeOpacity={0.9} style={s.primaryBtn} onPress={resetFilters}>
-                <Text style={s.primaryBtnText}>عرض الكل</Text>
-              </TouchableOpacity>
-            ) : null}
+      <View style={s.filterRow}>
+        {CATEGORIES.map((cat) => {
+          const active = category === cat.id;
+          const Icon = cat.Icon;
+          const isEmpty = (categoryCounts[cat.id] || 0) === 0;
+
+          return (
+            <TouchableOpacity
+              key={cat.id}
+              activeOpacity={0.85}
+              style={[
+                s.filterChip,
+                active && { backgroundColor: `${cat.color}1F`, borderColor: `${cat.color}66` },
+                isEmpty && !active && s.filterChipEmpty,
+              ]}
+              onPress={() => setCategory(cat.id)}
+            >
+              <Icon
+                size={17}
+                color={active ? cat.color : "#8A6030"}
+                strokeWidth={1.9}
+              />
+
+              <Text
+                style={[s.filterLabel, active && { color: cat.color }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {cat.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <View style={s.resultRow}>
+        <Text style={s.resultText}>
+          {selectedMeta.label} · {filteredChefs.length} متجر
+        </Text>
+
+        {category !== "all" || search.trim() ? (
+          <TouchableOpacity activeOpacity={0.85} onPress={resetFilters}>
+            <Text style={s.resetText}>مسح الفلتر</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      {error ? (
+        <TouchableOpacity activeOpacity={0.85} style={s.errorBox} onPress={onRefresh}>
+          <RefreshCw size={17} color="#F2B233" strokeWidth={1.8} />
+          <View style={s.errorInfo}>
+            <Text style={s.errorTitle}>حدثت مشكلة</Text>
+            <Text style={s.errorText}>{error}</Text>
           </View>
-        }
-      />
+        </TouchableOpacity>
+      ) : null}
+
+      {loading ? (
+        <View style={s.loadingWrap}>
+          <ActivityIndicator color="#F2B233" size="large" />
+          <Text style={s.loadingText}>جاري تحميل التصنيفات...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredChefs}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={renderChef}
+          contentContainerStyle={s.listContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B233" />
+          }
+          ListEmptyComponent={
+            <View style={s.emptyWrap}>
+              <View style={s.emptyIcon}>
+                {error ? (
+                  <RefreshCw size={54} color="#5A3A18" strokeWidth={1.5} />
+                ) : (
+                  <CircleOff size={54} color="#5A3A18" strokeWidth={1.5} />
+                )}
+              </View>
+
+              <Text style={s.emptyTitle}>
+                {error ? "تعذر عرض النتائج" : `لا يوجد متاجر في ${selectedMeta.label} حالياً`}
+              </Text>
+
+              <Text style={s.emptySub}>
+                {error
+                  ? "اسحب للتحديث أو اضغط على صندوق الخطأ لإعادة المحاولة."
+                  : "جرّب تصنيفًا آخر أو تصفح كل المتاجر."}
+              </Text>
+
+              {!error ? (
+                <TouchableOpacity activeOpacity={0.9} style={s.primaryBtn} onPress={resetFilters}>
+                  <Text style={s.primaryBtnText}>عرض الكل</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          }
+        />
+      )}
     </View>
   );
 }
