@@ -2,10 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -19,6 +24,7 @@ import {
 } from "@expo-google-fonts/almarai";
 import {
   Bell,
+  Camera,
   ChevronLeft,
   FileText,
   Headphones,
@@ -28,10 +34,12 @@ import {
   LogOut,
   MapPin,
   PackageCheck,
+  Pencil,
   ShieldCheck,
   Smartphone,
   Sparkles,
   Store,
+  Trash2,
   Truck,
   User,
   UserRound,
@@ -40,6 +48,9 @@ import {
 } from "lucide-react-native";
 
 import { useLang } from "@/context/LanguageContext";
+import { pickCompressedImage, uploadImageToBucket } from "@/utils/images";
+
+const API = "https://zafaran-backend-production.up.railway.app";
 
 type Role = "customer" | "chef" | "driver" | string;
 
@@ -49,6 +60,7 @@ type UserSession = {
   phone?: string | null;
   role?: Role | null;
   gender?: string | null;
+  avatar_url?: string | null;
 };
 
 const T: any = {
@@ -60,7 +72,6 @@ const T: any = {
     guestRegister: "إنشاء حساب جديد",
     guestChef: "سجّل متجرك المنزلي",
     guestDriver: "انضم كمندوب توصيل",
-    profile: "الملف الشخصي",
     verified: "حساب موثق",
     customer: "عميل",
     chef: "صاحب متجر",
@@ -94,6 +105,18 @@ const T: any = {
     yes: "نعم",
     no: "لا",
     appFooter: "زعفران · من بيتنا لبيتك",
+    editName: "تعديل الاسم",
+    nameLabel: "الاسم",
+    photoTitle: "الصورة الشخصية",
+    choosePhoto: "اختيار صورة",
+    changePhoto: "تغيير الصورة",
+    removePhoto: "حذف الصورة",
+    save: "حفظ",
+    cancel: "إلغاء",
+    uploading: "جاري رفع الصورة...",
+    saving: "جاري الحفظ...",
+    photoDone: "تم تحديث صورتك",
+    nameDone: "تم تحديث اسمك",
   },
   en: {
     account: "My Account",
@@ -103,7 +126,6 @@ const T: any = {
     guestRegister: "Create a new account",
     guestChef: "Register your home store",
     guestDriver: "Join as a delivery driver",
-    profile: "Profile",
     verified: "Verified Account",
     customer: "Customer",
     chef: "Store Owner",
@@ -137,6 +159,18 @@ const T: any = {
     yes: "Yes",
     no: "No",
     appFooter: "Zafaran · From our home to yours",
+    editName: "Edit Name",
+    nameLabel: "Name",
+    photoTitle: "Profile Photo",
+    choosePhoto: "Choose Photo",
+    changePhoto: "Change Photo",
+    removePhoto: "Remove Photo",
+    save: "Save",
+    cancel: "Cancel",
+    uploading: "Uploading photo...",
+    saving: "Saving...",
+    photoDone: "Photo updated",
+    nameDone: "Name updated",
   },
 };
 
@@ -160,6 +194,11 @@ export default function ProfileScreen() {
   const [user, setUser] = useState<UserSession | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
   const [fontsLoaded] = useFonts({
     Almarai_400Regular,
     Almarai_700Bold,
@@ -179,12 +218,32 @@ export default function ProfileScreen() {
         return;
       }
 
+      let parsed: any = null;
+
       try {
-        const parsed = JSON.parse(stored);
-        setUser(parsed);
+        parsed = JSON.parse(stored);
       } catch {
         await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
         setUser(null);
+        return;
+      }
+
+      setUser(parsed);
+
+      // تحديث صامت من الخادم — البيانات المخزنة قد تكون قديمة بعد أي تعديل
+      if (parsed?.id) {
+        try {
+          const res = await fetch(`${API}/api/users/${parsed.id}`);
+          const json = await res.json().catch(() => null);
+
+          if (res.ok && json?.success && json.data) {
+            const merged = { ...parsed, ...json.data };
+            setUser(merged);
+            await AsyncStorage.setItem("user", JSON.stringify(merged));
+          }
+        } catch {
+          // فشل التحديث لا يمنع عرض البيانات المخزنة
+        }
       }
     } finally {
       setLoading(false);
@@ -221,6 +280,110 @@ export default function ProfileScreen() {
       Icon: UserRound,
     };
   }, [t, user?.gender, user?.role]);
+
+  // حفظ التعديل على الخادم ثم مزامنة الجلسة المخزنة
+  const patchProfile = useCallback(
+    async (updates: { full_name?: string; avatar_url?: string | null }) => {
+      if (!user?.id) return false;
+
+      try {
+        const res = await fetch(`${API}/api/users/${user.id}/profile`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updates),
+        });
+
+        const json = await res.json().catch(() => null);
+
+        if (res.ok && json?.success && json.data) {
+          const merged = { ...user, ...json.data };
+          setUser(merged);
+          await AsyncStorage.setItem("user", JSON.stringify(merged));
+          return true;
+        }
+
+        Alert.alert("تعذر الحفظ", json?.message || "حاول مرة ثانية.");
+        return false;
+      } catch {
+        Alert.alert("مشكلة اتصال", "تأكد من الإنترنت وحاول مرة ثانية.");
+        return false;
+      }
+    },
+    [user]
+  );
+
+  // الكاميرا تفتح المعرض مباشرة — بلا مودال وسيط
+  const changePhoto = useCallback(async () => {
+    if (uploadingPhoto || savingName) return;
+
+    // قص مربع 1:1 — الصورة تُعرض داخل إطار دائري
+    const uri = await pickCompressedImage({ crop: [1, 1] });
+    if (!uri) return;
+
+    setUploadingPhoto(true);
+
+    try {
+      const url = await uploadImageToBucket("avatars", "avatar", uri);
+
+      if (!url) {
+        Alert.alert("تعذر رفع الصورة", "تأكد من الإنترنت وحاول مرة ثانية.");
+        return;
+      }
+
+      await patchProfile({ avatar_url: url });
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }, [patchProfile, savingName, uploadingPhoto]);
+
+  const photoOptions = useCallback(() => {
+    if (uploadingPhoto || savingName) return;
+
+    if (!user?.avatar_url) {
+      changePhoto();
+      return;
+    }
+
+    Alert.alert(t.photoTitle, "", [
+      { text: t.changePhoto, onPress: changePhoto },
+      {
+        text: t.removePhoto,
+        style: "destructive",
+        onPress: async () => {
+          setUploadingPhoto(true);
+          try {
+            await patchProfile({ avatar_url: null });
+          } finally {
+            setUploadingPhoto(false);
+          }
+        },
+      },
+      { text: t.cancel, style: "cancel" },
+    ]);
+  }, [changePhoto, patchProfile, savingName, t, uploadingPhoto, user?.avatar_url]);
+
+  const openNameModal = useCallback(() => {
+    setEditName(cleanText(user?.full_name, ""));
+    setShowNameModal(true);
+  }, [user?.full_name]);
+
+  const saveName = useCallback(async () => {
+    const name = editName.trim();
+
+    if (name.length < 2) {
+      Alert.alert("تنبيه", "اكتب اسمك كاملاً");
+      return;
+    }
+
+    setSavingName(true);
+
+    try {
+      const ok = await patchProfile({ full_name: name });
+      if (ok) setShowNameModal(false);
+    } finally {
+      setSavingName(false);
+    }
+  }, [editName, patchProfile]);
 
   const logout = useCallback(() => {
     Alert.alert(
@@ -382,7 +545,7 @@ export default function ProfileScreen() {
   const RoleIcon = roleInfo.Icon;
   const fullName = cleanText(user.full_name, isArabic ? "مستخدم زعفران" : "Zafaran User");
   const phone = cleanText(user.phone, "—");
-  const hasDashboard = user.role === "chef" || user.role === "driver";
+  const avatar = user.avatar_url || null;
 
   return (
     <SafeAreaView style={s.safe}>
@@ -396,15 +559,41 @@ export default function ProfileScreen() {
         </View>
 
         <View style={s.profileCard}>
-          <View style={s.avatarOuter}>
-            <View style={s.avatarInner}>
-              <Text style={s.avatarText}>{getInitials(fullName)}</Text>
-            </View>
-          </View>
+          {/* الصورة: ضغطة واحدة تفتح المعرض مباشرة (أو خيارات لمن له صورة) */}
+          <TouchableOpacity
+            activeOpacity={0.88}
+            onPress={photoOptions}
+            style={s.avatarOuter}
+            disabled={uploadingPhoto}
+          >
+            {avatar ? (
+              <Image source={{ uri: avatar }} style={s.avatarImg} />
+            ) : (
+              <View style={s.avatarInner}>
+                <Text style={s.avatarText}>{getInitials(fullName)}</Text>
+              </View>
+            )}
 
-          <Text style={s.name} numberOfLines={1}>
-            {fullName}
-          </Text>
+            {uploadingPhoto ? (
+              <View style={s.avatarLoading}>
+                <ActivityIndicator color="#F2B233" />
+              </View>
+            ) : null}
+
+            <View style={s.avatarBadge}>
+              <Camera size={13} color="#17100B" strokeWidth={2.2} />
+            </View>
+          </TouchableOpacity>
+
+          {/* الاسم: القلم يفتح تعديل الاسم فقط */}
+          <View style={s.nameRow}>
+            <Text style={s.name} numberOfLines={1}>
+              {fullName}
+            </Text>
+            <TouchableOpacity activeOpacity={0.8} onPress={openNameModal} style={s.editNameBtn}>
+              <Pencil size={14} color="#F2B233" strokeWidth={1.9} />
+            </TouchableOpacity>
+          </View>
 
           <Text style={s.phone}>{phone}</Text>
 
@@ -528,6 +717,66 @@ export default function ProfileScreen() {
 
         <Text style={s.footer}>{t.appFooter}</Text>
       </ScrollView>
+
+      {/* مودال تعديل الاسم — محمي من الكيبورد */}
+      <Modal
+        visible={showNameModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => { if (!savingName) setShowNameModal(false); }}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <View style={s.modalOverlay}>
+            <View style={s.modalBox}>
+              <View style={s.modalHandle} />
+              <Text style={s.modalTitle}>{t.editName}</Text>
+
+              <Text style={s.inputLabel}>{t.nameLabel}</Text>
+              <View style={s.inputWrap}>
+                <TextInput
+                  style={s.input}
+                  value={editName}
+                  onChangeText={setEditName}
+                  placeholder="اسمك الكامل"
+                  placeholderTextColor="#5A3A18"
+                  textAlign="right"
+                  autoFocus
+                  returnKeyType="done"
+                  onSubmitEditing={saveName}
+                />
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={[s.saveBtn, savingName && s.saveBtnDisabled]}
+                onPress={saveName}
+                disabled={savingName}
+              >
+                {savingName ? (
+                  <View style={s.saveLoadingRow}>
+                    <ActivityIndicator color="#17100B" size="small" />
+                    <Text style={s.saveBtnText}>{t.saving}</Text>
+                  </View>
+                ) : (
+                  <Text style={s.saveBtnText}>{t.save}</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={s.cancelBtn}
+                onPress={() => setShowNameModal(false)}
+                disabled={savingName}
+              >
+                <Text style={s.cancelText}>{t.cancel}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -609,6 +858,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(242,178,51,0.18)",
     marginBottom: 14,
+    position: "relative",
   },
 
   avatarInner: {
@@ -619,18 +869,67 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
 
+  avatarImg: {
+    flex: 1,
+    borderRadius: 32,
+    backgroundColor: "#17100B",
+    resizeMode: "cover",
+  },
+
+  avatarLoading: {
+    position: "absolute",
+    top: 4,
+    left: 4,
+    right: 4,
+    bottom: 4,
+    borderRadius: 32,
+    backgroundColor: "rgba(23,16,11,0.72)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  avatarBadge: {
+    position: "absolute",
+    bottom: -2,
+    left: -2,
+    width: 30,
+    height: 30,
+    borderRadius: 12,
+    backgroundColor: "#F2B233",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: "#21160D",
+  },
+
   avatarText: {
     color: "#F2B233",
     fontSize: 32,
     fontFamily: "Almarai_800ExtraBold",
   },
 
+  nameRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 8,
+    maxWidth: "92%",
+  },
+
   name: {
-    maxWidth: "90%",
+    flexShrink: 1,
     color: "#FDF0DC",
     fontSize: 22,
     textAlign: "center",
     fontFamily: "Almarai_800ExtraBold",
+  },
+
+  editNameBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(242,178,51,0.09)",
   },
 
   phone: {
@@ -829,6 +1128,102 @@ const s = StyleSheet.create({
     marginTop: 18,
     paddingHorizontal: 16,
     fontFamily: "Almarai_400Regular",
+  },
+
+  // ━━ مودال تعديل الاسم ━━
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.74)",
+    justifyContent: "flex-end",
+  },
+
+  modalBox: {
+    backgroundColor: "#17100B",
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 28,
+    borderWidth: 1,
+    borderColor: "rgba(242,178,51,0.16)",
+    alignItems: "center",
+  },
+
+  modalHandle: {
+    width: 48,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: "rgba(242,178,51,0.2)",
+    marginBottom: 14,
+  },
+
+  modalTitle: {
+    color: "#FDF0DC",
+    fontSize: 19,
+    marginBottom: 18,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  inputLabel: {
+    alignSelf: "flex-end",
+    color: "#F2B233",
+    fontSize: 12,
+    marginBottom: 7,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  inputWrap: {
+    width: "100%",
+    backgroundColor: "#21160D",
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: "rgba(242,178,51,0.14)",
+    paddingHorizontal: 14,
+    marginBottom: 18,
+  },
+
+  input: {
+    height: 50,
+    color: "#FDF0DC",
+    fontSize: 15,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  saveBtn: {
+    width: "100%",
+    minHeight: 54,
+    borderRadius: 18,
+    backgroundColor: "#F2B233",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  saveBtnDisabled: {
+    opacity: 0.72,
+  },
+
+  saveLoadingRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  saveBtnText: {
+    color: "#17100B",
+    fontSize: 15,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  cancelBtn: {
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+
+  cancelText: {
+    color: "#A98961",
+    fontSize: 14,
+    fontFamily: "Almarai_700Bold",
   },
 
   guestWrap: {
