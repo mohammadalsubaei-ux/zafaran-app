@@ -37,6 +37,12 @@ import {
 
 const API = "https://zafaran-backend-production.up.railway.app";
 
+const SCREEN_W = Dimensions.get("window").width;
+const BANNER_W = SCREEN_W - 32;          // بانر واحد بعرض الشاشة ناقص الهوامش
+const BANNER_GAP = 10;
+const BANNER_SNAP = BANNER_W + BANNER_GAP;
+const BANNER_INTERVAL = 4500;            // مدة بقاء البانر قبل الانتقال التلقائي
+
 type MenuItem = {
   id?: string;
   name?: string | null;
@@ -44,6 +50,15 @@ type MenuItem = {
   image_url?: string | null;
   category?: string | null;
   status?: string | null;
+};
+
+type Banner = {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  bg_color: string;
+  text_color: string;
+  target: string | null;
 };
 
 type Chef = {
@@ -133,6 +148,88 @@ const CHEF_STATUS_UI: Record<
   closed:   { bg: "#381818", dot: "#E53935", text: "#FF9A9A", label: "مغلق" },
 };
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  شريط البانرات: تدوير تلقائي + سحب بالإصبع + نقاط مؤشر
+//  ملاحظة RTL: القائمة معكوسة بصرياً، لذا نحسب المؤشر من اليمين
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function BannerCarousel({ banners }: { banners: Banner[] }) {
+  const scrollRef = useRef<ScrollView | null>(null);
+  const [index, setIndex] = useState(0);
+  // السحب اليدوي يوقف التدوير التلقائي مؤقتاً حتى لا يقاطع المستخدم
+  const pausedUntil = useRef(0);
+
+  const count = banners.length;
+
+  useEffect(() => {
+    if (count <= 1) return;
+
+    const timer = setInterval(() => {
+      if (Date.now() < pausedUntil.current) return;
+
+      setIndex((prev) => {
+        const next = (prev + 1) % count;
+        scrollRef.current?.scrollTo({ x: next * BANNER_SNAP, animated: true });
+        return next;
+      });
+    }, BANNER_INTERVAL);
+
+    return () => clearInterval(timer);
+  }, [count]);
+
+  const onScrollEnd = useCallback((e: any) => {
+    const x = e?.nativeEvent?.contentOffset?.x || 0;
+    const current = Math.round(x / BANNER_SNAP);
+    setIndex(Math.max(0, Math.min(current, count - 1)));
+    // ثمانية ثوان هدنة بعد كل سحب يدوي
+    pausedUntil.current = Date.now() + 8000;
+  }, [count]);
+
+  if (count === 0) return null;
+
+  return (
+    <View style={s.bannersWrap}>
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={BANNER_SNAP}
+        decelerationRate="fast"
+        disableIntervalMomentum
+        onMomentumScrollEnd={onScrollEnd}
+        onScrollBeginDrag={() => { pausedUntil.current = Date.now() + 8000; }}
+        contentContainerStyle={s.bannersContent}
+      >
+        {banners.map((b) => (
+          <View
+            key={b.id}
+            style={[s.bannerCard, { backgroundColor: b.bg_color }]}
+          >
+            <Text style={[s.bannerTitle, { color: b.text_color }]} numberOfLines={1}>
+              {b.title}
+            </Text>
+            {b.subtitle ? (
+              <Text style={[s.bannerSub, { color: b.text_color }]} numberOfLines={2}>
+                {b.subtitle}
+              </Text>
+            ) : null}
+          </View>
+        ))}
+      </ScrollView>
+
+      {count > 1 ? (
+        <View style={s.dotsRow}>
+          {banners.map((b, i) => (
+            <View
+              key={b.id}
+              style={[s.dot, i === index && s.dotActive]}
+            />
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const router = useRouter();
 
@@ -145,9 +242,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [banners, setBanners] = useState<
-    { id: string; title: string; subtitle: string | null; bg_color: string; text_color: string; target: string | null }[]
-  >([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestId = useRef(0);
@@ -309,32 +404,7 @@ export default function HomeScreen() {
   const ListHeader = useMemo(() => {
     return (
       <View>
-        {banners.length > 0 ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={s.bannersRow}
-            contentContainerStyle={s.bannersContent}
-          >
-            {banners.map((b) => (
-              <TouchableOpacity
-                key={b.id}
-                activeOpacity={b.target ? 0.85 : 1}
-                onPress={() => { if (b.target) router.push(b.target as any); }}
-                style={[
-                  s.bannerCard,
-                  { backgroundColor: b.bg_color },
-                  banners.length === 1 && s.bannerCardFull,
-                ]}
-              >
-                <Text style={[s.bannerTitle, { color: b.text_color }]}>{b.title}</Text>
-                {b.subtitle ? (
-                  <Text style={[s.bannerSub, { color: b.text_color }]}>{b.subtitle}</Text>
-                ) : null}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        ) : null}
+        <BannerCarousel banners={banners} />
 
         <View style={s.sectionsRow}>
           {SECTIONS.map((sec) => (
@@ -444,7 +514,7 @@ export default function HomeScreen() {
         ) : null}
       </View>
     );
-  }, [banners, chefs, error, mostOrderedChefs, onRefresh, openChef, openSection, router]);
+  }, [banners, chefs, error, mostOrderedChefs, onRefresh, openChef, openSection]);
 
   const renderChef = useCallback(
     ({ item }: { item: Chef }) => {
@@ -632,20 +702,60 @@ const s = StyleSheet.create({
     fontFamily: "Almarai_800ExtraBold",
   },
 
-  bannersRow: { marginBottom: 4 },
-  bannersContent: { paddingHorizontal: 16, gap: 10, flexDirection: "row-reverse" },
+  // ━━ شريط البانرات ━━
+  bannersWrap: {
+    marginBottom: 12,
+  },
+
+  bannersContent: {
+    paddingHorizontal: 16,
+    gap: BANNER_GAP,
+  },
+
   bannerCard: {
-    width: 290,
-    borderRadius: 16,
-    padding: 13,
+    width: BANNER_W,
+    minHeight: 92,
+    borderRadius: 20,
+    padding: 16,
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.15)",
+    borderColor: "rgba(255,255,255,0.09)",
   },
-  bannerCardFull: {
-    width: Dimensions.get("window").width - 32,
+
+  bannerTitle: {
+    fontSize: 17,
+    textAlign: "right",
+    fontFamily: "Almarai_800ExtraBold",
   },
-  bannerTitle: { fontSize: 15, textAlign: "right", fontFamily: "Almarai_800ExtraBold" },
-  bannerSub: { fontSize: 12, textAlign: "right", marginTop: 5, opacity: 0.9, fontFamily: "Almarai_400Regular" },
+
+  bannerSub: {
+    fontSize: 12,
+    lineHeight: 20,
+    textAlign: "right",
+    marginTop: 6,
+    opacity: 0.92,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  dotsRow: {
+    flexDirection: "row",
+    alignSelf: "center",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 10,
+  },
+
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(242,178,51,0.25)",
+  },
+
+  dotActive: {
+    width: 18,
+    backgroundColor: "#F2B233",
+  },
 
   searchWrap: {
     minHeight: 40,
