@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { CartProvider } from "@/context/CartContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { savePushToken, setupNotificationListeners } from "@/utils/notifications";
+import UpdateBanner from "@/components/UpdateBanner";
 
 export default function RootLayout() {
   const router = useRouter();
@@ -53,6 +54,7 @@ export default function RootLayout() {
             <Stack.Screen name="dashboard/driver/index" />
           </Stack>
 
+          <UpdateBanner />
           <StatusBar style="light" />
         </CartProvider>
       </LanguageProvider>
