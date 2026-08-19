@@ -1,0 +1,469 @@
+import { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  Almarai_400Regular,
+  Almarai_700Bold,
+  Almarai_800ExtraBold,
+  useFonts,
+} from "@expo-google-fonts/almarai";
+import { AlertTriangle, ArrowRight, Info, Trash2 } from "lucide-react-native";
+
+const API = "https://zafaran-backend-production.up.railway.app";
+
+type Blocker = { code: string; message: string };
+
+export default function DeleteAccountScreen() {
+  const router = useRouter();
+
+  const [userId, setUserId] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
+  const [blockers, setBlockers] = useState<Blocker[]>([]);
+  const [canDelete, setCanDelete] = useState(false);
+  const [password, setPassword] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  const [fontsLoaded] = useFonts({
+    Almarai_400Regular,
+    Almarai_700Bold,
+    Almarai_800ExtraBold,
+  });
+
+  // فحص الموانع أولاً — نعرض الأسباب بدل مفاجأة المستخدم برفض عند الضغط
+  const runCheck = useCallback(async () => {
+    setChecking(true);
+
+    try {
+      const stored = await AsyncStorage.getItem("user");
+      if (!stored) {
+        router.replace("/login" as any);
+        return;
+      }
+
+      const user = JSON.parse(stored);
+      if (!user?.id) {
+        router.replace("/login" as any);
+        return;
+      }
+
+      setUserId(String(user.id));
+
+      const res = await fetch(`${API}/api/users/${user.id}/deletion-check`);
+      const json = await res.json().catch(() => null);
+
+      if (res.ok && json?.success && json.data) {
+        setBlockers(Array.isArray(json.data.blockers) ? json.data.blockers : []);
+        setCanDelete(Boolean(json.data.can_delete));
+      } else {
+        setBlockers([
+          { code: "network", message: json?.message || "تعذر التحقق من حالة حسابك — حاول لاحقاً" },
+        ]);
+        setCanDelete(false);
+      }
+    } catch {
+      setBlockers([{ code: "network", message: "تعذر الاتصال بالخادم — تأكد من الإنترنت" }]);
+      setCanDelete(false);
+    } finally {
+      setChecking(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    runCheck();
+  }, [runCheck]);
+
+  const doDelete = useCallback(async () => {
+    if (!userId || deleting) return;
+
+    if (!password.trim()) {
+      Alert.alert("تنبيه", "اكتب كلمة المرور لتأكيد الحذف");
+      return;
+    }
+
+    setDeleting(true);
+
+    try {
+      const res = await fetch(`${API}/api/users/${userId}/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: password.trim() }),
+      });
+
+      const json = await res.json().catch(() => null);
+
+      if (res.ok && json?.success) {
+        await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "push_token"]);
+        Alert.alert("تم حذف حسابك", "نشكرك على استخدامك زعفران", [
+          { text: "حسناً", onPress: () => router.replace("/login" as any) },
+        ]);
+        return;
+      }
+
+      Alert.alert("تعذر الحذف", json?.message || "حاول مرة ثانية");
+      // الرفض قد يكون بسبب مانع جديد ظهر — نعيد الفحص لعرضه
+      runCheck();
+    } catch {
+      Alert.alert("مشكلة اتصال", "تأكد من الإنترنت وحاول مرة ثانية");
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleting, password, router, runCheck, userId]);
+
+  const confirmDelete = useCallback(() => {
+    Alert.alert(
+      "حذف الحساب نهائياً",
+      "بعد الحذف لن تتمكن من الدخول لحسابك، وستفقد عناوينك المحفوظة ومفضلاتك.\n\nهل أنت متأكد؟",
+      [
+        { text: "تراجع", style: "cancel" },
+        { text: "نعم، احذف حسابي", style: "destructive", onPress: doDelete },
+      ]
+    );
+  }, [doDelete]);
+
+  if (!fontsLoaded) return null;
+
+  return (
+    <SafeAreaView style={s.safe}>
+      <View style={s.header}>
+        <TouchableOpacity activeOpacity={0.85} style={s.backBtn} onPress={() => router.back()}>
+          <ArrowRight size={20} color="#F0A500" strokeWidth={1.9} />
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>حذف الحساب</Text>
+        <View style={{ width: 38 }} />
+      </View>
+
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+          <View style={s.iconWrap}>
+            <Trash2 size={40} color="#E53935" strokeWidth={1.5} />
+          </View>
+
+          <Text style={s.title}>حذف حسابك من زعفران</Text>
+
+          {checking ? (
+            <View style={s.loadingWrap}>
+              <ActivityIndicator color="#F0A500" size="large" />
+              <Text style={s.loadingText}>جاري التحقق من حالة حسابك...</Text>
+            </View>
+          ) : (
+            <>
+              {/* الموانع — تُعرض بوضوح مع سبب كل واحد */}
+              {blockers.length > 0 ? (
+                <View style={s.blockersCard}>
+                  <View style={s.blockersHead}>
+                    <AlertTriangle size={18} color="#F0A500" strokeWidth={1.9} />
+                    <Text style={s.blockersTitle}>ما نقدر نحذف حسابك حالياً</Text>
+                  </View>
+
+                  {blockers.map((b, i) => (
+                    <View key={b.code + i} style={s.blockerRow}>
+                      <View style={s.blockerDot} />
+                      <Text style={s.blockerText}>{b.message}</Text>
+                    </View>
+                  ))}
+
+                  <TouchableOpacity activeOpacity={0.86} style={s.recheckBtn} onPress={runCheck}>
+                    <Text style={s.recheckText}>إعادة التحقق</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+
+              {/* ما سيحدث بعد الحذف — شفافية مطلوبة قبل قرار لا رجعة فيه */}
+              <View style={s.infoCard}>
+                <View style={s.infoHead}>
+                  <Info size={17} color="#A98961" strokeWidth={1.8} />
+                  <Text style={s.infoTitle}>وش يصير بعد الحذف</Text>
+                </View>
+
+                <Text style={s.infoLine}>• ما تقدر تدخل حسابك مرة ثانية</Text>
+                <Text style={s.infoLine}>• تُحذف عناوينك المحفوظة ومفضلاتك</Text>
+                <Text style={s.infoLine}>• يختفي اسمك وصورتك ورقمك من التطبيق</Text>
+                <Text style={s.infoLine}>• تبقى سجلات طلباتك السابقة للأغراض المحاسبية فقط</Text>
+                <Text style={s.infoLine}>• تقدر تسجل حساب جديد بنفس رقمك متى شئت</Text>
+              </View>
+
+              {canDelete ? (
+                <View style={s.confirmCard}>
+                  <Text style={s.label}>اكتب كلمة المرور للتأكيد</Text>
+                  <View style={s.inputWrap}>
+                    <TextInput
+                      style={s.input}
+                      placeholder="••••••"
+                      placeholderTextColor="#5A3A18"
+                      secureTextEntry
+                      value={password}
+                      onChangeText={setPassword}
+                      textAlign="right"
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    style={[s.deleteBtn, deleting && s.deleteBtnDisabled]}
+                    onPress={confirmDelete}
+                    disabled={deleting}
+                  >
+                    {deleting ? (
+                      <ActivityIndicator color="#FFF" />
+                    ) : (
+                      <Text style={s.deleteBtnText}>حذف حسابي نهائياً</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={s.cancelBtn}
+                onPress={() => router.back()}
+              >
+                <Text style={s.cancelText}>تراجع والاحتفاظ بحسابي</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const s = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: "#0E0700",
+  },
+
+  header: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(240,165,0,0.1)",
+  },
+
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: "rgba(240,165,0,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  headerTitle: {
+    color: "#FDF0DC",
+    fontSize: 16,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  scroll: {
+    padding: 22,
+    paddingBottom: 44,
+  },
+
+  iconWrap: {
+    width: 88,
+    height: 88,
+    borderRadius: 32,
+    alignSelf: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(229,57,53,0.09)",
+    borderWidth: 1,
+    borderColor: "rgba(229,57,53,0.2)",
+    marginBottom: 18,
+  },
+
+  title: {
+    color: "#FDF0DC",
+    fontSize: 20,
+    textAlign: "center",
+    marginBottom: 22,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  loadingWrap: {
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 14,
+  },
+
+  loadingText: {
+    color: "#A98961",
+    fontSize: 13,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  blockersCard: {
+    backgroundColor: "rgba(240,165,0,0.07)",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "rgba(240,165,0,0.28)",
+    marginBottom: 16,
+  },
+
+  blockersHead: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+
+  blockersTitle: {
+    color: "#F0A500",
+    fontSize: 14,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  blockerRow: {
+    flexDirection: "row-reverse",
+    alignItems: "flex-start",
+    gap: 8,
+    marginBottom: 9,
+  },
+
+  blockerDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#F0A500",
+    marginTop: 7,
+  },
+
+  blockerText: {
+    flex: 1,
+    color: "#FFD27A",
+    fontSize: 12.5,
+    lineHeight: 21,
+    textAlign: "right",
+    fontFamily: "Almarai_400Regular",
+  },
+
+  recheckBtn: {
+    marginTop: 6,
+    alignSelf: "flex-end",
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(240,165,0,0.35)",
+  },
+
+  recheckText: {
+    color: "#F0A500",
+    fontSize: 12,
+    fontFamily: "Almarai_700Bold",
+  },
+
+  infoCard: {
+    backgroundColor: "#1C1000",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "rgba(240,165,0,0.12)",
+    marginBottom: 16,
+  },
+
+  infoHead: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+
+  infoTitle: {
+    color: "#FDF0DC",
+    fontSize: 14,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  infoLine: {
+    color: "#A98961",
+    fontSize: 12.5,
+    lineHeight: 24,
+    textAlign: "right",
+    fontFamily: "Almarai_400Regular",
+  },
+
+  confirmCard: {
+    backgroundColor: "#1C1000",
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "rgba(229,57,53,0.22)",
+  },
+
+  label: {
+    color: "#C97D20",
+    fontSize: 11,
+    textAlign: "right",
+    marginBottom: 7,
+    fontFamily: "Almarai_700Bold",
+  },
+
+  inputWrap: {
+    backgroundColor: "#251400",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(240,165,0,0.2)",
+    paddingHorizontal: 14,
+    marginBottom: 16,
+  },
+
+  input: {
+    height: 50,
+    color: "#FDF0DC",
+    fontSize: 15,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  deleteBtn: {
+    minHeight: 52,
+    borderRadius: 16,
+    backgroundColor: "#C62828",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  deleteBtnDisabled: {
+    opacity: 0.7,
+  },
+
+  deleteBtnText: {
+    color: "#FFF",
+    fontSize: 15,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  cancelBtn: {
+    alignItems: "center",
+    marginTop: 20,
+    paddingVertical: 12,
+  },
+
+  cancelText: {
+    color: "#F0A500",
+    fontSize: 14,
+    fontFamily: "Almarai_700Bold",
+  },
+});

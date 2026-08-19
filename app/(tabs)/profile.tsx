@@ -699,6 +699,14 @@ export default function ProfileScreen() {
             onPress={() => router.push("/terms" as any)}
           />
 
+          <MenuItem
+            title="حذف الحساب"
+            subtitle="حذف حسابك وبياناتك من زعفران"
+            Icon={Trash2}
+            danger
+            onPress={() => router.push("/delete-account" as any)}
+          />
+
           <View style={s.versionRow}>
             <View style={s.menuIconBox}>
               <Smartphone size={20} color="#F2B233" strokeWidth={1.8} />
