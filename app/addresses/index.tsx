@@ -317,7 +317,7 @@ const s = StyleSheet.create({
   emptyEmoji:     { fontSize: 48, marginBottom: 12 },
   empty:          { color: "#8A6030", fontSize: 14, fontFamily: "Almarai_400Regular" },
   footer:         { padding: 16, borderTopWidth: 1, borderTopColor: "rgba(240,165,0,0.1)" },
-  addBtn:         { backgroundColor: "#F0A500", borderRadius: 16, padding: 16, alignItems: "center" },
+  addBtn:         { backgroundColor: "#F0A500", borderRadius: 16, padding: 16, alignItems: "center", marginBottom: 28 },
   addBtnText:     { fontSize: 16, fontWeight: "900", color: "#0E0700", fontFamily: "Almarai_800ExtraBold" },
   mapFooter:      { backgroundColor: "#0E0700", padding: 16, gap: 10, borderTopWidth: 1, borderTopColor: "rgba(240,165,0,0.12)" },
   labelsRow:      { flexDirection: "row-reverse", gap: 8 },

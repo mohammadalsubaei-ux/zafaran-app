@@ -247,6 +247,9 @@ export default function LoginScreen() {
               <TouchableOpacity style={s.switchBtn} onPress={() => setStep("register")}>
                 <Text style={s.switchText}>ما عندك حساب؟ سجّل الآن</Text>
               </TouchableOpacity>
+                            <TouchableOpacity style={s.switchBtn} onPress={() => router.push("/forgot-password" as any)}>
+                <Text style={s.switchText}>نسيت كلمة المرور؟</Text>
+              </TouchableOpacity>
               <View style={s.divider}>
                 <View style={s.dividerLine}/>
                 <Text style={s.dividerText}>او</Text>
