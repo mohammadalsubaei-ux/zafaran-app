@@ -43,6 +43,11 @@
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.POST_NOTIFICATIONS"
       ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCVOlsoykrwCTn-95okEQ3XVzbTxmQGz0A"
+        }
+      },
       "versionCode": 4
     },
     "web": {
