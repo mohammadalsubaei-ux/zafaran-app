@@ -66,7 +66,7 @@ export default function ItemScreen() {
     const price = numberValue(paramText(params.price, "0"));
     const description = paramText(params.description, "");
     const chefId = paramText(params.chef_id);
-    const chefName = paramText(params.chef_name, "الشيف");
+    const chefName = paramText(params.chef_name, "المتجر");
     const imageUrl = paramText(params.image_url, "");
     const status = paramText(params.status, "available");
 
@@ -122,7 +122,7 @@ export default function ItemScreen() {
     if (cartChefId && String(cartChefId) !== String(item.chef_id)) {
       Alert.alert(
         "سلة جديدة",
-        "عندك وجبات من شيف ثاني. هل تريد مسح السلة والبدء من هذه الوجبة؟",
+        "عندك طلبات من متجر ثاني. هل تريد مسح السلة والبدء من هذا المنتج؟",
         [
           { text: "إلغاء", style: "cancel" },
           {
@@ -217,7 +217,7 @@ export default function ItemScreen() {
           ) : (
             <View style={s.noDescBox}>
               <CircleAlert size={16} color="#8A6030" strokeWidth={1.7} />
-              <Text style={s.noDescText}>لم يضف الشيف وصفًا لهذه الوجبة بعد.</Text>
+              <Text style={s.noDescText}>لم يضف المتجر وصفًا لهذا المنتج بعد.</Text>
             </View>
           )}
 

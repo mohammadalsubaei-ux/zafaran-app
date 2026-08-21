@@ -14,7 +14,7 @@
       "backgroundColor": "#0A0500"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.zafaran.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "نستخدم موقعك لحساب رسوم التوصيل بدقة وتتبع طلبك أثناء التوصيل",
