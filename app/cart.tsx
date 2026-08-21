@@ -66,6 +66,15 @@ function calcEstimatedFee(distanceKm: number | null, p: typeof DEFAULT_FEE_PARAM
 }
 
 type DeliveryType = "delivery" | "pickup";
+
+type SavedAddress = {
+  id: string;
+  label?: string | null;
+  address?: string | null;
+  lat?: number | string | null;
+  lng?: number | string | null;
+  is_default?: boolean | null;
+};
 type PaymentMethod = "cash" | "stc_pay" | "apple_pay" | "card";
 
 type UserSession = {
@@ -103,7 +112,8 @@ function text(value: unknown, fallback = "غير محدد") {
 }
 
 function formatArabicDate(date: Date): string {
-  return date.toLocaleDateString("ar-SA", {
+  // ar-SA وحدها ترجّع تقويماً هجرياً على iOS — نثبّت الميلادي لتطابق أرقام الشرائح
+  return date.toLocaleDateString("ar-SA-u-ca-gregory", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 }
@@ -114,12 +124,12 @@ function formatArabicTime(hour: number, minute: string): string {
   return `${h}:${minute} ${period}`;
 }
 
-// أقرب يوم متاح للحجز (اليوم إذا الوقت مناسب، وإلا غداً)
+// أقل مهلة مسموحة للحجز المسبق (ساعتان من الآن)
+const MIN_LEAD_HOURS = 2;
+
 function getMinDate(): Date {
-  const now = new Date();
-  const min = new Date(now);
-  min.setHours(now.getHours() + 2); // على الأقل بعد ساعتين
-  return min;
+  // setHours بالتاريخ الكامل يتعامل مع تجاوز منتصف الليل تلقائياً
+  return new Date(Date.now() + MIN_LEAD_HOURS * 60 * 60 * 1000);
 }
 
 export default function CartScreen() {
@@ -146,6 +156,68 @@ export default function CartScreen() {
   const [lng, setLng]         = useState<number | null>(null);
   const [chefLat, setChefLat] = useState<number | null>(null);
   const [chefLng, setChefLng] = useState<number | null>(null);
+
+  // العناوين المحفوظة للعميل + العنوان المختار من الهيدر
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddrId, setSelectedAddrId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      // 1) العنوان المختار من الهيدر — يعبّي فوراً بلا انتظار الشبكة
+      const [[, savedAddr], [, savedLat], [, savedLng]] = await AsyncStorage.multiGet([
+        "last_address", "last_address_lat", "last_address_lng",
+      ]);
+      if (alive && savedAddr) {
+        setAddress(savedAddr);
+        if (savedLat) setLat(Number(savedLat));
+        if (savedLng) setLng(Number(savedLng));
+      }
+
+      // 2) قائمة العناوين المحفوظة
+      const storedUser = await AsyncStorage.getItem("user");
+      if (!storedUser) return;
+      let user: any = null;
+      try { user = JSON.parse(storedUser); } catch { return; }
+      if (!user?.id) return;
+
+      try {
+        const res  = await fetch(`${API}/api/addresses/${user.id}`);
+        const json = await res.json().catch(() => null);
+        if (!alive || !res.ok || !json?.success || !Array.isArray(json.data)) return;
+
+        const list: SavedAddress[] = json.data;
+        setSavedAddresses(list);
+
+        const match = savedAddr
+          ? list.find((a) => String(a.address || "").trim() === String(savedAddr).trim())
+          : list.find((a) => a.is_default) || list[0];
+
+        if (match) {
+          setSelectedAddrId(String(match.id));
+          setAddress(String(match.address || ""));
+          if (match.lat != null) setLat(Number(match.lat));
+          if (match.lng != null) setLng(Number(match.lng));
+        }
+      } catch {}
+    })();
+
+    return () => { alive = false; };
+  }, []);
+
+  const pickSavedAddress = useCallback(async (addr: SavedAddress) => {
+    setSelectedAddrId(String(addr.id));
+    setAddress(String(addr.address || ""));
+    setLat(addr.lat != null ? Number(addr.lat) : null);
+    setLng(addr.lng != null ? Number(addr.lng) : null);
+
+    await AsyncStorage.multiSet([
+      ["last_address", String(addr.address || "")],
+      ["last_address_lat", String(addr.lat ?? "")],
+      ["last_address_lng", String(addr.lng ?? "")],
+    ]);
+  }, []);
 
   // جلب إحداثيات الشيف مرة وحدة لحساب تقدير رسوم توصيل دقيق
   useEffect(() => {
@@ -189,7 +261,7 @@ export default function CartScreen() {
   const deliveryFee = deliveryType === "delivery" ? calcEstimatedFee(estimatedDistanceKm, feeParams) : 0;
   const grandTotal  = useMemo(() => subtotal + deliveryFee, [subtotal, deliveryFee]);
 
-  const chefName   = text(items?.[0]?.chef_name, "الشيف");
+  const chefName   = text(items?.[0]?.chef_name, "المتجر");
   const isCartEmpty = !items || items.length === 0;
 
   // تاريخ الحجز المختار
@@ -240,6 +312,7 @@ export default function CartScreen() {
       setAddress(readableAddress || "تم تحديد الموقع");
       setLat(loc.coords.latitude);
       setLng(loc.coords.longitude);
+      setSelectedAddrId(null);
     } catch {
       Alert.alert("تعذر تحديد الموقع", "تأكد من تشغيل خدمة الموقع ثم حاول مرة ثانية.");
     } finally {
@@ -260,15 +333,15 @@ export default function CartScreen() {
   const validateOrder = useCallback(async () => {
     if (loading) return null;
     if (isCartEmpty) { Alert.alert("السلة فاضية", "أضف وجبة واحدة على الأقل قبل إرسال الطلب."); return null; }
-    if (!chef_id)    { Alert.alert("مشكلة في السلة", "لم يتم ربط السلة بالشيف. امسح السلة واختر الطلب من جديد."); return null; }
+    if (!chef_id)    { Alert.alert("مشكلة في السلة", "لم يتم ربط السلة بالمتجر. امسح السلة واختر الطلب من جديد."); return null; }
     if (deliveryType === "delivery" && (!address || lat === null || lng === null)) {
       Alert.alert("عنوان التوصيل", "حدد موقعك أولًا قبل إكمال الطلب."); return null;
     }
     if (hasPreorder && !scheduledAt) {
       Alert.alert("وقت الحجز مطلوب", "سلتك تحتوي على وجبة حجز مسبق. حدد وقت التسليم المطلوب."); return null;
     }
-    if (scheduledAt && scheduledAt <= new Date()) {
-      Alert.alert("وقت غير صحيح", "الوقت المختار يجب أن يكون في المستقبل."); return null;
+    if (scheduledAt && scheduledAt < getMinDate()) {
+      Alert.alert("وقت غير صحيح", `الحجز يحتاج مهلة ${MIN_LEAD_HOURS} ساعات على الأقل من الآن. اختر وقتاً لاحقاً.`); return null;
     }
     const user = await readUserSession();
     if (!user?.id) {
@@ -329,7 +402,7 @@ export default function CartScreen() {
           clearCart();
           Alert.alert(
             "تم إرسال طلب الحجز",
-            `طلبك للحجز المسبق ${orderId ? `#${orderId.slice(0, 8)}` : ""} بانتظار تأكيد الشيف للوقت. بتقدر تدفع بعد ما يتفق الطرفين على الموعد.`,
+            `طلبك للحجز المسبق ${orderId ? `#${orderId.slice(0, 8)}` : ""} بانتظار تأكيد المتجر للوقت. بتقدر تدفع بعد ما يتفق الطرفين على الموعد.`,
             [{ text: "متابعة الطلب", onPress: () => router.replace("/(tabs)/orders" as any) }]
           );
           return;
@@ -400,7 +473,7 @@ export default function CartScreen() {
             <ShoppingBag size={62} color="#F2B233" strokeWidth={1.4} />
           </View>
           <Text style={s.emptyTitle}>السلة فاضية</Text>
-          <Text style={s.emptyText}>اختر وجباتك من الشيفات والأسر المنتجة، وبعدها كمل الطلب من هنا.</Text>
+          <Text style={s.emptyText}>اختر طلبك من المتاجر، وبعدها كمل الطلب من هنا.</Text>
           <TouchableOpacity activeOpacity={0.9} style={s.primaryBtn} onPress={goHome}>
             <Text style={s.primaryBtnText}>تصفح الوجبات</Text>
           </TouchableOpacity>
@@ -479,7 +552,7 @@ export default function CartScreen() {
                 <Plus size={16} color="#F2B233" strokeWidth={2.3} />
               </TouchableOpacity>
               <Text style={s.qtyNum}>{Number(item.quantity || 0)}</Text>
-              <TouchableOpacity activeOpacity={0.8} style={s.qtyBtn} onPress={() => updateQty(item.id, Number(item.quantity || 0) - 1)}>
+              <TouchableOpacity activeOpacity={0.8} style={s.qtyBtn} onPress={() => updateQty(item.id, Math.max(1, Number(item.quantity || 1) - 1))}>
                 <Minus size={16} color="#F2B233" strokeWidth={2.3} />
               </TouchableOpacity>
             </View>
@@ -527,7 +600,7 @@ export default function CartScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity activeOpacity={0.9}
                   style={[s.deliveryCard, deliveryType === "pickup" && s.deliveryCardActive]}
-                  onPress={() => { setDeliveryType("pickup"); setAddress(""); setLat(null); setLng(null); }}>
+                  onPress={() => { setDeliveryType("pickup"); setAddress(""); setLat(null); setLng(null); setSelectedAddrId(null); }}>
                   <ShoppingBag size={24} color={deliveryType === "pickup" ? "#F2B233" : "#6D4E2D"} />
                   <Text style={[s.deliveryTitle, deliveryType === "pickup" && s.deliveryTitleActive]}>استلام</Text>
                   <Text style={s.deliverySub}>مجاني</Text>
@@ -542,21 +615,56 @@ export default function CartScreen() {
                   <MapPin size={18} color="#F2B233" />
                   <Text style={s.sectionTitle}>عنوان التوصيل</Text>
                 </View>
+                {savedAddresses.length > 0 && (
+                  <View style={s.savedList}>
+                    {savedAddresses.map((addr) => {
+                      const active = selectedAddrId === String(addr.id);
+                      return (
+                        <TouchableOpacity
+                          key={String(addr.id)}
+                          activeOpacity={0.9}
+                          style={[s.savedRow, active && s.savedRowActive]}
+                          onPress={() => pickSavedAddress(addr)}
+                        >
+                          <MapPin size={17} color={active ? "#F2B233" : "#8A6030"} strokeWidth={1.8} />
+                          <View style={s.savedTextWrap}>
+                            <Text style={[s.savedLabel, active && s.savedLabelActive]} numberOfLines={1}>
+                              {text(addr.label, "عنوان")}
+                            </Text>
+                            <Text style={s.savedAddr} numberOfLines={1}>{text(addr.address, "")}</Text>
+                          </View>
+                          <View style={[s.radioOuter, active && s.radioOuterActive]}>
+                            {active ? <View style={s.radioInner} /> : null}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+
+                <TouchableOpacity activeOpacity={0.9} style={s.addAddrBtn} onPress={() => router.push("/addresses" as any)}>
+                  <Plus size={16} color="#F2B233" strokeWidth={2} />
+                  <Text style={s.addAddrText}>إضافة عنوان جديد</Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity activeOpacity={0.9} style={s.locationBtn} onPress={getLocation} disabled={locLoading}>
                   {locLoading ? <ActivityIndicator color="#17100B" /> : (
                     <>
                       <Navigation size={18} color="#17100B" />
-                      <Text style={s.locationBtnText}>تحديد موقعي تلقائيًا</Text>
+                      <Text style={s.locationBtnText}>
+                        {savedAddresses.length > 0 ? "استخدام موقعي الحالي بدلاً منها" : "تحديد موقعي تلقائيًا"}
+                      </Text>
                     </>
                   )}
                 </TouchableOpacity>
+
                 {address ? (
                   <View style={s.addressCard}>
                     <CheckCircle2 size={18} color="#4CAF50" />
                     <Text style={s.addressText} numberOfLines={2}>{address}</Text>
                   </View>
                 ) : (
-                  <Text style={s.addressHint}>مطلوب تحديد الموقع قبل إرسال الطلب.</Text>
+                  <Text style={s.addressHint}>اختر عنواناً محفوظاً أو حدد موقعك قبل إرسال الطلب.</Text>
                 )}
               </View>
             )}
@@ -658,7 +766,7 @@ export default function CartScreen() {
                   <TouchableOpacity key={idx} style={[s.dateChip, isSelected && s.dateChipActive]}
                     onPress={() => setSelectedDate(date)} activeOpacity={0.85}>
                     <Text style={[s.dateChipDay, isSelected && s.dateChipTextActive]}>
-                      {date.toLocaleDateString("ar-SA", { weekday: "short" })}
+                      {date.toLocaleDateString("ar-SA-u-ca-gregory", { weekday: "short" })}
                     </Text>
                     <Text style={[s.dateChipNum, isSelected && s.dateChipTextActive]}>
                       {date.getDate()}
@@ -767,6 +875,15 @@ const s = StyleSheet.create({
   deliveryTitle:     { color: "#6D4E2D", fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
   deliveryTitleActive:{ color: "#F2B233" },
   deliverySub:       { color: "#8A6030", fontSize: 11, fontFamily: "Almarai_400Regular" },
+  savedList:         { gap: 8, marginBottom: 10 },
+  savedRow:          { minHeight: 56, borderRadius: 16, backgroundColor: "#17100B", borderWidth: 1, borderColor: "rgba(242,178,51,0.1)", paddingHorizontal: 13, paddingVertical: 10, flexDirection: "row-reverse", alignItems: "center", gap: 10 },
+  savedRowActive:    { backgroundColor: "rgba(242,178,51,0.1)", borderColor: "rgba(242,178,51,0.45)" },
+  savedTextWrap:     { flex: 1 },
+  savedLabel:        { color: "#FDF0DC", textAlign: "right", fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
+  savedLabelActive:  { color: "#F2B233" },
+  savedAddr:         { color: "#8A6030", textAlign: "right", marginTop: 2, fontSize: 11, fontFamily: "Almarai_400Regular" },
+  addAddrBtn:        { minHeight: 44, borderRadius: 14, borderWidth: 1, borderColor: "rgba(242,178,51,0.25)", borderStyle: "dashed", alignItems: "center", justifyContent: "center", flexDirection: "row-reverse", gap: 7, marginBottom: 10 },
+  addAddrText:       { color: "#F2B233", fontSize: 12, fontFamily: "Almarai_700Bold" },
   locationBtn:       { minHeight: 50, borderRadius: 17, backgroundColor: "#F2B233", alignItems: "center", justifyContent: "center", flexDirection: "row-reverse", gap: 8 },
   locationBtnText:   { color: "#17100B", fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
   addressCard:       { marginTop: 10, borderRadius: 16, padding: 12, backgroundColor: "rgba(76,175,80,0.08)", borderWidth: 1, borderColor: "rgba(76,175,80,0.18)", flexDirection: "row-reverse", alignItems: "center", gap: 8 },

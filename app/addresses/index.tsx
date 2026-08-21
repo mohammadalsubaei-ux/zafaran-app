@@ -120,9 +120,13 @@ export default function AddressesScreen() {
         setAddressText("");
         loadAddresses(user.id);
 
-        // حفظ العنوان الافتراضي في AsyncStorage
+        // حفظ العنوان الافتراضي في AsyncStorage مع الإحداثيات (مطلوبة لحساب رسوم التوصيل)
         if (addresses.length === 0) {
-          await AsyncStorage.setItem("last_address", addressText);
+          await AsyncStorage.multiSet([
+            ["last_address", addressText],
+            ["last_address_lat", String(selectedLocation.lat)],
+            ["last_address_lng", String(selectedLocation.lng)],
+          ]);
         }
       }
     } finally {
@@ -146,7 +150,11 @@ export default function AddressesScreen() {
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ ...address, is_default: true, user_id: user.id }),
     });
-    await AsyncStorage.setItem("last_address", address.address);
+    await AsyncStorage.multiSet([
+      ["last_address", String(address.address || "")],
+      ["last_address_lat", String(address.lat ?? "")],
+      ["last_address_lng", String(address.lng ?? "")],
+    ]);
     loadAddresses(user.id);
   };
 

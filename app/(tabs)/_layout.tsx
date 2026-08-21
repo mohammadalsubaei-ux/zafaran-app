@@ -132,14 +132,22 @@ function ZafaranHeader() {
 
       if (res.ok && json?.success && Array.isArray(json.data) && json.data.length > 0) {
         const list: Address[] = json.data;
-        const def = list.find((a) => a.is_default) || list[0];
-
         setAddresses(list);
-        setCurrentAddr(def);
 
-        await AsyncStorage.setItem("last_address", cleanText(def.address, ""));
-        await AsyncStorage.setItem("last_address_lat", String(def.lat || ""));
-        await AsyncStorage.setItem("last_address_lng", String(def.lng || ""));
+        // احترام اختيار المستخدم السابق: لا نرجع للافتراضي إلا إذا ما فيه اختيار محفوظ
+        const savedAddr = await AsyncStorage.getItem("last_address");
+        const picked =
+          (savedAddr && list.find((a) => cleanText(a.address, "") === savedAddr)) ||
+          list.find((a) => a.is_default) ||
+          list[0];
+
+        setCurrentAddr(picked);
+
+        await AsyncStorage.multiSet([
+          ["last_address", cleanText(picked.address, "")],
+          ["last_address_lat", String(picked.lat ?? "")],
+          ["last_address_lng", String(picked.lng ?? "")],
+        ]);
         return;
       }
 
@@ -176,9 +184,11 @@ function ZafaranHeader() {
     setCurrentAddr(addr);
     setShowAddresses(false);
 
-    await AsyncStorage.setItem("last_address", cleanText(addr.address, ""));
-    await AsyncStorage.setItem("last_address_lat", String(addr.lat || ""));
-    await AsyncStorage.setItem("last_address_lng", String(addr.lng || ""));
+    await AsyncStorage.multiSet([
+      ["last_address", cleanText(addr.address, "")],
+      ["last_address_lat", String(addr.lat ?? "")],
+      ["last_address_lng", String(addr.lng ?? "")],
+    ]);
   }, []);
 
   const goAddAddress = useCallback(() => {
