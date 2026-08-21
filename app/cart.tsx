@@ -372,9 +372,7 @@ export default function CartScreen() {
         delivery_lng:     deliveryType === "delivery" ? lng : null,
         payment_method:   paymentMethod,
         payment_status:   "pending",
-        delivery_fee:     deliveryFee,
-        subtotal,
-        total_amount:     grandTotal,
+        // الأسعار لا تُرسل من العميل — الخادم يحسب subtotal ورسوم التوصيل والإجمالي من قاعدة البيانات
         notes:            deliveryType === "pickup" ? "استلام شخصي" : null,
         order_type:       isPreorder ? "preorder" : "instant",
         requested_time:   isPreorder ? scheduledAt!.toISOString() : null,
