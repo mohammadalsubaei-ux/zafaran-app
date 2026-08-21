@@ -99,6 +99,8 @@ const T: any = {
     privacy: "سياسة الخصوصية",
     terms: "الشروط والأحكام",
     version: "إصدار التطبيق",
+    deleteAccount: "حذف الحساب",
+    deleteAccountSub: "حذف حسابك وبياناتك من زعفران",
     logout: "تسجيل الخروج",
     logoutTitle: "تسجيل الخروج",
     logoutMsg: "هل تريد الخروج من حسابك؟",
@@ -153,6 +155,8 @@ const T: any = {
     privacy: "Privacy Policy",
     terms: "Terms & Conditions",
     version: "App Version",
+    deleteAccount: "Delete Account",
+    deleteAccountSub: "Remove your account and data from Zafaran",
     logout: "Logout",
     logoutTitle: "Logout",
     logoutMsg: "Are you sure you want to logout?",
@@ -700,8 +704,8 @@ export default function ProfileScreen() {
           />
 
           <MenuItem
-            title="حذف الحساب"
-            subtitle="حذف حسابك وبياناتك من زعفران"
+            title={t.deleteAccount}
+            subtitle={t.deleteAccountSub}
             Icon={Trash2}
             danger
             onPress={() => router.push("/delete-account" as any)}

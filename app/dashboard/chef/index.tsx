@@ -108,7 +108,9 @@ export default function DashboardScreen() {
   const loadChef = useCallback(async () => {
     const u = await AsyncStorage.getItem("user");
     if (!u) return;
-    const user = JSON.parse(u);
+    let user: any = null;
+    try { user = JSON.parse(u); } catch { return; }
+    if (!user?.id) return;
     const res  = await fetch(`${API}/api/chefs?user_id=${user.id}`);
     const json = await res.json();
     if (json.success && json.data.length > 0) {

@@ -127,7 +127,9 @@ export default function DriverScreen() {
     try {
       const u = await AsyncStorage.getItem("user");
       if (!u) return;
-      const user = JSON.parse(u);
+      let user: any = null;
+      try { user = JSON.parse(u); } catch { return; }
+      if (!user?.id) return;
       // جلب من جدول drivers
       const res  = await fetch(`${API}/api/drivers/user/${user.id}`);
       const json = await res.json().catch(() => null);

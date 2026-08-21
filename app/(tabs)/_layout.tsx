@@ -19,6 +19,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/almarai";
 import { BlurView } from "expo-blur";
+import { useLang } from "@/context/LanguageContext";
 import {
   Bell,
   Briefcase,
@@ -321,7 +322,16 @@ function ZafaranHeader() {
   );
 }
 
+// تسميات التبويبات — الأساسيات المترجمة
+const TAB_LABELS: Record<string, Record<string, string>> = {
+  ar: { index: "الرئيسية", categories: "التصنيفات", orders: "طلباتي", favorites: "المفضلة", profile: "حسابي" },
+  en: { index: "Home", categories: "Categories", orders: "Orders", favorites: "Favorites", profile: "Account" },
+};
+
 export default function TabLayout() {
+  const { lang } = useLang();
+  const L = TAB_LABELS[lang] || TAB_LABELS.ar;
+
   const [fontsLoaded] = useFonts({
     Almarai_800ExtraBold,
     Almarai_400Regular,
@@ -357,8 +367,8 @@ export default function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: "الرئيسية",
-            tabBarLabel: "الرئيسية",
+            title: L.index,
+            tabBarLabel: L.index,
             tabBarIcon: ({ color, focused }) => (
               <TabIcon color={color} focused={focused} Icon={Home} />
             ),
@@ -368,8 +378,8 @@ export default function TabLayout() {
         <Tabs.Screen
           name="categories"
           options={{
-            title: "التصنيفات",
-            tabBarLabel: "التصنيفات",
+            title: L.categories,
+            tabBarLabel: L.categories,
             tabBarIcon: ({ color, focused }) => (
               <TabIcon color={color} focused={focused} Icon={LayoutGrid} />
             ),
@@ -379,8 +389,8 @@ export default function TabLayout() {
         <Tabs.Screen
           name="orders"
           options={{
-            title: "طلباتي",
-            tabBarLabel: "طلباتي",
+            title: L.orders,
+            tabBarLabel: L.orders,
             tabBarIcon: ({ color, focused }) => (
               <TabIcon color={color} focused={focused} Icon={ShoppingBag} />
             ),
@@ -390,8 +400,8 @@ export default function TabLayout() {
         <Tabs.Screen
           name="favorites"
           options={{
-            title: "المفضلة",
-            tabBarLabel: "المفضلة",
+            title: L.favorites,
+            tabBarLabel: L.favorites,
             tabBarIcon: ({ color, focused }) => (
               <TabIcon color={color} focused={focused} Icon={Heart} />
             ),
@@ -401,8 +411,8 @@ export default function TabLayout() {
         <Tabs.Screen
           name="profile"
           options={{
-            title: "حسابي",
-            tabBarLabel: "حسابي",
+            title: L.profile,
+            tabBarLabel: L.profile,
             tabBarIcon: ({ color, focused }) => (
               <TabIcon color={color} focused={focused} Icon={User} />
             ),
