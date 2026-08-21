@@ -97,6 +97,10 @@ const PAYMENT_METHODS: Array<{
   { id: "card",      title: "مدى / بطاقة",  subtitle: "قريبًا",            Icon: CreditCard, enabled: false },
 ];
 
+// لا تُعرض طرق الدفع غير المفعّلة — خيار معطّل مكتوب تحته "قريبًا" يقع تحت
+// Guideline 2.1 عند آبل. عند تفعيل Moyasar: بدّل enabled إلى true وستظهر تلقائياً.
+const VISIBLE_PAYMENT_METHODS = PAYMENT_METHODS.filter(m => m.enabled);
+
 // ساعات متاحة للحجز
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 8); // 8 صباحاً - 10 مساءً
 const MINUTES = ["00", "15", "30", "45"];
@@ -674,7 +678,7 @@ export default function CartScreen() {
                 <Text style={s.sectionTitle}>طريقة الدفع</Text>
               </View>
               <View style={s.paymentGrid}>
-                {PAYMENT_METHODS.map(method => {
+                {VISIBLE_PAYMENT_METHODS.map(method => {
                   const active = paymentMethod === method.id;
                   const Icon   = method.Icon;
                   return (
