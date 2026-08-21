@@ -20,7 +20,7 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
-  UtensilsCrossed,
+  Store,
 } from "lucide-react-native";
 import {
   useFonts,
@@ -233,7 +233,7 @@ export default function FavoritesScreen() {
       } catch {
         setFavoriteIds(previousIds);
         setChefs(previousChefs);
-        setError("ما قدرنا نحذف الشيف من المفضلة. حاول مرة ثانية.");
+        setError("ما قدرنا نحذف المتجر من المفضلة. حاول مرة ثانية.");
       } finally {
         setRemovingId(null);
       }
@@ -244,7 +244,7 @@ export default function FavoritesScreen() {
   const renderChef = useCallback(
     ({ item }: { item: Chef }) => {
       const chefId = String(item.id);
-      const fullName = text(item.users?.full_name, "أسرة منتجة");
+      const fullName = text(item.users?.full_name, "متجر");
       const city = text(item.city, "المدينة");
       const neighborhood = text(item.neighborhood, "الحي");
       const isRemoving = removingId === chefId;
@@ -256,7 +256,7 @@ export default function FavoritesScreen() {
           onPress={() => openChef(chefId)}
         >
           <View style={s.avatarWrap}>
-            <UtensilsCrossed size={25} color="#F2B233" strokeWidth={1.5} />
+            <Store size={25} color="#F2B233" strokeWidth={1.5} />
           </View>
 
           <View style={s.info}>
@@ -335,7 +335,7 @@ export default function FavoritesScreen() {
         </View>
 
         <Text style={s.subtitle}>
-          كل الأسر والشيفات اللي حفظتهم تلقاهم هنا بسرعة.
+          كل المتاجر اللي حفظتها تلقاها هنا بسرعة.
         </Text>
 
         <View style={s.summaryCard}>
@@ -346,7 +346,7 @@ export default function FavoritesScreen() {
           <View style={s.summaryTextWrap}>
             <Text style={s.summaryTitle}>{chefs.length} في المفضلة</Text>
             <Text style={s.summarySub}>
-              اضغط على القلب لإزالة الشيف من القائمة.
+              اضغط على القلب لإزالة المتجر من القائمة.
             </Text>
           </View>
         </View>
@@ -432,11 +432,11 @@ export default function FavoritesScreen() {
 
             <Text style={s.emptyTitle}>ما عندك مفضلة بعد</Text>
             <Text style={s.emptySub}>
-              اضغط على القلب عند أي شيف، وراح يظهر هنا مباشرة.
+              اضغط على القلب عند أي متجر، وراح يظهر هنا مباشرة.
             </Text>
 
             <TouchableOpacity activeOpacity={0.9} style={s.primaryBtn} onPress={openHome}>
-              <Text style={s.primaryBtnText}>تصفح الشيفات</Text>
+              <Text style={s.primaryBtnText}>تصفح المتاجر</Text>
             </TouchableOpacity>
           </View>
         }
