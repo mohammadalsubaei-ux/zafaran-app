@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
@@ -83,7 +84,7 @@ function CityPickerModal({ visible, onClose, cities, city, setCity }: {
             <TextInput
               style={s.citySearchInput}
               placeholder="ابحث عن مدينتك أو منطقتك..."
-              placeholderTextColor="#5A3A18"
+              placeholderTextColor={c.textMuted}
               value={query}
               onChangeText={setQuery}
               textAlign="right"
@@ -100,7 +101,7 @@ function CityPickerModal({ visible, onClose, cities, city, setCity }: {
                 style={s.cityRow}
                 onPress={() => { setCity(item.name_ar); close(); }}
               >
-                <Text style={[s.cityRowText, city === item.name_ar && { color: "#F0A500" }]}>
+                <Text style={[s.cityRowText, city === item.name_ar && { color: c.gold }]}>
                   {item.name_ar}
                 </Text>
                 {item.region ? (
@@ -110,7 +111,7 @@ function CityPickerModal({ visible, onClose, cities, city, setCity }: {
             )}
             ListEmptyComponent={
               cities.length === 0
-                ? <ActivityIndicator color="#F0A500" style={{ marginVertical: 20 }} />
+                ? <ActivityIndicator color={c.gold} style={{ marginVertical: 20 }} />
                 : <Text style={s.cityEmpty}>ما لقينا مدينة بهذا الاسم</Text>
             }
           />
@@ -140,6 +141,8 @@ export default function LoginScreen() {
   const [password2, setPassword2]       = useState("");
   const [loading, setLoading]           = useState(false);
   const router = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
   const params = useLocalSearchParams<{ step?: string }>();
 
   // القدوم من شاشة "حسابي" للضيف بخطوة محددة (تسجيل عميل/متجر/مندوب)
@@ -222,7 +225,7 @@ export default function LoginScreen() {
                 <TextInput
                   style={s.input}
                   placeholder="05X XXX XXXX"
-                  placeholderTextColor="#5A3A18"
+                  placeholderTextColor={c.textMuted}
                   keyboardType="phone-pad"
                   value={phone}
                   onChangeText={setPhone}
@@ -235,14 +238,14 @@ export default function LoginScreen() {
                 <TextInput
                   style={s.input}
                   placeholder="••••••"
-                  placeholderTextColor="#5A3A18"
+                  placeholderTextColor={c.textMuted}
                   secureTextEntry
                   onChangeText={setPassword}
                   textAlign="right"
                 />
               </View>
               <TouchableOpacity style={s.btn} onPress={handleLogin} disabled={loading}>
-                {loading ? <ActivityIndicator color="#1C0F00" /> : <Text style={s.btnText}>دخول</Text>}
+                {loading ? <ActivityIndicator color={c.onGold} /> : <Text style={s.btnText}>دخول</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={s.switchBtn} onPress={() => setStep("register")}>
                 <Text style={s.switchText}>ما عندك حساب؟ سجّل الآن</Text>
@@ -259,10 +262,10 @@ export default function LoginScreen() {
                 <Text style={s.chefBtnText}>سجّل متجرك المنزلي</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[s.chefBtn, { marginTop: 10, borderColor: "rgba(33,150,243,0.3)", backgroundColor: "rgba(33,150,243,0.08)" }]}
+                style={[s.chefBtn, { marginTop: 10, borderColor: c.goldBorder, backgroundColor: c.goldSoft }]}
                 onPress={() => setStep("driver_register")}
               >
-                <Text style={[s.chefBtnText, { color: "#2196F3" }]}>انضم كمندوب توصيل</Text>
+                <Text style={[s.chefBtnText, { color: c.info }]}>انضم كمندوب توصيل</Text>
               </TouchableOpacity>
               <TouchableOpacity style={s.switchBtn} onPress={() => router.replace("/(tabs)" as any)}>
                 <Text style={s.switchText}>تصفح كضيف بدون تسجيل</Text>
@@ -288,23 +291,23 @@ export default function LoginScreen() {
               <Text style={s.formHint}>سجّل حسابك مجاناً</Text>
               <Text style={s.label}>الاسم</Text>
               <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor="#5A3A18" onChangeText={setName} textAlign="right"/>
+                <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor={c.textMuted} onChangeText={setName} textAlign="right"/>
               </View>
               <Text style={s.label}>كلمة المرور</Text>
               <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="6 احرف على الاقل" placeholderTextColor="#5A3A18" secureTextEntry onChangeText={setPassword} textAlign="right"/>
+                <TextInput style={s.input} placeholder="6 احرف على الاقل" placeholderTextColor={c.textMuted} secureTextEntry onChangeText={setPassword} textAlign="right"/>
               </View>
               <Text style={s.label}>تاكيد كلمة المرور</Text>
               <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="اعد كتابتها" placeholderTextColor="#5A3A18" secureTextEntry onChangeText={setPassword2} textAlign="right"/>
+                <TextInput style={s.input} placeholder="اعد كتابتها" placeholderTextColor={c.textMuted} secureTextEntry onChangeText={setPassword2} textAlign="right"/>
               </View>
               <Text style={s.label}>رقم الجوال</Text>
               <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="05X XXX XXXX" placeholderTextColor="#5A3A18" keyboardType="phone-pad" value={phone} onChangeText={setPhone} textAlign="right" maxLength={10}/>
+                <TextInput style={s.input} placeholder="05X XXX XXXX" placeholderTextColor={c.textMuted} keyboardType="phone-pad" value={phone} onChangeText={setPhone} textAlign="right" maxLength={10}/>
               </View>
               <GenderPicker gender={gender} setGender={setGender} />
               <TouchableOpacity style={s.btn} onPress={() => handleRegister("customer")} disabled={loading}>
-                {loading ? <ActivityIndicator color="#1C0F00" /> : <Text style={s.btnText}>تسجيل</Text>}
+                {loading ? <ActivityIndicator color={c.onGold} /> : <Text style={s.btnText}>تسجيل</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={s.switchBtn} onPress={() => setStep("login")}>
                 <Text style={s.switchText}>رجوع</Text>
@@ -330,34 +333,34 @@ export default function LoginScreen() {
               <Text style={s.formHint}>طبخ، حلا، قهوة، مخبوزات — كل التخصصات المنزلية</Text>
               <Text style={s.label}>الاسم</Text>
               <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor="#5A3A18" onChangeText={setName} textAlign="right"/>
+                <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor={c.textMuted} onChangeText={setName} textAlign="right"/>
               </View>
               <Text style={s.label}>كلمة المرور</Text>
               <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="6 احرف على الاقل" placeholderTextColor="#5A3A18" secureTextEntry onChangeText={setPassword} textAlign="right"/>
+                <TextInput style={s.input} placeholder="6 احرف على الاقل" placeholderTextColor={c.textMuted} secureTextEntry onChangeText={setPassword} textAlign="right"/>
               </View>
               <Text style={s.label}>تاكيد كلمة المرور</Text>
               <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="اعد كتابتها" placeholderTextColor="#5A3A18" secureTextEntry onChangeText={setPassword2} textAlign="right"/>
+                <TextInput style={s.input} placeholder="اعد كتابتها" placeholderTextColor={c.textMuted} secureTextEntry onChangeText={setPassword2} textAlign="right"/>
               </View>
               <Text style={s.label}>رقم الجوال</Text>
               <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="05X XXX XXXX" placeholderTextColor="#5A3A18" keyboardType="phone-pad" value={phone} onChangeText={setPhone} textAlign="right" maxLength={10}/>
+                <TextInput style={s.input} placeholder="05X XXX XXXX" placeholderTextColor={c.textMuted} keyboardType="phone-pad" value={phone} onChangeText={setPhone} textAlign="right" maxLength={10}/>
               </View>
               <GenderPicker gender={gender} setGender={setGender} />
               <Text style={s.label}>المدينة</Text>
               <TouchableOpacity style={s.inputWrap} onPress={() => setShowCityPicker(true)} activeOpacity={0.8}>
-                <Text style={[s.input, { color: city ? "#FDF0DC" : "#5A3A18", paddingVertical: 14 }]}>
+                <Text style={[s.input, { color: city ? c.text : c.textMuted, paddingVertical: 14 }]}>
                   {city || "اختر مدينتك"}
                 </Text>
               </TouchableOpacity>
               <Text style={s.label}>الحي</Text>
               <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="حي النرجس، ..." placeholderTextColor="#5A3A18" onChangeText={setNeighborhood} textAlign="right"/>
+                <TextInput style={s.input} placeholder="حي النرجس، ..." placeholderTextColor={c.textMuted} onChangeText={setNeighborhood} textAlign="right"/>
               </View>
               <Text style={s.certHint}>شهادة العمل الحر غير إلزامية للتسجيل — يمكنك رفعها لاحقًا من لوحتك خلال المهلة المحددة</Text>
               <TouchableOpacity style={s.btn} onPress={() => handleRegister("chef")} disabled={loading}>
-                {loading ? <ActivityIndicator color="#1C0F00" /> : <Text style={s.btnText}>سجّل متجري</Text>}
+                {loading ? <ActivityIndicator color={c.onGold} /> : <Text style={s.btnText}>سجّل متجري</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={s.switchBtn} onPress={() => setStep("login")}>
                 <Text style={s.switchText}>رجوع</Text>
@@ -384,35 +387,35 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
           <View style={s.logoWrap}>
             <Image source={require("../assets/images/logo-mark.png")} style={s.logoMark} />
-            <Text style={[s.roleTag, { color: "#2196F3" }]}>تسجيل مندوب توصيل</Text>
+            <Text style={[s.roleTag, { color: c.info }]}>تسجيل مندوب توصيل</Text>
           </View>
           <View style={s.form}>
             <Text style={s.formTitle}>انضم كمندوب</Text>
             <Text style={s.formHint}>وصّل الطلبات واكسب اكثر</Text>
             <Text style={s.label}>الاسم</Text>
             <View style={s.inputWrap}>
-              <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor="#5A3A18" onChangeText={setName} textAlign="right"/>
+              <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor={c.textMuted} onChangeText={setName} textAlign="right"/>
             </View>
             <Text style={s.label}>كلمة المرور</Text>
             <View style={s.inputWrap}>
-              <TextInput style={s.input} placeholder="6 احرف على الاقل" placeholderTextColor="#5A3A18" secureTextEntry onChangeText={setPassword} textAlign="right"/>
+              <TextInput style={s.input} placeholder="6 احرف على الاقل" placeholderTextColor={c.textMuted} secureTextEntry onChangeText={setPassword} textAlign="right"/>
             </View>
             <Text style={s.label}>تاكيد كلمة المرور</Text>
             <View style={s.inputWrap}>
-              <TextInput style={s.input} placeholder="اعد كتابتها" placeholderTextColor="#5A3A18" secureTextEntry onChangeText={setPassword2} textAlign="right"/>
+              <TextInput style={s.input} placeholder="اعد كتابتها" placeholderTextColor={c.textMuted} secureTextEntry onChangeText={setPassword2} textAlign="right"/>
             </View>
             <Text style={s.label}>رقم الجوال</Text>
             <View style={s.inputWrap}>
-              <TextInput style={s.input} placeholder="05X XXX XXXX" placeholderTextColor="#5A3A18" keyboardType="phone-pad" value={phone} onChangeText={setPhone} textAlign="right" maxLength={10}/>
+              <TextInput style={s.input} placeholder="05X XXX XXXX" placeholderTextColor={c.textMuted} keyboardType="phone-pad" value={phone} onChangeText={setPhone} textAlign="right" maxLength={10}/>
             </View>
             <GenderPicker gender={gender} setGender={setGender} />
             <Text style={s.label}>المدينة</Text>
             <TouchableOpacity style={s.inputWrap} onPress={() => setShowCityPicker(true)} activeOpacity={0.8}>
-              <Text style={[s.input, { color: city ? "#FDF0DC" : "#5A3A18", paddingVertical: 14 }]}>
+              <Text style={[s.input, { color: city ? c.text : c.textMuted, paddingVertical: 14 }]}>
                 {city || "اختر مدينتك"}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[s.btn, { backgroundColor: "#2196F3" }]} onPress={() => handleRegister("driver")} disabled={loading}>
+            <TouchableOpacity style={[s.btn, { backgroundColor: c.info }]} onPress={() => handleRegister("driver")} disabled={loading}>
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>تسجيل كمندوب</Text>}
             </TouchableOpacity>
             <TouchableOpacity style={s.switchBtn} onPress={() => setStep("login")}>
@@ -433,47 +436,47 @@ export default function LoginScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  safe:              { flex: 1, backgroundColor: "#0E0700" },
+const make_s = (c: Colors) => StyleSheet.create({
+  safe:              { flex: 1, backgroundColor: c.bg },
   scroll:            { flexGrow: 1, padding: 24, justifyContent: "center" },
   logoWrap:          { alignItems: "center", marginBottom: 28 },
   logoMark:          { width: 230, height: 166, resizeMode: "contain", marginBottom: 6 },
-  roleTag:           { fontSize: 14, color: "#F0A500", fontFamily: "Almarai_700Bold", marginTop: 6 },
-  form:              { backgroundColor: "#1C1000", borderRadius: 24, padding: 24, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)" },
-  formTitle:         { fontSize: 24, fontWeight: "900", color: "#FDF0DC", textAlign: "right", marginBottom: 4, fontFamily: "Almarai_800ExtraBold" },
-  formHint:          { fontSize: 12, color: "#8A6030", textAlign: "right", marginBottom: 20, fontFamily: "Almarai_400Regular" },
-  label:             { fontSize: 11, fontWeight: "700", color: "#C97D20", textAlign: "right", marginBottom: 6, fontFamily: "Almarai_700Bold" },
-  inputWrap:         { backgroundColor: "#251400", borderRadius: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.2)", paddingHorizontal: 14, marginBottom: 14 },
-  input:             { height: 50, color: "#FDF0DC", fontSize: 15, fontFamily: "Almarai_400Regular" },
-  btn:               { backgroundColor: "#F0A500", borderRadius: 16, padding: 16, alignItems: "center", marginTop: 4 },
-  btnText:           { fontSize: 17, fontWeight: "900", color: "#1C0F00", fontFamily: "Almarai_800ExtraBold" },
+  roleTag:           { fontSize: 14, color: c.gold, fontFamily: "Almarai_700Bold", marginTop: 6 },
+  form:              { backgroundColor: c.surface, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: c.goldBorder },
+  formTitle:         { fontSize: 24, fontWeight: "900", color: c.text, textAlign: "right", marginBottom: 4, fontFamily: "Almarai_800ExtraBold" },
+  formHint:          { fontSize: 12, color: c.textSoft, textAlign: "right", marginBottom: 20, fontFamily: "Almarai_400Regular" },
+  label:             { fontSize: 11, fontWeight: "700", color: c.gold, textAlign: "right", marginBottom: 6, fontFamily: "Almarai_700Bold" },
+  inputWrap:         { backgroundColor: c.surfaceAlt, borderRadius: 14, borderWidth: 1, borderColor: c.goldBorder, paddingHorizontal: 14, marginBottom: 14 },
+  input:             { height: 50, color: c.text, fontSize: 15, fontFamily: "Almarai_400Regular" },
+  btn:               { backgroundColor: c.gold, borderRadius: 16, padding: 16, alignItems: "center", marginTop: 4 },
+  btnText:           { fontSize: 17, fontWeight: "900", color: c.surface, fontFamily: "Almarai_800ExtraBold" },
   switchBtn:         { marginTop: 16, alignItems: "center" },
-  switchText:        { color: "#F0A500", fontSize: 13, fontWeight: "700", fontFamily: "Almarai_700Bold" },
-  certHint:          { color: "#A98961", fontSize: 11.5, lineHeight: 19, textAlign: "right", marginBottom: 12, fontFamily: "Almarai_400Regular" },
+  switchText:        { color: c.gold, fontSize: 13, fontWeight: "700", fontFamily: "Almarai_700Bold" },
+  certHint:          { color: c.textSoft, fontSize: 11.5, lineHeight: 19, textAlign: "right", marginBottom: 12, fontFamily: "Almarai_400Regular" },
   divider:           { flexDirection: "row", alignItems: "center", marginVertical: 16, gap: 10 },
-  dividerLine:       { flex: 1, height: 1, backgroundColor: "rgba(240,165,0,0.15)" },
-  dividerText:       { color: "#5A3A18", fontSize: 12, fontFamily: "Almarai_400Regular" },
-  chefBtn:           { backgroundColor: "rgba(240,165,0,0.1)", borderRadius: 16, padding: 14, alignItems: "center", borderWidth: 1, borderColor: "rgba(240,165,0,0.25)" },
-  chefBtnText:       { fontSize: 15, fontWeight: "700", color: "#F0A500", fontFamily: "Almarai_700Bold" },
+  dividerLine:       { flex: 1, height: 1, backgroundColor: c.goldBorder },
+  dividerText:       { color: c.textMuted, fontSize: 12, fontFamily: "Almarai_400Regular" },
+  chefBtn:           { backgroundColor: c.goldSoft, borderRadius: 16, padding: 14, alignItems: "center", borderWidth: 1, borderColor: c.goldBorder },
+  chefBtnText:       { fontSize: 15, fontWeight: "700", color: c.gold, fontFamily: "Almarai_700Bold" },
   genderRow:         { flexDirection: "row-reverse", gap: 10, marginBottom: 14 },
-  genderBtn:         { flex: 1, alignItems: "center", backgroundColor: "#251400", borderRadius: 14, paddingVertical: 12, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
-  genderBtnActive:   { backgroundColor: "rgba(240,165,0,0.12)", borderColor: "rgba(240,165,0,0.4)" },
-  genderLabel:       { fontSize: 12, color: "#8A6030", fontFamily: "Almarai_700Bold" },
-  genderLabelActive: { color: "#F0A500" },
+  genderBtn:         { flex: 1, alignItems: "center", backgroundColor: c.surfaceAlt, borderRadius: 14, paddingVertical: 12, borderWidth: 1, borderColor: c.goldSoft },
+  genderBtnActive:   { backgroundColor: c.border, borderColor: c.goldBorder },
+  genderLabel:       { fontSize: 12, color: c.textSoft, fontFamily: "Almarai_700Bold" },
+  genderLabelActive: { color: c.gold },
 
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
+  modalOverlay: { flex: 1, backgroundColor: c.overlay, justifyContent: "flex-end" },
   modalBox: {
-    backgroundColor: "#1C0F00", borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 20, paddingBottom: 32, borderTopWidth: 1, borderColor: "rgba(240,165,0,0.15)",
+    backgroundColor: c.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 20, paddingBottom: 32, borderTopWidth: 1, borderColor: c.goldBorder,
   },
-  modalTitle: { fontSize: 16, fontWeight: "800", color: "#FDF0DC", textAlign: "right", marginBottom: 14, fontFamily: "Almarai_800ExtraBold" },
+  modalTitle: { fontSize: 16, fontWeight: "800", color: c.text, textAlign: "right", marginBottom: 14, fontFamily: "Almarai_800ExtraBold" },
   citySearchWrap: {
-    backgroundColor: "#251400", borderRadius: 14, borderWidth: 1,
-    borderColor: "rgba(240,165,0,0.2)", paddingHorizontal: 14, marginBottom: 12,
+    backgroundColor: c.surfaceAlt, borderRadius: 14, borderWidth: 1,
+    borderColor: c.goldBorder, paddingHorizontal: 14, marginBottom: 12,
   },
-  citySearchInput: { height: 46, color: "#FDF0DC", fontSize: 14, fontFamily: "Almarai_400Regular" },
-  cityRow: { paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.08)" },
-  cityRowText: { fontSize: 15, color: "#FDF0DC", textAlign: "right", fontFamily: "Almarai_400Regular" },
-  cityRegionText: { fontSize: 11, color: "#8A6030", textAlign: "right", marginTop: 3, fontFamily: "Almarai_400Regular" },
-  cityEmpty: { fontSize: 13, color: "#8A6030", textAlign: "center", marginVertical: 24, fontFamily: "Almarai_400Regular" },
+  citySearchInput: { height: 46, color: c.text, fontSize: 14, fontFamily: "Almarai_400Regular" },
+  cityRow: { paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: c.goldSoft },
+  cityRowText: { fontSize: 15, color: c.text, textAlign: "right", fontFamily: "Almarai_400Regular" },
+  cityRegionText: { fontSize: 11, color: c.textSoft, textAlign: "right", marginTop: 3, fontFamily: "Almarai_400Regular" },
+  cityEmpty: { fontSize: 13, color: c.textSoft, textAlign: "center", marginVertical: 24, fontFamily: "Almarai_400Regular" },
 });

@@ -4,6 +4,7 @@ import {
   FlatList, Alert, ActivityIndicator, Modal, TextInput
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 const isWeb = require('react-native').Platform.OS === 'web';
@@ -35,6 +36,8 @@ export default function AddressesScreen() {
   const [addressText, setAddressText] = useState("");
   const [savingAddress, setSavingAddress] = useState(false);
   const router = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
 
   const [fontsLoaded] = useFonts({ Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold });
 
@@ -164,14 +167,14 @@ export default function AddressesScreen() {
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
         <TouchableOpacity activeOpacity={0.8} style={s.headerBtn} onPress={() => router.back()}>
-          <ArrowRight size={20} color="#F0A500" />
+          <ArrowRight size={20} color={c.gold} />
         </TouchableOpacity>
         <Text style={s.title}>عناويني</Text>
         <View style={{ width: 38 }} />
       </View>
 
       {loading
-        ? <ActivityIndicator color="#F0A500" style={{ marginTop: 40 }} />
+        ? <ActivityIndicator color={c.gold} style={{ marginTop: 40 }} />
         : <FlatList
             data={addresses}
             keyExtractor={i => i.id}
@@ -182,7 +185,7 @@ export default function AddressesScreen() {
                   <View style={s.cardIconBox}>
                     {(() => {
                       const LabelIcon = LABELS.find(l => l.id === item.label)?.Icon || MapPin;
-                      return <LabelIcon size={18} color="#F0A500" strokeWidth={1.8} />;
+                      return <LabelIcon size={18} color={c.gold} strokeWidth={1.8} />;
                     })()}
                   </View>
                   <View style={s.cardInfo}>
@@ -204,7 +207,7 @@ export default function AddressesScreen() {
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity style={s.deleteBtn} onPress={() => deleteAddress(item.id)}>
-                    <Trash2 size={15} color="#E57373" strokeWidth={1.8} />
+                    <Trash2 size={15} color={c.danger} strokeWidth={1.8} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -212,7 +215,7 @@ export default function AddressesScreen() {
             ListEmptyComponent={
               <View style={s.emptyWrap}>
                 <View style={{ marginBottom: 12 }}>
-                  <MapPin size={44} color="#5A3A18" strokeWidth={1.4} />
+                  <MapPin size={44} color={c.textMuted} strokeWidth={1.4} />
                 </View>
                 <Text style={s.empty}>ما عندك عناوين محفوظة</Text>
               </View>
@@ -229,7 +232,7 @@ export default function AddressesScreen() {
 
       {/* Modal الخريطة */}
       <Modal visible={showMap} animationType="slide">
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#0E0700" }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
           <View style={s.mapHeader}>
             <TouchableOpacity onPress={() => setShowMap(false)}>
               <Text style={s.back}>✕ إلغاء</Text>
@@ -248,7 +251,7 @@ export default function AddressesScreen() {
             {selectedLocation && (
               <Marker
                 coordinate={{ latitude: selectedLocation.lat, longitude: selectedLocation.lng }}
-                pinColor="#F0A500"
+                pinColor={c.gold}
               />
             )}
           </MapView>
@@ -263,7 +266,7 @@ export default function AddressesScreen() {
                   style={[s.labelBtn, selectedLabel === l.id && s.labelBtnActive]}
                   onPress={() => setSelectedLabel(l.id)}
                 >
-                  <l.Icon size={18} color={selectedLabel === l.id ? "#F0A500" : "#8A6030"} strokeWidth={1.8} style={{ marginBottom: 3 }} />
+                  <l.Icon size={18} color={selectedLabel === l.id ? c.gold : c.textSoft} strokeWidth={1.8} style={{ marginBottom: 3 }} />
                   <Text style={[s.labelText, selectedLabel === l.id && s.labelTextActive]}>{l.id}</Text>
                 </TouchableOpacity>
               ))}
@@ -275,7 +278,7 @@ export default function AddressesScreen() {
               value={addressText}
               onChangeText={setAddressText}
               placeholder="العنوان التفصيلي..."
-              placeholderTextColor="#5A3A18"
+              placeholderTextColor={c.textMuted}
               textAlign="right"
             />
 
@@ -287,7 +290,7 @@ export default function AddressesScreen() {
             {/* زر الحفظ */}
             <TouchableOpacity style={s.saveBtn} onPress={saveAddress} disabled={savingAddress}>
               {savingAddress
-                ? <ActivityIndicator color="#0E0700" />
+                ? <ActivityIndicator color={c.onGold} />
                 : <Text style={s.saveBtnText}>حفظ العنوان</Text>
               }
             </TouchableOpacity>
@@ -298,45 +301,45 @@ export default function AddressesScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  safe:           { flex: 1, backgroundColor: "#0E0700" },
-  header:         { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.12)" },
-  mapHeader:      { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", padding: 16, backgroundColor: "#0E0700", borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.12)" },
-  title:          { fontSize: 18, fontWeight: "900", color: "#FDF0DC", fontFamily: "Almarai_800ExtraBold" },
-  back:           { color: "#F0A500", fontSize: 15, fontWeight: "700", fontFamily: "Almarai_700Bold" },
-  cardIconBox:    { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(240,165,0,0.08)", alignItems: "center", justifyContent: "center" },
-  headerBtn:      { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: "rgba(240,165,0,0.25)", alignItems: "center", justifyContent: "center" },
-  card:           { backgroundColor: "#1C1000", borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
-  cardDefault:    { borderColor: "rgba(240,165,0,0.4)", backgroundColor: "rgba(240,165,0,0.05)" },
+const make_s = (c: Colors) => StyleSheet.create({
+  safe:           { flex: 1, backgroundColor: c.bg },
+  header:         { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottomWidth: 1, borderBottomColor: c.border },
+  mapHeader:      { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", padding: 16, backgroundColor: c.bg, borderBottomWidth: 1, borderBottomColor: c.border },
+  title:          { fontSize: 18, fontWeight: "900", color: c.text, fontFamily: "Almarai_800ExtraBold" },
+  back:           { color: c.gold, fontSize: 15, fontWeight: "700", fontFamily: "Almarai_700Bold" },
+  cardIconBox:    { width: 38, height: 38, borderRadius: 12, backgroundColor: c.goldSoft, alignItems: "center", justifyContent: "center" },
+  headerBtn:      { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: c.goldBorder, alignItems: "center", justifyContent: "center" },
+  card:           { backgroundColor: c.surface, borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: c.goldSoft },
+  cardDefault:    { borderColor: c.goldBorder, backgroundColor: c.goldSoft },
   cardRight:      { flexDirection: "row-reverse", alignItems: "flex-start", gap: 12, marginBottom: 10 },
   cardEmoji:      { fontSize: 28 },
   cardInfo:       { flex: 1 },
   cardTitleRow:   { flexDirection: "row-reverse", alignItems: "center", gap: 8, marginBottom: 4 },
-  cardLabel:      { fontSize: 15, fontWeight: "800", color: "#FDF0DC", fontFamily: "Almarai_700Bold" },
-  defaultBadge:   { backgroundColor: "rgba(240,165,0,0.15)", borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1, borderColor: "rgba(240,165,0,0.3)" },
-  defaultText:    { fontSize: 10, color: "#F0A500", fontFamily: "Almarai_700Bold" },
-  cardAddress:    { fontSize: 12, color: "#8A6030", textAlign: "right", fontFamily: "Almarai_400Regular", lineHeight: 18 },
+  cardLabel:      { fontSize: 15, fontWeight: "800", color: c.text, fontFamily: "Almarai_700Bold" },
+  defaultBadge:   { backgroundColor: c.goldBorder, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1, borderColor: c.goldBorder },
+  defaultText:    { fontSize: 10, color: c.gold, fontFamily: "Almarai_700Bold" },
+  cardAddress:    { fontSize: 12, color: c.textSoft, textAlign: "right", fontFamily: "Almarai_400Regular", lineHeight: 18 },
   cardActions:    { flexDirection: "row-reverse", gap: 8, justifyContent: "flex-start" },
-  actionBtn:      { backgroundColor: "rgba(240,165,0,0.1)", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: "rgba(240,165,0,0.2)" },
-  actionBtnText:  { fontSize: 11, color: "#F0A500", fontFamily: "Almarai_700Bold" },
-  deleteBtn:      { backgroundColor: "rgba(229,57,53,0.1)", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: "rgba(229,57,53,0.2)" },
+  actionBtn:      { backgroundColor: c.goldSoft, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: c.goldBorder },
+  actionBtnText:  { fontSize: 11, color: c.gold, fontFamily: "Almarai_700Bold" },
+  deleteBtn:      { backgroundColor: c.dangerSoft, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: c.dangerSoft },
   deleteBtnText:  { fontSize: 14 },
   emptyWrap:      { alignItems: "center", marginTop: 80 },
   emptyEmoji:     { fontSize: 48, marginBottom: 12 },
-  empty:          { color: "#8A6030", fontSize: 14, fontFamily: "Almarai_400Regular" },
-  footer:         { padding: 16, borderTopWidth: 1, borderTopColor: "rgba(240,165,0,0.1)" },
-  addBtn:         { backgroundColor: "#F0A500", borderRadius: 16, padding: 16, alignItems: "center", marginBottom: 28 },
-  addBtnText:     { fontSize: 16, fontWeight: "900", color: "#0E0700", fontFamily: "Almarai_800ExtraBold" },
-  mapFooter:      { backgroundColor: "#0E0700", padding: 16, gap: 10, borderTopWidth: 1, borderTopColor: "rgba(240,165,0,0.12)" },
+  empty:          { color: c.textSoft, fontSize: 14, fontFamily: "Almarai_400Regular" },
+  footer:         { padding: 16, borderTopWidth: 1, borderTopColor: c.goldSoft },
+  addBtn:         { backgroundColor: c.gold, borderRadius: 16, padding: 16, alignItems: "center", marginBottom: 28 },
+  addBtnText:     { fontSize: 16, fontWeight: "900", color: c.bg, fontFamily: "Almarai_800ExtraBold" },
+  mapFooter:      { backgroundColor: c.bg, padding: 16, gap: 10, borderTopWidth: 1, borderTopColor: c.border },
   labelsRow:      { flexDirection: "row-reverse", gap: 8 },
-  labelBtn:       { flex: 1, alignItems: "center", backgroundColor: "#1C1000", borderRadius: 12, paddingVertical: 8, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
-  labelBtnActive: { backgroundColor: "rgba(240,165,0,0.12)", borderColor: "rgba(240,165,0,0.4)" },
+  labelBtn:       { flex: 1, alignItems: "center", backgroundColor: c.surface, borderRadius: 12, paddingVertical: 8, borderWidth: 1, borderColor: c.goldSoft },
+  labelBtnActive: { backgroundColor: c.border, borderColor: c.goldBorder },
   labelEmoji:     { fontSize: 20, marginBottom: 2 },
-  labelText:      { fontSize: 10, color: "#8A6030", fontFamily: "Almarai_700Bold" },
-  labelTextActive:{ color: "#F0A500" },
-  addressInput:   { backgroundColor: "#1C1000", borderRadius: 12, padding: 12, color: "#FDF0DC", fontFamily: "Almarai_400Regular", borderWidth: 1, borderColor: "rgba(240,165,0,0.15)", fontSize: 14 },
-  locBtn:         { backgroundColor: "rgba(240,165,0,0.1)", borderRadius: 12, padding: 12, alignItems: "center", borderWidth: 1, borderColor: "rgba(240,165,0,0.2)" },
-  locBtnText:     { color: "#F0A500", fontSize: 14, fontWeight: "700", fontFamily: "Almarai_700Bold" },
-  saveBtn:        { backgroundColor: "#F0A500", borderRadius: 16, padding: 16, alignItems: "center" },
-  saveBtnText:    { fontSize: 16, fontWeight: "900", color: "#0E0700", fontFamily: "Almarai_800ExtraBold" },
+  labelText:      { fontSize: 10, color: c.textSoft, fontFamily: "Almarai_700Bold" },
+  labelTextActive:{ color: c.gold },
+  addressInput:   { backgroundColor: c.surface, borderRadius: 12, padding: 12, color: c.text, fontFamily: "Almarai_400Regular", borderWidth: 1, borderColor: c.goldBorder, fontSize: 14 },
+  locBtn:         { backgroundColor: c.goldSoft, borderRadius: 12, padding: 12, alignItems: "center", borderWidth: 1, borderColor: c.goldBorder },
+  locBtnText:     { color: c.gold, fontSize: 14, fontWeight: "700", fontFamily: "Almarai_700Bold" },
+  saveBtn:        { backgroundColor: c.gold, borderRadius: 16, padding: 16, alignItems: "center" },
+  saveBtnText:    { fontSize: 16, fontWeight: "900", color: c.bg, fontFamily: "Almarai_800ExtraBold" },
 });

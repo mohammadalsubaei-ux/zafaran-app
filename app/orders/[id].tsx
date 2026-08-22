@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold, useFonts,
@@ -85,17 +86,17 @@ type DriverLocation = {
   updated_at?: string | null;
 } | null;
 
-const STATUS_META: Record<string, { label: string; color: string; bg: string; Icon: any }> = {
-  pending:        { label: "بانتظار القبول",       color: "#F2B233", bg: "rgba(242,178,51,0.12)",  Icon: Clock3       },
-  pending_time:   { label: "بانتظار تأكيد الوقت",  color: "#FF9800", bg: "rgba(255,152,0,0.12)",   Icon: Clock3       },
-  time_confirmed: { label: "تم تأكيد الوقت",       color: "#8BC34A", bg: "rgba(139,195,74,0.12)",  Icon: CheckCircle2 },
-  accepted:       { label: "تم القبول",             color: "#2196F3", bg: "rgba(33,150,243,0.12)",  Icon: CheckCircle2 },
-  preparing:      { label: "قيد التحضير",           color: "#FF6600", bg: "rgba(255,102,0,0.12)",   Icon: Flame        },
-  ready:          { label: "جاهز للاستلام",         color: "#9C27B0", bg: "rgba(156,39,176,0.12)",  Icon: Gift         },
-  delivering:     { label: "في الطريق",             color: "#03A9F4", bg: "rgba(3,169,244,0.12)",   Icon: Truck        },
-  delivered:      { label: "تم التسليم",            color: "#4CAF50", bg: "rgba(76,175,80,0.12)",   Icon: Home         },
-  cancelled:      { label: "ملغي",                  color: "#E53935", bg: "rgba(229,57,53,0.12)",   Icon: XCircle      },
-};
+const makeStatusMeta = (c: Colors): Record<string, { label: string; color: string; bg: string; Icon: any }> => ({
+  pending:        { label: "بانتظار القبول",       color: c.gold, bg: c.goldSoft,  Icon: Clock3       },
+  pending_time:   { label: "بانتظار تأكيد الوقت",  color: c.gold, bg: c.goldSoft,   Icon: Clock3       },
+  time_confirmed: { label: "تم تأكيد الوقت",       color: c.success, bg: c.successSoft,  Icon: CheckCircle2 },
+  accepted:       { label: "تم القبول",             color: c.info, bg: c.goldSoft,  Icon: CheckCircle2 },
+  preparing:      { label: "قيد التحضير",           color: c.gold, bg: c.goldSoft,   Icon: Flame        },
+  ready:          { label: "جاهز للاستلام",         color: c.info, bg: c.goldSoft,  Icon: Gift         },
+  delivering:     { label: "في الطريق",             color: c.info, bg: c.goldSoft,   Icon: Truck        },
+  delivered:      { label: "تم التسليم",            color: c.success, bg: c.successSoft,   Icon: Home         },
+  cancelled:      { label: "ملغي",                  color: c.danger, bg: c.dangerSoft,   Icon: XCircle      },
+});
 
 const TRACK_STEPS_DELIVERY = [
   { key: "accepted",   label: "قبول الطلب",    Icon: CheckCircle2 },
@@ -165,12 +166,12 @@ function paymentStatusLabel(status?: PaymentStatus | null, method?: PaymentMetho
   if (method === "cash")     return "يُدفع نقداً أو تحويلاً عند الاستلام";
   return "بانتظار الدفع";
 }
-function paymentStatusColor(status?: PaymentStatus | null, method?: PaymentMethod | null) {
-  if (status === "paid")     return "#4CAF50";
-  if (status === "failed")   return "#E53935";
-  if (status === "refunded") return "#03A9F4";
-  if (method === "cash")     return "#A98961";
-  return "#F2B233";
+function paymentStatusColor(c: Colors, status?: PaymentStatus | null, method?: PaymentMethod | null) {
+  if (status === "paid")     return c.success;
+  if (status === "failed")   return c.danger;
+  if (status === "refunded") return c.info;
+  if (method === "cash")     return c.textSoft;
+  return c.gold;
 }
 
 // خريطة تتبع المندوب
@@ -192,14 +193,14 @@ function SimpleMap({ driverLat, driverLng, destLat, destLng }: {
         style={ms.map}
         region={{ latitude: midLat, longitude: midLng, latitudeDelta: latDelta, longitudeDelta: lngDelta }}
       >
-        <Marker coordinate={{ latitude: driverLat, longitude: driverLng }} title="المندوب" pinColor="#03A9F4">
+        <Marker coordinate={{ latitude: driverLat, longitude: driverLng }} title="المندوب" pinColor={c.info}>
           <View style={ms.driverPin}>
-            <Truck size={16} color="#17100B" strokeWidth={2} />
+            <Truck size={16} color={c.onGold} strokeWidth={2} />
           </View>
         </Marker>
 
         {hasDest && (
-          <Marker coordinate={{ latitude: destLat!, longitude: destLng! }} title="موقع التسليم" pinColor="#F2B233" />
+          <Marker coordinate={{ latitude: destLat!, longitude: destLng! }} title="موقع التسليم" pinColor={c.gold} />
         )}
 
         {hasDest && (
@@ -208,7 +209,7 @@ function SimpleMap({ driverLat, driverLng, destLat, destLng }: {
               { latitude: driverLat, longitude: driverLng },
               { latitude: destLat!, longitude: destLng! },
             ]}
-            strokeColor="#03A9F4"
+            strokeColor={c.info}
             strokeWidth={3}
           />
         )}
@@ -222,23 +223,27 @@ function SimpleMap({ driverLat, driverLng, destLat, destLng }: {
         }}
         activeOpacity={0.9}
       >
-        <Navigation size={13} color="#17100B" strokeWidth={2} />
+        <Navigation size={13} color={c.onGold} strokeWidth={2} />
         <Text style={ms.openMapBtnText}>فتح بخرائط جوجل</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-const ms = StyleSheet.create({
+const make_ms = (c: Colors) => StyleSheet.create({
   mapWrap:        { borderRadius: 18, overflow: "hidden", marginBottom: 4 },
   map:            { width: "100%", height: 220 },
-  driverPin:      { backgroundColor: "#03A9F4", padding: 6, borderRadius: 20, borderWidth: 2, borderColor: "#17100B" },
-  openMapBtn:     { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#03A9F4", paddingVertical: 10, },
-  openMapBtnText: { color: "#17100B", fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
+  driverPin:      { backgroundColor: c.info, padding: 6, borderRadius: 20, borderWidth: 2, borderColor: c.bg },
+  openMapBtn:     { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: c.info, paddingVertical: 10, },
+  openMapBtnText: { color: c.bg, fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
 });
 
 export default function OrderDetailScreen() {
   const router  = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
+  const ms = useMemo(() => make_ms(c), [c]);
+  const statusMeta = useMemo(() => makeStatusMeta(c), [c]);
   const { id }  = useLocalSearchParams();
   const orderId = Array.isArray(id) ? id[0] : id;
 
@@ -444,7 +449,7 @@ export default function OrderDetailScreen() {
     return (
       <SafeAreaView style={s.safe}>
         <View style={s.loadingWrap}>
-          <ActivityIndicator color="#F2B233" size="large" />
+          <ActivityIndicator color={c.gold} size="large" />
           <Text style={s.loadingText}>جاري تحميل تفاصيل الطلب...</Text>
         </View>
       </SafeAreaView>
@@ -456,15 +461,15 @@ export default function OrderDetailScreen() {
       <SafeAreaView style={s.safe}>
         <View style={s.header}>
           <TouchableOpacity activeOpacity={0.8} style={s.headerBtn} onPress={goBack}>
-            <ArrowRight size={20} color="#F2B233" />
+            <ArrowRight size={20} color={c.gold} />
           </TouchableOpacity>
           <Text style={s.title}>تفاصيل الطلب</Text>
           <TouchableOpacity activeOpacity={0.8} style={s.headerBtn} onPress={onRefresh}>
-            <RefreshCw size={18} color="#F2B233" />
+            <RefreshCw size={18} color={c.gold} />
           </TouchableOpacity>
         </View>
         <View style={s.emptyWrap}>
-          <View style={s.emptyIcon}><AlertCircle size={58} color="#E53935" strokeWidth={1.5} /></View>
+          <View style={s.emptyIcon}><AlertCircle size={58} color={c.danger} strokeWidth={1.5} /></View>
           <Text style={s.emptyTitle}>الطلب غير موجود</Text>
           <Text style={s.emptyText}>{error || "لم نتمكن من العثور على بيانات هذا الطلب."}</Text>
           <TouchableOpacity activeOpacity={0.9} style={s.primaryBtn} onPress={onRefresh}>
@@ -476,7 +481,7 @@ export default function OrderDetailScreen() {
   }
 
   const statusKey   = String(order.status || "pending");
-  const status      = STATUS_META[statusKey] || STATUS_META.pending;
+  const status      = statusMeta[statusKey] || statusMeta.pending;
   const StatusIcon  = status.Icon;
   const TRACK_STEPS = order?.delivery_address === "استلام شخصي" ? TRACK_STEPS_PICKUP : TRACK_STEPS_DELIVERY;
   const normalizedKey = statusKey === "time_confirmed" ? "accepted" : statusKey === "pending_time" ? "pending" : statusKey;
@@ -496,26 +501,26 @@ export default function OrderDetailScreen() {
   const total       = numberValue(order.total_amount || order.total || subtotal + deliveryFee);
   const chefName    = text(order.chefs?.users?.full_name, "متجر");
   const chefLocation = [order.chefs?.city, order.chefs?.neighborhood].filter(Boolean).join(" · ");
-  const paymentColor = paymentStatusColor(order.payment_status, order.payment_method);
+  const paymentColor = paymentStatusColor(c, order.payment_status, order.payment_method);
 
   return (
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
         <TouchableOpacity activeOpacity={0.8} style={s.headerBtn} onPress={goBack}>
-          <ArrowRight size={20} color="#F2B233" />
+          <ArrowRight size={20} color={c.gold} />
         </TouchableOpacity>
         <View style={s.headerTitleWrap}>
           <Text style={s.title}>تفاصيل الطلب</Text>
           <Text style={s.headerSub}>#{shortId(order.id)}</Text>
         </View>
         <TouchableOpacity activeOpacity={0.8} style={s.headerBtn} onPress={onRefresh}>
-          <RefreshCw size={18} color="#F2B233" />
+          <RefreshCw size={18} color={c.gold} />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         contentContainerStyle={s.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B233" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.gold} />}
       >
         {/* Hero */}
         <View style={s.heroCard}>
@@ -535,7 +540,7 @@ export default function OrderDetailScreen() {
         {canCancel ? (
           <TouchableOpacity style={s.cancelOrderBtn} onPress={cancelOrder} disabled={cancelLoading} activeOpacity={0.85}>
             {cancelLoading
-              ? <ActivityIndicator size="small" color="#E57373" />
+              ? <ActivityIndicator size="small" color={c.danger} />
               : <Text style={s.cancelOrderBtnText}>إلغاء الطلب</Text>}
           </TouchableOpacity>
         ) : null}
@@ -547,7 +552,7 @@ export default function OrderDetailScreen() {
             <View style={s.noDriverBtns}>
               <TouchableOpacity style={s.ndWaitBtn} onPress={renotifyDrivers} disabled={noDriverLoading} activeOpacity={0.85}>
                 {noDriverLoading
-                  ? <ActivityIndicator size="small" color="#F2B233" />
+                  ? <ActivityIndicator size="small" color={c.gold} />
                   : <Text style={s.ndWaitText}>إشعار المناديب والانتظار</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={s.ndPickupBtn} onPress={switchToPickup} disabled={noDriverLoading} activeOpacity={0.85}>
@@ -561,8 +566,8 @@ export default function OrderDetailScreen() {
         {isDelivering && (
           <View style={s.trackingCard}>
             <View style={s.cardTitleRow}>
-              <Truck size={17} color="#03A9F4" strokeWidth={1.8} />
-              <Text style={[s.cardTitle, { color: "#03A9F4" }]}>تتبع المندوب</Text>
+              <Truck size={17} color={c.info} strokeWidth={1.8} />
+              <Text style={[s.cardTitle, { color: c.info }]}>تتبع المندوب</Text>
               {driverLocation && (
                 <View style={s.liveBadge}>
                   <View style={s.liveDot} />
@@ -587,7 +592,7 @@ export default function OrderDetailScreen() {
               </>
             ) : (
               <View style={s.trackingWaiting}>
-                <ActivityIndicator color="#03A9F4" size="small" />
+                <ActivityIndicator color={c.info} size="small" />
                 <Text style={s.trackingWaitingText}>في انتظار موقع المندوب...</Text>
               </View>
             )}
@@ -598,7 +603,7 @@ export default function OrderDetailScreen() {
         {isPreorder && (order.proposed_time || order.requested_time || order.confirmed_time) && (
           <View style={s.card}>
             <View style={s.cardTitleRow}>
-              <CalendarDays size={17} color="#F2B233" strokeWidth={1.8} />
+              <CalendarDays size={17} color={c.gold} strokeWidth={1.8} />
               <Text style={s.cardTitle}>وقت الحجز</Text>
             </View>
             {(order.proposed_time || order.requested_time) && (
@@ -609,8 +614,8 @@ export default function OrderDetailScreen() {
             )}
             {order.confirmed_time && order.time_negotiation_status === "accepted" && (
               <View style={[s.timeRow, { marginTop: 8 }]}>
-                <Text style={[s.timeLabel, { color: "#8BC34A" }]}>الوقت المؤكد</Text>
-                <Text style={[s.timeValue, { color: "#8BC34A" }]}>{formatDateTime(order.confirmed_time)}</Text>
+                <Text style={[s.timeLabel, { color: c.success }]}>الوقت المؤكد</Text>
+                <Text style={[s.timeValue, { color: c.success }]}>{formatDateTime(order.confirmed_time)}</Text>
               </View>
             )}
 
@@ -629,7 +634,7 @@ export default function OrderDetailScreen() {
                     onPress={() => respondToTime("accept")}
                   >
                     {respondLoading ? (
-                      <ActivityIndicator color="#17100B" size="small" />
+                      <ActivityIndicator color={c.bg} size="small" />
                     ) : (
                       <Text style={s.acceptBtnText}>موافق على الوقت الجديد</Text>
                     )}
@@ -649,7 +654,7 @@ export default function OrderDetailScreen() {
             {/* بانتظار رد المتجر على الوقت المقترح من العميل */}
             {order.time_negotiation_status === "pending" && (
               <View style={s.waitingBox}>
-                <Clock3 size={14} color="#F0A500" strokeWidth={1.8} />
+                <Clock3 size={14} color={c.gold} strokeWidth={1.8} />
                 <Text style={s.waitingText}>بانتظار تأكيد المتجر للوقت</Text>
               </View>
             )}
@@ -661,7 +666,7 @@ export default function OrderDetailScreen() {
                 style={s.payNowBtn}
                 onPress={() => setShowPayment(true)}
               >
-                <CreditCard size={16} color="#17100B" strokeWidth={1.8} />
+                <CreditCard size={16} color={c.bg} strokeWidth={1.8} />
                 <Text style={s.payNowBtnText}>ادفع الآن لتأكيد الطلب</Text>
               </TouchableOpacity>
             )}
@@ -676,7 +681,7 @@ export default function OrderDetailScreen() {
               style={s.payNowBtn}
               onPress={() => setShowPayment(true)}
             >
-              <CreditCard size={16} color="#17100B" strokeWidth={1.8} />
+              <CreditCard size={16} color={c.bg} strokeWidth={1.8} />
               <Text style={s.payNowBtnText}>ادفع الآن</Text>
             </TouchableOpacity>
           </View>
@@ -686,7 +691,7 @@ export default function OrderDetailScreen() {
         {!isCancelled ? (
           <View style={s.card}>
             <View style={s.cardTitleRow}>
-              <Navigation size={17} color="#F2B233" strokeWidth={1.8} />
+              <Navigation size={17} color={c.gold} strokeWidth={1.8} />
               <Text style={s.cardTitle}>تتبع الطلب</Text>
             </View>
             <View style={s.timeline}>
@@ -697,7 +702,7 @@ export default function OrderDetailScreen() {
                 return (
                   <View key={step.key} style={s.trackItem}>
                     <View style={[s.trackIcon, done && s.trackIconDone, active && s.trackIconActive]}>
-                      <StepIcon size={17} color={done ? "#F2B233" : "#6D4E2D"} strokeWidth={1.8} />
+                      <StepIcon size={17} color={done ? c.gold : c.textMuted} strokeWidth={1.8} />
                     </View>
                     <Text style={[s.trackLabel, done && s.trackLabelDone, active && s.trackLabelActive]}>
                       {step.label}
@@ -713,8 +718,8 @@ export default function OrderDetailScreen() {
         ) : (
           <View style={s.cancelCard}>
             <View style={s.cardTitleRow}>
-              <XCircle size={17} color="#E53935" strokeWidth={1.8} />
-              <Text style={[s.cardTitle, { color: "#FF9A9A" }]}>سبب الإلغاء</Text>
+              <XCircle size={17} color={c.danger} strokeWidth={1.8} />
+              <Text style={[s.cardTitle, { color: c.danger }]}>سبب الإلغاء</Text>
             </View>
             <Text style={s.cancelText}>{text(order.cancel_reason, "تم إلغاء الطلب.")}</Text>
           </View>
@@ -723,12 +728,12 @@ export default function OrderDetailScreen() {
         {/* المتجر */}
         <View style={s.card}>
           <View style={s.cardTitleRow}>
-            <Store size={17} color="#F2B233" strokeWidth={1.8} />
+            <Store size={17} color={c.gold} strokeWidth={1.8} />
             <Text style={s.cardTitle}>المتجر</Text>
           </View>
           <Text style={s.chefName}>{chefName}</Text>
           <View style={s.inlineRow}>
-            <MapPin size={13} color="#8A6030" strokeWidth={1.6} />
+            <MapPin size={13} color={c.textSoft} strokeWidth={1.6} />
             <Text style={s.mutedText}>{text(chefLocation, "الموقع غير محدد")}</Text>
           </View>
         </View>
@@ -736,7 +741,7 @@ export default function OrderDetailScreen() {
         {/* المنتجات */}
         <View style={s.card}>
           <View style={s.cardTitleRow}>
-            <ShoppingBag size={17} color="#F2B233" strokeWidth={1.8} />
+            <ShoppingBag size={17} color={c.gold} strokeWidth={1.8} />
             <Text style={s.cardTitle}>المنتجات</Text>
           </View>
           {orderItems.length ? orderItems.map((item, index) => {
@@ -759,12 +764,12 @@ export default function OrderDetailScreen() {
         {/* الدفع */}
         <View style={s.card}>
           <View style={s.cardTitleRow}>
-            <CreditCard size={17} color="#F2B233" strokeWidth={1.8} />
+            <CreditCard size={17} color={c.gold} strokeWidth={1.8} />
             <Text style={s.cardTitle}>الدفع</Text>
           </View>
           <View style={s.paymentRow}>
             <View style={s.paymentIconBox}>
-              <PaymentIcon method={order.payment_method} color="#F2B233" />
+              <PaymentIcon method={order.payment_method} color={c.gold} />
             </View>
             <View style={s.paymentInfo}>
               <Text style={s.paymentTitle}>{paymentLabel(order.payment_method)}</Text>
@@ -778,7 +783,7 @@ export default function OrderDetailScreen() {
         {/* الملخص */}
         <View style={s.card}>
           <View style={s.cardTitleRow}>
-            <ReceiptText size={17} color="#F2B233" strokeWidth={1.8} />
+            <ReceiptText size={17} color={c.gold} strokeWidth={1.8} />
             <Text style={s.cardTitle}>ملخص المبالغ</Text>
           </View>
           <View style={s.summaryRow}>
@@ -802,7 +807,7 @@ export default function OrderDetailScreen() {
         {/* العنوان */}
         <View style={s.card}>
           <View style={s.cardTitleRow}>
-            {isPickup ? <Home size={17} color="#F2B233" strokeWidth={1.8} /> : <MapPin size={17} color="#F2B233" strokeWidth={1.8} />}
+            {isPickup ? <Home size={17} color={c.gold} strokeWidth={1.8} /> : <MapPin size={17} color={c.gold} strokeWidth={1.8} />}
             <Text style={s.cardTitle}>{isPickup ? "طريقة الاستلام" : "عنوان التوصيل"}</Text>
           </View>
           <Text style={s.addressText}>
@@ -814,7 +819,7 @@ export default function OrderDetailScreen() {
         {isDelivered && (
           <TouchableOpacity activeOpacity={0.92} style={s.reviewBtn}
             onPress={() => router.push(`/review/${order.id}` as any)}>
-            <Star size={18} color="#17100B" strokeWidth={2} fill="#17100B" />
+            <Star size={18} color={c.bg} strokeWidth={2} fill={c.bg} />
             <Text style={s.reviewBtnText}>قيّم طلبك</Text>
           </TouchableOpacity>
         )}
@@ -831,112 +836,112 @@ export default function OrderDetailScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  safe:             { flex: 1, backgroundColor: "#17100B" },
+const make_s = (c: Colors) => StyleSheet.create({
+  safe:             { flex: 1, backgroundColor: c.bg },
   loadingWrap:      { flex: 1, alignItems: "center", justifyContent: "center", gap: 14 },
-  loadingText:      { color: "#FDF0DC", fontSize: 14, fontFamily: "Almarai_700Bold" },
-  header:           { minHeight: 68, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "rgba(242,178,51,0.1)", flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between" },
-  headerBtn:        { width: 42, height: 42, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(242,178,51,0.08)", borderWidth: 1, borderColor: "rgba(242,178,51,0.14)" },
+  loadingText:      { color: c.text, fontSize: 14, fontFamily: "Almarai_700Bold" },
+  header:           { minHeight: 68, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.goldSoft, flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between" },
+  headerBtn:        { width: 42, height: 42, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: c.goldSoft, borderWidth: 1, borderColor: c.border },
   headerTitleWrap:  { alignItems: "center" },
-  title:            { color: "#FDF0DC", fontSize: 18, fontFamily: "Almarai_800ExtraBold" },
-  headerSub:        { color: "#8A6030", fontSize: 11, marginTop: 3, fontFamily: "Almarai_400Regular" },
+  title:            { color: c.text, fontSize: 18, fontFamily: "Almarai_800ExtraBold" },
+  headerSub:        { color: c.textSoft, fontSize: 11, marginTop: 3, fontFamily: "Almarai_400Regular" },
   content:          { padding: 16, paddingBottom: 36 },
-  heroCard:         { backgroundColor: "#21160D", borderRadius: 28, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: "rgba(242,178,51,0.13)" },
+  heroCard:         { backgroundColor: c.surface, borderRadius: 28, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: c.border },
   heroTop:          { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
   statusBadge:      { flexDirection: "row-reverse", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999 },
   statusBadgeText:  { fontSize: 11, fontFamily: "Almarai_800ExtraBold" },
-  orderNumber:      { color: "#F2B233", fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
-  heroTitle:        { color: "#FDF0DC", textAlign: "right", fontSize: 22, lineHeight: 32, fontFamily: "Almarai_800ExtraBold" },
-  heroSub:          { color: "#A98961", textAlign: "right", marginTop: 6, fontSize: 12, lineHeight: 21, fontFamily: "Almarai_400Regular" },
-  cancelOrderBtn: { borderWidth: 1, borderColor: "rgba(229,57,53,0.5)", borderRadius: 14, paddingVertical: 12, alignItems: "center", marginBottom: 14 },
-  cancelOrderBtnText: { color: "#E57373", fontSize: 13, fontFamily: "Almarai_700Bold" },
-  noDriverCard:  { backgroundColor: "rgba(242,178,51,0.07)", borderRadius: 16, padding: 15, borderWidth: 1, borderColor: "rgba(242,178,51,0.3)", marginBottom: 14 },
-  noDriverTitle: { color: "#F2B233", fontSize: 14, fontFamily: "Almarai_800ExtraBold", textAlign: "right" },
-  noDriverSub:   { color: "#A98961", fontSize: 12, fontFamily: "Almarai_400Regular", textAlign: "right", marginTop: 4, marginBottom: 12 },
+  orderNumber:      { color: c.gold, fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
+  heroTitle:        { color: c.text, textAlign: "right", fontSize: 22, lineHeight: 32, fontFamily: "Almarai_800ExtraBold" },
+  heroSub:          { color: c.textSoft, textAlign: "right", marginTop: 6, fontSize: 12, lineHeight: 21, fontFamily: "Almarai_400Regular" },
+  cancelOrderBtn: { borderWidth: 1, borderColor: c.dangerSoft, borderRadius: 14, paddingVertical: 12, alignItems: "center", marginBottom: 14 },
+  cancelOrderBtnText: { color: c.danger, fontSize: 13, fontFamily: "Almarai_700Bold" },
+  noDriverCard:  { backgroundColor: c.goldSoft, borderRadius: 16, padding: 15, borderWidth: 1, borderColor: c.goldBorder, marginBottom: 14 },
+  noDriverTitle: { color: c.gold, fontSize: 14, fontFamily: "Almarai_800ExtraBold", textAlign: "right" },
+  noDriverSub:   { color: c.textSoft, fontSize: 12, fontFamily: "Almarai_400Regular", textAlign: "right", marginTop: 4, marginBottom: 12 },
   noDriverBtns:  { flexDirection: "row-reverse", gap: 10 },
-  ndWaitBtn:     { flex: 1, borderWidth: 1, borderColor: "rgba(242,178,51,0.45)", borderRadius: 12, paddingVertical: 11, alignItems: "center" },
-  ndWaitText:    { color: "#F2B233", fontSize: 12, fontFamily: "Almarai_700Bold" },
-  ndPickupBtn:   { flex: 1, backgroundColor: "#F2B233", borderRadius: 12, paddingVertical: 11, alignItems: "center" },
-  ndPickupText:  { color: "#0E0700", fontSize: 12, fontFamily: "Almarai_800ExtraBold" },
-  trackingCard:     { backgroundColor: "#111C22", borderRadius: 24, padding: 15, marginBottom: 12, borderWidth: 1, borderColor: "rgba(3,169,244,0.25)" },
-  liveBadge:        { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(76,175,80,0.15)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginRight: "auto" },
-  liveDot:          { width: 6, height: 6, borderRadius: 3, backgroundColor: "#4CAF50" },
-  liveBadgeText:    { color: "#4CAF50", fontSize: 10, fontFamily: "Almarai_700Bold" },
-  trackingWaiting:  { flexDirection: "row-reverse", alignItems: "center", gap: 8, padding: 12, backgroundColor: "rgba(3,169,244,0.08)", borderRadius: 14 },
-  trackingWaitingText: { color: "#03A9F4", fontSize: 12, fontFamily: "Almarai_700Bold" },
-  lastUpdatedText:  { color: "#5A6A7A", textAlign: "center", fontSize: 10, marginTop: 6, fontFamily: "Almarai_400Regular" },
-  card:             { backgroundColor: "#21160D", borderRadius: 24, padding: 15, marginBottom: 12, borderWidth: 1, borderColor: "rgba(242,178,51,0.1)" },
-  cancelCard:       { backgroundColor: "#321717", borderRadius: 24, padding: 15, marginBottom: 12, borderWidth: 1, borderColor: "rgba(229,57,53,0.25)" },
+  ndWaitBtn:     { flex: 1, borderWidth: 1, borderColor: c.goldBorder, borderRadius: 12, paddingVertical: 11, alignItems: "center" },
+  ndWaitText:    { color: c.gold, fontSize: 12, fontFamily: "Almarai_700Bold" },
+  ndPickupBtn:   { flex: 1, backgroundColor: c.gold, borderRadius: 12, paddingVertical: 11, alignItems: "center" },
+  ndPickupText:  { color: c.bg, fontSize: 12, fontFamily: "Almarai_800ExtraBold" },
+  trackingCard:     { backgroundColor: c.surface, borderRadius: 24, padding: 15, marginBottom: 12, borderWidth: 1, borderColor: c.goldSoft },
+  liveBadge:        { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: c.successSoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginRight: "auto" },
+  liveDot:          { width: 6, height: 6, borderRadius: 3, backgroundColor: c.success },
+  liveBadgeText:    { color: c.success, fontSize: 10, fontFamily: "Almarai_700Bold" },
+  trackingWaiting:  { flexDirection: "row-reverse", alignItems: "center", gap: 8, padding: 12, backgroundColor: c.goldSoft, borderRadius: 14 },
+  trackingWaitingText: { color: c.info, fontSize: 12, fontFamily: "Almarai_700Bold" },
+  lastUpdatedText:  { color: c.textMuted, textAlign: "center", fontSize: 10, marginTop: 6, fontFamily: "Almarai_400Regular" },
+  card:             { backgroundColor: c.surface, borderRadius: 24, padding: 15, marginBottom: 12, borderWidth: 1, borderColor: c.goldSoft },
+  cancelCard:       { backgroundColor: c.dangerSoft, borderRadius: 24, padding: 15, marginBottom: 12, borderWidth: 1, borderColor: c.dangerSoft },
   cardTitleRow:     { flexDirection: "row-reverse", alignItems: "center", gap: 8, marginBottom: 13 },
-  cardTitle:        { color: "#FDF0DC", fontSize: 15, textAlign: "right", fontFamily: "Almarai_800ExtraBold" },
+  cardTitle:        { color: c.text, fontSize: 15, textAlign: "right", fontFamily: "Almarai_800ExtraBold" },
   timeRow:          { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center" },
-  timeLabel:        { color: "#8A6030", fontSize: 12, fontFamily: "Almarai_400Regular" },
-  timeValue:        { color: "#FDF0DC", fontSize: 13, fontFamily: "Almarai_700Bold" },
+  timeLabel:        { color: c.textSoft, fontSize: 12, fontFamily: "Almarai_400Regular" },
+  timeValue:        { color: c.text, fontSize: 13, fontFamily: "Almarai_700Bold" },
 
   counterBox: {
-    marginTop: 12, backgroundColor: "rgba(240,165,0,0.08)", borderRadius: 16,
-    padding: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.25)",
+    marginTop: 12, backgroundColor: c.goldSoft, borderRadius: 16,
+    padding: 14, borderWidth: 1, borderColor: c.goldSoft,
   },
-  counterTitle: { color: "#FFD27A", fontSize: 13, fontFamily: "Almarai_800ExtraBold", textAlign: "right" },
-  counterTime:  { color: "#FDF0DC", fontSize: 15, fontFamily: "Almarai_800ExtraBold", textAlign: "right", marginTop: 4 },
-  counterSub:   { color: "#A98961", fontSize: 11, fontFamily: "Almarai_400Regular", textAlign: "right", marginTop: 4, marginBottom: 10 },
+  counterTitle: { color: c.gold, fontSize: 13, fontFamily: "Almarai_800ExtraBold", textAlign: "right" },
+  counterTime:  { color: c.text, fontSize: 15, fontFamily: "Almarai_800ExtraBold", textAlign: "right", marginTop: 4 },
+  counterSub:   { color: c.textSoft, fontSize: 11, fontFamily: "Almarai_400Regular", textAlign: "right", marginTop: 4, marginBottom: 10 },
   counterBtns:  { flexDirection: "row-reverse", gap: 8 },
-  acceptBtn:    { flex: 1, backgroundColor: "#F2B233", borderRadius: 12, paddingVertical: 11, alignItems: "center" },
-  acceptBtnText:{ color: "#17100B", fontSize: 12, fontFamily: "Almarai_800ExtraBold" },
-  rejectBtn:    { flex: 1, backgroundColor: "rgba(229,57,53,0.12)", borderRadius: 12, paddingVertical: 11, alignItems: "center", borderWidth: 1, borderColor: "rgba(229,57,53,0.3)" },
-  rejectBtnText:{ color: "#FF9A9A", fontSize: 12, fontFamily: "Almarai_800ExtraBold" },
+  acceptBtn:    { flex: 1, backgroundColor: c.gold, borderRadius: 12, paddingVertical: 11, alignItems: "center" },
+  acceptBtnText:{ color: c.bg, fontSize: 12, fontFamily: "Almarai_800ExtraBold" },
+  rejectBtn:    { flex: 1, backgroundColor: c.dangerSoft, borderRadius: 12, paddingVertical: 11, alignItems: "center", borderWidth: 1, borderColor: c.dangerSoft },
+  rejectBtnText:{ color: c.danger, fontSize: 12, fontFamily: "Almarai_800ExtraBold" },
 
   waitingBox: {
     marginTop: 12, flexDirection: "row-reverse", alignItems: "center", gap: 6,
-    backgroundColor: "rgba(240,165,0,0.08)", borderRadius: 14, padding: 12,
+    backgroundColor: c.goldSoft, borderRadius: 14, padding: 12,
   },
-  waitingText: { color: "#FFD27A", fontSize: 12, fontFamily: "Almarai_700Bold" },
+  waitingText: { color: c.gold, fontSize: 12, fontFamily: "Almarai_700Bold" },
 
   payNowBtn: {
     marginTop: 12, flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 8,
-    backgroundColor: "#F2B233", borderRadius: 14, paddingVertical: 13,
+    backgroundColor: c.gold, borderRadius: 14, paddingVertical: 13,
   },
-  payNowBtnText: { color: "#17100B", fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
+  payNowBtnText: { color: c.bg, fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
   timeline:         { gap: 0 },
   trackItem:        { minHeight: 56, flexDirection: "row-reverse", alignItems: "center", position: "relative" },
-  trackIcon:        { width: 40, height: 40, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "#17100B", borderWidth: 1, borderColor: "rgba(242,178,51,0.1)", zIndex: 2 },
-  trackIconDone:    { backgroundColor: "rgba(242,178,51,0.09)", borderColor: "rgba(242,178,51,0.32)" },
-  trackIconActive:  { borderColor: "#F2B233", borderWidth: 2 },
-  trackLabel:       { flex: 1, color: "#6D4E2D", textAlign: "right", paddingRight: 11, fontSize: 13, fontFamily: "Almarai_700Bold" },
-  trackLabelDone:   { color: "#FDF0DC" },
-  trackLabelActive: { color: "#F2B233", fontFamily: "Almarai_800ExtraBold" },
-  trackLine:        { position: "absolute", right: 19, top: 40, width: 2, height: 18, backgroundColor: "rgba(242,178,51,0.1)", zIndex: 1 },
-  trackLineDone:    { backgroundColor: "#F2B233" },
-  chefName:         { color: "#FDF0DC", textAlign: "right", fontSize: 16, marginBottom: 8, fontFamily: "Almarai_800ExtraBold" },
+  trackIcon:        { width: 40, height: 40, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: c.bg, borderWidth: 1, borderColor: c.goldSoft, zIndex: 2 },
+  trackIconDone:    { backgroundColor: c.goldSoft, borderColor: c.goldBorder },
+  trackIconActive:  { borderColor: c.gold, borderWidth: 2 },
+  trackLabel:       { flex: 1, color: c.textMuted, textAlign: "right", paddingRight: 11, fontSize: 13, fontFamily: "Almarai_700Bold" },
+  trackLabelDone:   { color: c.text },
+  trackLabelActive: { color: c.gold, fontFamily: "Almarai_800ExtraBold" },
+  trackLine:        { position: "absolute", right: 19, top: 40, width: 2, height: 18, backgroundColor: c.goldSoft, zIndex: 1 },
+  trackLineDone:    { backgroundColor: c.gold },
+  chefName:         { color: c.text, textAlign: "right", fontSize: 16, marginBottom: 8, fontFamily: "Almarai_800ExtraBold" },
   inlineRow:        { flexDirection: "row-reverse", alignItems: "center", gap: 5 },
-  mutedText:        { flex: 1, color: "#8A6030", textAlign: "right", fontSize: 12, fontFamily: "Almarai_400Regular" },
-  itemRow:          { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: "rgba(242,178,51,0.07)", gap: 12 },
+  mutedText:        { flex: 1, color: c.textSoft, textAlign: "right", fontSize: 12, fontFamily: "Almarai_400Regular" },
+  itemRow:          { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: c.goldSoft, gap: 12 },
   itemRowLast:      { borderBottomWidth: 0 },
   itemInfo:         { flex: 1 },
-  itemName:         { color: "#FDF0DC", textAlign: "right", fontSize: 14, lineHeight: 22, fontFamily: "Almarai_800ExtraBold" },
-  itemQty:          { color: "#8A6030", textAlign: "right", fontSize: 11, marginTop: 4, fontFamily: "Almarai_400Regular" },
-  itemPrice:        { color: "#F2B233", fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
-  emptyMiniText:    { color: "#8A6030", textAlign: "right", fontSize: 12, fontFamily: "Almarai_400Regular" },
-  paymentRow:       { flexDirection: "row-reverse", alignItems: "center", gap: 11, backgroundColor: "#17100B", borderRadius: 18, padding: 13, borderWidth: 1, borderColor: "rgba(242,178,51,0.1)" },
-  paymentIconBox:   { width: 42, height: 42, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(242,178,51,0.08)" },
+  itemName:         { color: c.text, textAlign: "right", fontSize: 14, lineHeight: 22, fontFamily: "Almarai_800ExtraBold" },
+  itemQty:          { color: c.textSoft, textAlign: "right", fontSize: 11, marginTop: 4, fontFamily: "Almarai_400Regular" },
+  itemPrice:        { color: c.gold, fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
+  emptyMiniText:    { color: c.textSoft, textAlign: "right", fontSize: 12, fontFamily: "Almarai_400Regular" },
+  paymentRow:       { flexDirection: "row-reverse", alignItems: "center", gap: 11, backgroundColor: c.bg, borderRadius: 18, padding: 13, borderWidth: 1, borderColor: c.goldSoft },
+  paymentIconBox:   { width: 42, height: 42, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: c.goldSoft },
   paymentInfo:      { flex: 1 },
-  paymentTitle:     { color: "#FDF0DC", textAlign: "right", fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
+  paymentTitle:     { color: c.text, textAlign: "right", fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
   paymentStatus:    { textAlign: "right", fontSize: 11, marginTop: 4, fontFamily: "Almarai_700Bold" },
   summaryRow:       { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  summaryLabel:     { color: "#8A6030", fontSize: 13, fontFamily: "Almarai_400Regular" },
-  summaryValue:     { color: "#FDF0DC", fontSize: 13, fontFamily: "Almarai_700Bold" },
-  summaryDivider:   { height: 1, backgroundColor: "rgba(242,178,51,0.12)", marginVertical: 4 },
-  totalLabel:       { color: "#FDF0DC", fontSize: 16, fontFamily: "Almarai_800ExtraBold" },
-  totalValue:       { color: "#F2B233", fontSize: 20, fontFamily: "Almarai_800ExtraBold" },
-  cashHint:         { color: "#8A6030", textAlign: "right", fontSize: 11, marginTop: 8, fontFamily: "Almarai_400Regular" },
-  addressText:      { color: "#A98961", textAlign: "right", fontSize: 13, lineHeight: 23, fontFamily: "Almarai_400Regular" },
-  cancelText:       { color: "#FFCECE", textAlign: "right", fontSize: 13, lineHeight: 23, fontFamily: "Almarai_400Regular" },
-  reviewBtn:        { minHeight: 56, borderRadius: 20, backgroundColor: "#F2B233", flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 4 },
-  reviewBtnText:    { color: "#17100B", fontSize: 16, fontFamily: "Almarai_800ExtraBold" },
+  summaryLabel:     { color: c.textSoft, fontSize: 13, fontFamily: "Almarai_400Regular" },
+  summaryValue:     { color: c.text, fontSize: 13, fontFamily: "Almarai_700Bold" },
+  summaryDivider:   { height: 1, backgroundColor: c.border, marginVertical: 4 },
+  totalLabel:       { color: c.text, fontSize: 16, fontFamily: "Almarai_800ExtraBold" },
+  totalValue:       { color: c.gold, fontSize: 20, fontFamily: "Almarai_800ExtraBold" },
+  cashHint:         { color: c.textSoft, textAlign: "right", fontSize: 11, marginTop: 8, fontFamily: "Almarai_400Regular" },
+  addressText:      { color: c.textSoft, textAlign: "right", fontSize: 13, lineHeight: 23, fontFamily: "Almarai_400Regular" },
+  cancelText:       { color: c.danger, textAlign: "right", fontSize: 13, lineHeight: 23, fontFamily: "Almarai_400Regular" },
+  reviewBtn:        { minHeight: 56, borderRadius: 20, backgroundColor: c.gold, flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 4 },
+  reviewBtnText:    { color: c.bg, fontSize: 16, fontFamily: "Almarai_800ExtraBold" },
   emptyWrap:        { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 30 },
-  emptyIcon:        { width: 116, height: 116, borderRadius: 40, alignItems: "center", justifyContent: "center", backgroundColor: "#21160D", borderWidth: 1, borderColor: "rgba(229,57,53,0.18)", marginBottom: 22 },
-  emptyTitle:       { color: "#FDF0DC", fontSize: 20, textAlign: "center", fontFamily: "Almarai_800ExtraBold" },
-  emptyText:        { color: "#A98961", textAlign: "center", fontSize: 13, lineHeight: 23, marginTop: 8, marginBottom: 20, fontFamily: "Almarai_400Regular" },
-  primaryBtn:       { minWidth: 180, borderRadius: 17, backgroundColor: "#F2B233", paddingHorizontal: 22, paddingVertical: 13, alignItems: "center" },
-  primaryBtnText:   { color: "#17100B", fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
+  emptyIcon:        { width: 116, height: 116, borderRadius: 40, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderWidth: 1, borderColor: c.dangerSoft, marginBottom: 22 },
+  emptyTitle:       { color: c.text, fontSize: 20, textAlign: "center", fontFamily: "Almarai_800ExtraBold" },
+  emptyText:        { color: c.textSoft, textAlign: "center", fontSize: 13, lineHeight: 23, marginTop: 8, marginBottom: 20, fontFamily: "Almarai_400Regular" },
+  primaryBtn:       { minWidth: 180, borderRadius: 17, backgroundColor: c.gold, paddingHorizontal: 22, paddingVertical: 13, alignItems: "center" },
+  primaryBtnText:   { color: c.bg, fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
 });

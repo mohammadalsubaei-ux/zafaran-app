@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Almarai_400Regular,
@@ -71,62 +72,62 @@ type Order = {
   items?: any[];
 };
 
-const STATUS_META: Record<string, any> = {
+const makeStatusMeta = (c: Colors): Record<string, any> => ({
   pending: {
     label: "بانتظار القبول",
-    color: "#F2B233",
-    bg: "rgba(242,178,51,0.12)",
+    color: c.gold,
+    bg: c.goldSoft,
     Icon: Clock3,
   },
   accepted: {
     label: "تم القبول",
-    color: "#4FC3F7",
-    bg: "rgba(79,195,247,0.12)",
+    color: c.info,
+    bg: c.goldSoft,
     Icon: CheckCircle2,
   },
   preparing: {
     label: "قيد التحضير",
-    color: "#FF8A3D",
-    bg: "rgba(255,138,61,0.12)",
+    color: c.gold,
+    bg: c.goldSoft,
     Icon: Flame,
   },
   ready: {
     label: "جاهز للاستلام/التوصيل",
-    color: "#C084FC",
-    bg: "rgba(192,132,252,0.13)",
+    color: c.info,
+    bg: c.goldSoft,
     Icon: PackageCheck,
   },
   delivering: {
     label: "في الطريق",
-    color: "#03A9F4",
-    bg: "rgba(3,169,244,0.13)",
+    color: c.info,
+    bg: c.goldSoft,
     Icon: Truck,
   },
   delivered: {
     label: "تم التسليم",
-    color: "#4CAF50",
-    bg: "rgba(76,175,80,0.13)",
+    color: c.success,
+    bg: c.successSoft,
     Icon: CheckCircle2,
   },
   cancelled: {
     label: "ملغي",
-    color: "#E53935",
-    bg: "rgba(229,57,53,0.13)",
+    color: c.danger,
+    bg: c.dangerSoft,
     Icon: XCircle,
   },
   pending_time: {
     label: "بانتظار تأكيد الوقت",
-    color: "#FF9800",
-    bg: "rgba(255,152,0,0.13)",
+    color: c.gold,
+    bg: c.goldSoft,
     Icon: CalendarClock,
   },
   time_confirmed: {
     label: "تم تأكيد الوقت",
-    color: "#8BC34A",
-    bg: "rgba(139,195,74,0.13)",
+    color: c.success,
+    bg: c.successSoft,
     Icon: CalendarClock,
   },
-};
+});
 
 const TRACK_STEPS_DELIVERY = [
   { id: "accepted",   label: "قبول" },
@@ -209,6 +210,9 @@ function getItemQty(item: any) {
 
 export default function OrdersScreen() {
   const router = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
+  const statusMeta = useMemo(() => makeStatusMeta(c), [c]);
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [isGuest, setIsGuest] = useState(false);
@@ -376,7 +380,7 @@ export default function OrdersScreen() {
       <View>
         <View style={s.heroCard}>
           <View style={s.heroIcon}>
-            <ShoppingBag size={24} color="#F2B233" strokeWidth={1.8} />
+            <ShoppingBag size={24} color={c.gold} strokeWidth={1.8} />
           </View>
 
           <View style={s.heroInfo}>
@@ -389,25 +393,25 @@ export default function OrdersScreen() {
             style={s.refreshBtn}
             onPress={() => loadOrders(true)}
           >
-            <RefreshCw size={17} color="#F2B233" strokeWidth={1.8} />
+            <RefreshCw size={17} color={c.gold} strokeWidth={1.8} />
           </TouchableOpacity>
         </View>
 
         <View style={s.summaryRow}>
           <View style={s.summaryCard}>
-            <Package size={17} color="#F2B233" strokeWidth={1.7} />
+            <Package size={17} color={c.gold} strokeWidth={1.7} />
             <Text style={s.summaryValue}>{activeOrders.length}</Text>
             <Text style={s.summaryLabel}>نشطة</Text>
           </View>
 
           <View style={s.summaryCard}>
-            <History size={17} color="#A98961" strokeWidth={1.7} />
+            <History size={17} color={c.textSoft} strokeWidth={1.7} />
             <Text style={s.summaryValue}>{historyOrders.length}</Text>
             <Text style={s.summaryLabel}>السجل</Text>
           </View>
 
           <View style={s.summaryCard}>
-            <ShoppingBag size={17} color="#F2B233" strokeWidth={1.7} />
+            <ShoppingBag size={17} color={c.gold} strokeWidth={1.7} />
             <Text style={s.summaryValue}>{orders.length}</Text>
             <Text style={s.summaryLabel}>الإجمالي</Text>
           </View>
@@ -421,7 +425,7 @@ export default function OrdersScreen() {
           >
             <Package
               size={15}
-              color={tab === "active" ? "#F2B233" : "#8A6030"}
+              color={tab === "active" ? c.gold : c.textSoft}
               strokeWidth={1.8}
             />
             <Text style={[s.tabText, tab === "active" && s.tabTextActive]}>
@@ -436,7 +440,7 @@ export default function OrdersScreen() {
           >
             <History
               size={15}
-              color={tab === "history" ? "#F2B233" : "#8A6030"}
+              color={tab === "history" ? c.gold : c.textSoft}
               strokeWidth={1.8}
             />
             <Text style={[s.tabText, tab === "history" && s.tabTextActive]}>
@@ -447,7 +451,7 @@ export default function OrdersScreen() {
 
         {error ? (
           <TouchableOpacity activeOpacity={0.86} style={s.errorBox} onPress={onRefresh}>
-            <AlertCircle size={18} color="#FFB0B0" strokeWidth={1.8} />
+            <AlertCircle size={18} color={c.danger} strokeWidth={1.8} />
             <View style={s.errorInfo}>
               <Text style={s.errorTitle}>حدثت مشكلة</Text>
               <Text style={s.errorText}>{error}</Text>
@@ -468,7 +472,7 @@ export default function OrdersScreen() {
 
   const renderOrder = useCallback(
     ({ item }: { item: Order }) => {
-      const st = STATUS_META[item.status] || STATUS_META.pending;
+      const st = statusMeta[item.status] || statusMeta.pending;
       const StatusIcon = st.Icon;
 
       const orderItems = item.order_items || item.items || [];
@@ -501,7 +505,7 @@ export default function OrdersScreen() {
             <View style={s.badgesWrap}>
               {isPreorder ? (
                 <View style={s.preorderTag}>
-                  <CalendarDays size={10} color="#FF9800" strokeWidth={1.9} />
+                  <CalendarDays size={10} color={c.gold} strokeWidth={1.9} />
                   <Text style={s.preorderTagText}>حجز مسبق</Text>
                 </View>
               ) : null}
@@ -515,7 +519,7 @@ export default function OrdersScreen() {
 
           <View style={s.chefRow}>
             <View style={s.chefIcon}>
-              <Store size={17} color="#F2B233" strokeWidth={1.7} />
+              <Store size={17} color={c.gold} strokeWidth={1.7} />
             </View>
 
             <View style={s.chefInfo}>
@@ -529,7 +533,7 @@ export default function OrdersScreen() {
           {/* مفاوضة وقت الحجز المسبق */}
           {isPreorder && !isFinished && negotiation === "pending" ? (
             <View style={s.timeBoxWaiting}>
-              <Clock3 size={14} color="#FF9800" strokeWidth={1.9} />
+              <Clock3 size={14} color={c.gold} strokeWidth={1.9} />
               <Text style={s.timeTextWaiting}>
                 {item.proposed_time
                   ? `طلبت التسليم ${formatDateTime(item.proposed_time)} — بانتظار تأكيد المتجر`
@@ -541,7 +545,7 @@ export default function OrdersScreen() {
           {isPreorder && !isFinished && negotiation === "chef_countered" ? (
             <View style={s.counterBox}>
               <View style={s.counterHead}>
-                <CalendarClock size={15} color="#FF9800" strokeWidth={1.9} />
+                <CalendarClock size={15} color={c.gold} strokeWidth={1.9} />
                 <Text style={s.counterTitle}>المتجر اقترح موعداً بديلاً</Text>
               </View>
 
@@ -556,7 +560,7 @@ export default function OrdersScreen() {
               </Text>
 
               {isResponding ? (
-                <ActivityIndicator color="#F2B233" style={{ marginTop: 12 }} />
+                <ActivityIndicator color={c.gold} style={{ marginTop: 12 }} />
               ) : (
                 <View style={s.counterBtns}>
                   <TouchableOpacity
@@ -564,7 +568,7 @@ export default function OrdersScreen() {
                     style={s.counterAccept}
                     onPress={() => respondToTime(String(item.id), "accept")}
                   >
-                    <Check size={14} color="#8BC34A" strokeWidth={2.2} />
+                    <Check size={14} color={c.success} strokeWidth={2.2} />
                     <Text style={s.counterAcceptText}>أوافق على الموعد</Text>
                   </TouchableOpacity>
 
@@ -573,7 +577,7 @@ export default function OrdersScreen() {
                     style={s.counterReject}
                     onPress={() => confirmReject(String(item.id))}
                   >
-                    <X size={14} color="#E53935" strokeWidth={2.2} />
+                    <X size={14} color={c.danger} strokeWidth={2.2} />
                     <Text style={s.counterRejectText}>رفض</Text>
                   </TouchableOpacity>
                 </View>
@@ -583,7 +587,7 @@ export default function OrdersScreen() {
 
           {isPreorder && !isFinished && negotiation === "accepted" && item.confirmed_time ? (
             <View style={s.timeBoxConfirmed}>
-              <CheckCircle2 size={14} color="#8BC34A" strokeWidth={1.9} />
+              <CheckCircle2 size={14} color={c.success} strokeWidth={1.9} />
               <Text style={s.timeTextConfirmed}>
                 الموعد المؤكد: {formatDateTime(item.confirmed_time)}
               </Text>
@@ -647,26 +651,26 @@ export default function OrdersScreen() {
 
           <View style={s.footer}>
             <View style={s.totalWrap}>
-              <CircleDollarSign size={16} color="#F2B233" strokeWidth={1.8} />
+              <CircleDollarSign size={16} color={c.gold} strokeWidth={1.8} />
               <Text style={s.total}>{money(item.total)}</Text>
             </View>
 
             <View style={s.footerLeft}>
               <Text style={s.date}>{formatDate(item.created_at)}</Text>
-              <ChevronLeft size={18} color="#5A3A18" strokeWidth={1.8} />
+              <ChevronLeft size={18} color={c.textMuted} strokeWidth={1.8} />
             </View>
           </View>
         </TouchableOpacity>
       );
     },
-    [confirmReject, openOrder, respondToTime, respondingId]
+    [c, s, statusMeta, confirmReject, openOrder, respondToTime, respondingId]
   );
 
   if (!fontsLoaded || loading) {
     return (
       <SafeAreaView style={s.safe}>
         <View style={s.loadingWrap}>
-          <ActivityIndicator color="#F2B233" size="large" />
+          <ActivityIndicator color={c.gold} size="large" />
           <Text style={s.loadingText}>جاري تحميل طلباتك...</Text>
         </View>
       </SafeAreaView>
@@ -678,7 +682,7 @@ export default function OrdersScreen() {
       <SafeAreaView style={s.safe}>
         <View style={s.guestWrap}>
           <View style={s.guestIcon}>
-            <ShoppingBag size={54} color="#F2B233" strokeWidth={1.4} />
+            <ShoppingBag size={54} color={c.gold} strokeWidth={1.4} />
           </View>
 
           <Text style={s.guestTitle}>سجل دخولك أولًا</Text>
@@ -718,16 +722,16 @@ export default function OrdersScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#F2B233"
+            tintColor={c.gold}
           />
         }
         ListEmptyComponent={
           <View style={s.emptyWrap}>
             <View style={s.emptyIcon}>
               {tab === "active" ? (
-                <Package size={54} color="#5A3A18" strokeWidth={1.5} />
+                <Package size={54} color={c.textMuted} strokeWidth={1.5} />
               ) : (
-                <History size={54} color="#5A3A18" strokeWidth={1.5} />
+                <History size={54} color={c.textMuted} strokeWidth={1.5} />
               )}
             </View>
 
@@ -743,7 +747,7 @@ export default function OrdersScreen() {
 
             {tab === "active" ? (
               <TouchableOpacity activeOpacity={0.9} style={s.primaryBtn} onPress={goHome}>
-                <ShoppingBag size={17} color="#17100B" strokeWidth={2} />
+                <ShoppingBag size={17} color={c.onGold} strokeWidth={2} />
                 <Text style={s.primaryBtnText}>اطلب الآن</Text>
               </TouchableOpacity>
             ) : null}
@@ -754,10 +758,10 @@ export default function OrdersScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const make_s = (c: Colors) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
   },
 
   listContent: {
@@ -772,7 +776,7 @@ const s = StyleSheet.create({
   },
 
   loadingText: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 14,
     fontFamily: "Almarai_700Bold",
   },
@@ -782,9 +786,9 @@ const s = StyleSheet.create({
     marginTop: 12,
     marginBottom: 10,
     borderRadius: 24,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.12)",
+    borderColor: c.border,
     padding: 14,
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -795,9 +799,9 @@ const s = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 18,
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.14)",
+    borderColor: c.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -808,13 +812,13 @@ const s = StyleSheet.create({
   },
 
   heroTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 20,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   heroSub: {
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 12,
     marginTop: 4,
     fontFamily: "Almarai_400Regular",
@@ -825,9 +829,9 @@ const s = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 14,
-    backgroundColor: "rgba(242,178,51,0.07)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.12)",
+    borderColor: c.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -843,22 +847,22 @@ const s = StyleSheet.create({
     flex: 1,
     minHeight: 72,
     borderRadius: 19,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.08)",
+    borderColor: c.goldSoft,
     alignItems: "center",
     justifyContent: "center",
     gap: 3,
   },
 
   summaryValue: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 17,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   summaryLabel: {
-    color: "#8A6030",
+    color: c.textSoft,
     fontSize: 10,
     fontFamily: "Almarai_400Regular",
   },
@@ -874,9 +878,9 @@ const s = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     borderRadius: 16,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.08)",
+    borderColor: c.goldSoft,
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
@@ -884,18 +888,18 @@ const s = StyleSheet.create({
   },
 
   tabBtnActive: {
-    backgroundColor: "rgba(242,178,51,0.10)",
-    borderColor: "rgba(242,178,51,0.30)",
+    backgroundColor: c.border,
+    borderColor: c.goldBorder,
   },
 
   tabText: {
-    color: "#8A6030",
+    color: c.textSoft,
     fontSize: 12,
     fontFamily: "Almarai_700Bold",
   },
 
   tabTextActive: {
-    color: "#F2B233",
+    color: c.gold,
     fontFamily: "Almarai_800ExtraBold",
   },
 
@@ -904,9 +908,9 @@ const s = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 18,
     padding: 13,
-    backgroundColor: "#321717",
+    backgroundColor: c.dangerSoft,
     borderWidth: 1,
-    borderColor: "rgba(229,57,53,0.22)",
+    borderColor: c.dangerSoft,
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 10,
@@ -917,14 +921,14 @@ const s = StyleSheet.create({
   },
 
   errorTitle: {
-    color: "#FFB0B0",
+    color: c.danger,
     textAlign: "right",
     fontSize: 13,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   errorText: {
-    color: "#FFCECE",
+    color: c.danger,
     textAlign: "right",
     marginTop: 3,
     fontSize: 11,
@@ -933,23 +937,23 @@ const s = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderRadius: 24,
     padding: 14,
     marginHorizontal: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.10)",
+    borderColor: c.border,
   },
 
   cardCancelled: {
-    borderColor: "rgba(229,57,53,0.18)",
+    borderColor: c.dangerSoft,
     opacity: 0.9,
   },
 
   cardPreorder: {
-    borderColor: "rgba(255,152,0,0.30)",
-    backgroundColor: "#20150A",
+    borderColor: c.border,
+    backgroundColor: c.surface,
   },
 
   cardHeader: {
@@ -966,14 +970,14 @@ const s = StyleSheet.create({
   },
 
   orderLabel: {
-    color: "#6D4E2D",
+    color: c.textMuted,
     fontSize: 10,
     fontFamily: "Almarai_400Regular",
     marginBottom: 3,
   },
 
   orderId: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 14,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -987,14 +991,14 @@ const s = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "rgba(255,152,0,0.14)",
+    backgroundColor: c.border,
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 999,
   },
 
   preorderTagText: {
-    color: "#FF9800",
+    color: c.gold,
     fontSize: 10,
     fontFamily: "Almarai_700Bold",
   },
@@ -1018,9 +1022,9 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     borderRadius: 18,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.07)",
+    borderColor: c.goldSoft,
     padding: 11,
     marginBottom: 10,
   },
@@ -1029,7 +1033,7 @@ const s = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 14,
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1040,14 +1044,14 @@ const s = StyleSheet.create({
   },
 
   chefLabel: {
-    color: "#6D4E2D",
+    color: c.textMuted,
     fontSize: 10,
     fontFamily: "Almarai_400Regular",
     marginBottom: 2,
   },
 
   chefName: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 13,
     fontFamily: "Almarai_800ExtraBold",
     textAlign: "right",
@@ -1057,9 +1061,9 @@ const s = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 7,
-    backgroundColor: "rgba(255,152,0,0.09)",
+    backgroundColor: c.border,
     borderWidth: 1,
-    borderColor: "rgba(255,152,0,0.20)",
+    borderColor: c.border,
     borderRadius: 16,
     padding: 11,
     marginBottom: 10,
@@ -1067,7 +1071,7 @@ const s = StyleSheet.create({
 
   timeTextWaiting: {
     flex: 1,
-    color: "#FF9800",
+    color: c.gold,
     textAlign: "right",
     fontSize: 12,
     lineHeight: 20,
@@ -1078,9 +1082,9 @@ const s = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 7,
-    backgroundColor: "rgba(139,195,74,0.09)",
+    backgroundColor: c.border,
     borderWidth: 1,
-    borderColor: "rgba(139,195,74,0.20)",
+    borderColor: c.border,
     borderRadius: 16,
     padding: 11,
     marginBottom: 10,
@@ -1088,7 +1092,7 @@ const s = StyleSheet.create({
 
   timeTextConfirmed: {
     flex: 1,
-    color: "#8BC34A",
+    color: c.success,
     textAlign: "right",
     fontSize: 12,
     lineHeight: 20,
@@ -1096,9 +1100,9 @@ const s = StyleSheet.create({
   },
 
   counterBox: {
-    backgroundColor: "rgba(255,152,0,0.08)",
+    backgroundColor: c.border,
     borderWidth: 1,
-    borderColor: "rgba(255,152,0,0.30)",
+    borderColor: c.border,
     borderRadius: 18,
     padding: 13,
     marginBottom: 10,
@@ -1112,14 +1116,14 @@ const s = StyleSheet.create({
   },
 
   counterTitle: {
-    color: "#FF9800",
+    color: c.gold,
     textAlign: "right",
     fontSize: 13,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   counterOld: {
-    color: "#8A6030",
+    color: c.textSoft,
     textAlign: "right",
     fontSize: 11,
     lineHeight: 19,
@@ -1128,7 +1132,7 @@ const s = StyleSheet.create({
   },
 
   counterNew: {
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "right",
     fontSize: 13,
     lineHeight: 22,
@@ -1146,9 +1150,9 @@ const s = StyleSheet.create({
     flex: 2,
     minHeight: 44,
     borderRadius: 14,
-    backgroundColor: "rgba(139,195,74,0.13)",
+    backgroundColor: c.border,
     borderWidth: 1,
-    borderColor: "rgba(139,195,74,0.35)",
+    borderColor: c.border,
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
@@ -1156,7 +1160,7 @@ const s = StyleSheet.create({
   },
 
   counterAcceptText: {
-    color: "#8BC34A",
+    color: c.success,
     fontSize: 13,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -1165,9 +1169,9 @@ const s = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     borderRadius: 14,
-    backgroundColor: "rgba(229,57,53,0.10)",
+    backgroundColor: c.dangerSoft,
     borderWidth: 1,
-    borderColor: "rgba(229,57,53,0.25)",
+    borderColor: c.dangerSoft,
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
@@ -1175,7 +1179,7 @@ const s = StyleSheet.create({
   },
 
   counterRejectText: {
-    color: "#E53935",
+    color: c.danger,
     fontSize: 13,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -1194,27 +1198,27 @@ const s = StyleSheet.create({
 
   itemName: {
     flex: 1,
-    color: "#A98961",
+    color: c.textSoft,
     textAlign: "right",
     fontSize: 12,
     fontFamily: "Almarai_400Regular",
   },
 
   itemQty: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 12,
     fontFamily: "Almarai_700Bold",
   },
 
   noItems: {
-    color: "#6D4E2D",
+    color: c.textMuted,
     textAlign: "right",
     fontSize: 12,
     fontFamily: "Almarai_400Regular",
   },
 
   moreItems: {
-    color: "#F2B233",
+    color: c.gold,
     textAlign: "right",
     fontSize: 11,
     fontFamily: "Almarai_700Bold",
@@ -1235,15 +1239,15 @@ const s = StyleSheet.create({
     flex: 1,
     height: 5,
     borderRadius: 999,
-    backgroundColor: "rgba(242,178,51,0.12)",
+    backgroundColor: c.border,
   },
 
   trackStepDone: {
-    backgroundColor: "rgba(242,178,51,0.75)",
+    backgroundColor: c.goldBorder,
   },
 
   trackStepCurrent: {
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
   },
 
   trackLabels: {
@@ -1254,14 +1258,14 @@ const s = StyleSheet.create({
 
   trackLabel: {
     flex: 1,
-    color: "#5A3A18",
+    color: c.textMuted,
     textAlign: "center",
     fontSize: 8,
     fontFamily: "Almarai_400Regular",
   },
 
   trackLabelDone: {
-    color: "#A98961",
+    color: c.textSoft,
     fontFamily: "Almarai_700Bold",
   },
 
@@ -1270,7 +1274,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderTopWidth: 1,
-    borderTopColor: "rgba(242,178,51,0.07)",
+    borderTopColor: c.goldSoft,
     paddingTop: 12,
   },
 
@@ -1281,7 +1285,7 @@ const s = StyleSheet.create({
   },
 
   total: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 15,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -1293,7 +1297,7 @@ const s = StyleSheet.create({
   },
 
   date: {
-    color: "#6D4E2D",
+    color: c.textMuted,
     fontSize: 11,
     fontFamily: "Almarai_400Regular",
   },
@@ -1308,23 +1312,23 @@ const s = StyleSheet.create({
     width: 108,
     height: 108,
     borderRadius: 38,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.08)",
+    borderColor: c.goldSoft,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 18,
   },
 
   emptyTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "center",
     fontSize: 16,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   emptySub: {
-    color: "#8A6030",
+    color: c.textSoft,
     textAlign: "center",
     marginTop: 8,
     marginBottom: 18,
@@ -1336,7 +1340,7 @@ const s = StyleSheet.create({
   primaryBtn: {
     minHeight: 48,
     borderRadius: 16,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
     paddingHorizontal: 22,
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -1345,7 +1349,7 @@ const s = StyleSheet.create({
   },
 
   primaryBtnText: {
-    color: "#17100B",
+    color: c.bg,
     fontSize: 13,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -1363,20 +1367,20 @@ const s = StyleSheet.create({
     borderRadius: 38,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.12)",
+    borderColor: c.border,
     marginBottom: 22,
   },
 
   guestTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 20,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   guestSub: {
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 13,
     lineHeight: 23,
     textAlign: "center",
@@ -1392,7 +1396,7 @@ const s = StyleSheet.create({
   },
 
   guestSecondaryText: {
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 13,
     fontFamily: "Almarai_700Bold",
   },
