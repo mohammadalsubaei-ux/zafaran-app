@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Almarai_400Regular,
@@ -28,6 +29,8 @@ type Blocker = { code: string; message: string };
 
 export default function DeleteAccountScreen() {
   const router = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
 
   const [userId, setUserId] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
@@ -139,7 +142,7 @@ export default function DeleteAccountScreen() {
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
         <TouchableOpacity activeOpacity={0.85} style={s.backBtn} onPress={() => router.back()}>
-          <ArrowRight size={20} color="#F0A500" strokeWidth={1.9} />
+          <ArrowRight size={20} color={c.gold} strokeWidth={1.9} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>حذف الحساب</Text>
         <View style={{ width: 38 }} />
@@ -151,14 +154,14 @@ export default function DeleteAccountScreen() {
       >
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
           <View style={s.iconWrap}>
-            <Trash2 size={40} color="#E53935" strokeWidth={1.5} />
+            <Trash2 size={40} color={c.danger} strokeWidth={1.5} />
           </View>
 
           <Text style={s.title}>حذف حسابك من زعفران</Text>
 
           {checking ? (
             <View style={s.loadingWrap}>
-              <ActivityIndicator color="#F0A500" size="large" />
+              <ActivityIndicator color={c.gold} size="large" />
               <Text style={s.loadingText}>جاري التحقق من حالة حسابك...</Text>
             </View>
           ) : (
@@ -167,7 +170,7 @@ export default function DeleteAccountScreen() {
               {blockers.length > 0 ? (
                 <View style={s.blockersCard}>
                   <View style={s.blockersHead}>
-                    <AlertTriangle size={18} color="#F0A500" strokeWidth={1.9} />
+                    <AlertTriangle size={18} color={c.gold} strokeWidth={1.9} />
                     <Text style={s.blockersTitle}>ما نقدر نحذف حسابك حالياً</Text>
                   </View>
 
@@ -187,7 +190,7 @@ export default function DeleteAccountScreen() {
               {/* ما سيحدث بعد الحذف — شفافية مطلوبة قبل قرار لا رجعة فيه */}
               <View style={s.infoCard}>
                 <View style={s.infoHead}>
-                  <Info size={17} color="#A98961" strokeWidth={1.8} />
+                  <Info size={17} color={c.textSoft} strokeWidth={1.8} />
                   <Text style={s.infoTitle}>وش يصير بعد الحذف</Text>
                 </View>
 
@@ -205,7 +208,7 @@ export default function DeleteAccountScreen() {
                     <TextInput
                       style={s.input}
                       placeholder="••••••"
-                      placeholderTextColor="#5A3A18"
+                      placeholderTextColor={c.textMuted}
                       secureTextEntry
                       value={password}
                       onChangeText={setPassword}
@@ -243,10 +246,10 @@ export default function DeleteAccountScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const make_s = (c: Colors) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#0E0700",
+    backgroundColor: c.bg,
   },
 
   header: {
@@ -256,7 +259,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(240,165,0,0.1)",
+    borderBottomColor: c.goldSoft,
   },
 
   backBtn: {
@@ -264,13 +267,13 @@ const s = StyleSheet.create({
     height: 38,
     borderRadius: 13,
     borderWidth: 1,
-    borderColor: "rgba(240,165,0,0.25)",
+    borderColor: c.goldBorder,
     alignItems: "center",
     justifyContent: "center",
   },
 
   headerTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 16,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -287,14 +290,14 @@ const s = StyleSheet.create({
     alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(229,57,53,0.09)",
+    backgroundColor: c.dangerSoft,
     borderWidth: 1,
-    borderColor: "rgba(229,57,53,0.2)",
+    borderColor: c.dangerSoft,
     marginBottom: 18,
   },
 
   title: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 20,
     textAlign: "center",
     marginBottom: 22,
@@ -308,17 +311,17 @@ const s = StyleSheet.create({
   },
 
   loadingText: {
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 13,
     fontFamily: "Almarai_400Regular",
   },
 
   blockersCard: {
-    backgroundColor: "rgba(240,165,0,0.07)",
+    backgroundColor: c.goldSoft,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: "rgba(240,165,0,0.28)",
+    borderColor: c.goldBorder,
     marginBottom: 16,
   },
 
@@ -330,7 +333,7 @@ const s = StyleSheet.create({
   },
 
   blockersTitle: {
-    color: "#F0A500",
+    color: c.gold,
     fontSize: 14,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -346,13 +349,13 @@ const s = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#F0A500",
+    backgroundColor: c.gold,
     marginTop: 7,
   },
 
   blockerText: {
     flex: 1,
-    color: "#FFD27A",
+    color: c.gold,
     fontSize: 12.5,
     lineHeight: 21,
     textAlign: "right",
@@ -366,21 +369,21 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(240,165,0,0.35)",
+    borderColor: c.goldBorder,
   },
 
   recheckText: {
-    color: "#F0A500",
+    color: c.gold,
     fontSize: 12,
     fontFamily: "Almarai_700Bold",
   },
 
   infoCard: {
-    backgroundColor: "#1C1000",
+    backgroundColor: c.surface,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: "rgba(240,165,0,0.12)",
+    borderColor: c.border,
     marginBottom: 16,
   },
 
@@ -392,13 +395,13 @@ const s = StyleSheet.create({
   },
 
   infoTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 14,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   infoLine: {
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 12.5,
     lineHeight: 24,
     textAlign: "right",
@@ -406,15 +409,15 @@ const s = StyleSheet.create({
   },
 
   confirmCard: {
-    backgroundColor: "#1C1000",
+    backgroundColor: c.surface,
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: "rgba(229,57,53,0.22)",
+    borderColor: c.dangerSoft,
   },
 
   label: {
-    color: "#C97D20",
+    color: c.gold,
     fontSize: 11,
     textAlign: "right",
     marginBottom: 7,
@@ -422,17 +425,17 @@ const s = StyleSheet.create({
   },
 
   inputWrap: {
-    backgroundColor: "#251400",
+    backgroundColor: c.surfaceAlt,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "rgba(240,165,0,0.2)",
+    borderColor: c.goldBorder,
     paddingHorizontal: 14,
     marginBottom: 16,
   },
 
   input: {
     height: 50,
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 15,
     fontFamily: "Almarai_400Regular",
   },
@@ -440,7 +443,7 @@ const s = StyleSheet.create({
   deleteBtn: {
     minHeight: 52,
     borderRadius: 16,
-    backgroundColor: "#C62828",
+    backgroundColor: c.danger,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -462,7 +465,7 @@ const s = StyleSheet.create({
   },
 
   cancelText: {
-    color: "#F0A500",
+    color: c.gold,
     fontSize: 14,
     fontFamily: "Almarai_700Bold",
   },

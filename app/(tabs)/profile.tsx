@@ -270,7 +270,7 @@ export default function ProfileScreen() {
     if (user?.role === "chef") {
       return {
         label: user?.gender === "female" ? t.chefFemale : t.chef,
-        color: "#F2B233",
+        color: c.gold,
         bg: "rgba(242,178,51,0.12)",
         Icon: Store,
       };
@@ -279,7 +279,7 @@ export default function ProfileScreen() {
     if (user?.role === "driver") {
       return {
         label: t.driver,
-        color: "#03A9F4",
+        color: c.info,
         bg: "rgba(3,169,244,0.12)",
         Icon: Truck,
       };
@@ -287,7 +287,7 @@ export default function ProfileScreen() {
 
     return {
       label: t.customer,
-      color: "#4CAF50",
+      color: c.success,
       bg: "rgba(76,175,80,0.12)",
       Icon: UserRound,
     };
@@ -452,7 +452,7 @@ export default function ProfileScreen() {
           >
             <Icon
               size={20}
-              color={danger ? "#E53935" : disabled ? "#5A3A18" : "#F2B233"}
+              color={danger ? c.danger : disabled ? c.textMuted : c.gold}
               strokeWidth={1.8}
             />
           </View>
@@ -479,7 +479,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       );
     },
-    []
+    [c, s]
   );
 
   const Section = useCallback(
@@ -491,7 +491,7 @@ export default function ProfileScreen() {
         </View>
       );
     },
-    []
+    [s]
   );
 
   if (!fontsLoaded || loading) {
@@ -547,7 +547,7 @@ export default function ProfileScreen() {
             onPress={() => router.push({ pathname: "/login", params: { step: "driver_register" } } as any)}
           >
             <Truck size={17} color={c.info} strokeWidth={1.8} />
-            <Text style={[s.guestRoleText, { color: "#2196F3" }]}>{t.guestDriver}</Text>
+            <Text style={[s.guestRoleText, { color: c.info }]}>{t.guestDriver}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -791,7 +791,7 @@ export default function ProfileScreen() {
                   value={editName}
                   onChangeText={setEditName}
                   placeholder="اسمك الكامل"
-                  placeholderTextColor="#5A3A18"
+                  placeholderTextColor={c.textMuted}
                   textAlign="right"
                   autoFocus
                   returnKeyType="done"

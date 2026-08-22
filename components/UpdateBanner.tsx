@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import {
   Linking,
   Modal,
@@ -22,6 +22,8 @@ function currentVersionCode(): number {
 }
 
 export default function UpdateBanner() {
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
@@ -66,7 +68,7 @@ export default function UpdateBanner() {
       <View style={s.overlay}>
         <View style={s.box}>
           <View style={s.iconWrap}>
-            <ArrowDownToLine size={34} color="#F2B233" strokeWidth={1.6} />
+            <ArrowDownToLine size={34} color={c.gold} strokeWidth={1.6} />
           </View>
 
           <Text style={s.title}>يتوفر تحديث جديد</Text>
@@ -87,10 +89,10 @@ export default function UpdateBanner() {
   );
 }
 
-const s = StyleSheet.create({
+const make_s = (c: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.78)",
+    backgroundColor: c.overlay,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 30,
@@ -98,35 +100,35 @@ const s = StyleSheet.create({
 
   box: {
     width: "100%",
-    backgroundColor: "#1C1000",
+    backgroundColor: c.surface,
     borderRadius: 28,
     padding: 24,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.18)",
+    borderColor: c.goldBorder,
   },
 
   iconWrap: {
     width: 76,
     height: 76,
     borderRadius: 28,
-    backgroundColor: "rgba(242,178,51,0.09)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.18)",
+    borderColor: c.goldBorder,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
   },
 
   title: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 19,
     textAlign: "center",
     fontFamily: "Almarai_800ExtraBold",
   },
 
   sub: {
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 13,
     lineHeight: 23,
     textAlign: "center",
@@ -139,13 +141,13 @@ const s = StyleSheet.create({
     width: "100%",
     minHeight: 52,
     borderRadius: 16,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
     alignItems: "center",
     justifyContent: "center",
   },
 
   updateBtnText: {
-    color: "#17100B",
+    color: c.bg,
     fontSize: 15,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -157,7 +159,7 @@ const s = StyleSheet.create({
   },
 
   laterText: {
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 13,
     fontFamily: "Almarai_700Bold",
   },

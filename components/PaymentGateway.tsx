@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -41,6 +41,8 @@ export default function PaymentGateway({
   onSuccess,
   onClose,
 }: Props) {
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
   const [stage, setStage] = useState<"processing" | "success" | "error">("processing");
   const [errorMsg, setErrorMsg] = useState("");
   const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -93,9 +95,9 @@ export default function PaymentGateway({
           {stage === "processing" && (
             <>
               <View style={s.iconWrap}>
-                <MethodIcon size={30} color="#F2B233" strokeWidth={1.8} />
+                <MethodIcon size={30} color={c.gold} strokeWidth={1.8} />
               </View>
-              <ActivityIndicator size="large" color="#F2B233" style={{ marginVertical: 14 }} />
+              <ActivityIndicator size="large" color={c.gold} style={{ marginVertical: 14 }} />
               <Text style={s.title}>جاري معالجة الدفع...</Text>
               <Text style={s.sub}>عبر {methodMeta.label}</Text>
             </>
@@ -104,9 +106,9 @@ export default function PaymentGateway({
           {stage === "success" && (
             <>
               <View style={[s.iconWrap, { backgroundColor: "rgba(76,175,80,0.12)" }]}>
-                <CheckCircle2 size={36} color="#4CAF50" strokeWidth={1.8} />
+                <CheckCircle2 size={36} color={c.success} strokeWidth={1.8} />
               </View>
-              <Text style={[s.title, { color: "#8AF0A5" }]}>تم الدفع بنجاح</Text>
+              <Text style={[s.title, { color: c.success }]}>تم الدفع بنجاح</Text>
               <Text style={s.sub}>جاري تأكيد طلبك...</Text>
             </>
           )}
@@ -114,9 +116,9 @@ export default function PaymentGateway({
           {stage === "error" && (
             <>
               <View style={[s.iconWrap, { backgroundColor: "rgba(229,57,53,0.12)" }]}>
-                <XCircle size={36} color="#E53935" strokeWidth={1.8} />
+                <XCircle size={36} color={c.danger} strokeWidth={1.8} />
               </View>
-              <Text style={[s.title, { color: "#FF9A9A" }]}>تعذر إتمام الدفع</Text>
+              <Text style={[s.title, { color: c.danger }]}>تعذر إتمام الدفع</Text>
               <Text style={s.sub}>{errorMsg}</Text>
 
               <TouchableOpacity activeOpacity={0.88} style={s.retryBtn} onPress={onClose}>
@@ -130,10 +132,10 @@ export default function PaymentGateway({
   );
 }
 
-const s = StyleSheet.create({
+const make_s = (c: Colors) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.7)",
+    backgroundColor: c.overlay,
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
@@ -141,31 +143,31 @@ const s = StyleSheet.create({
   card: {
     width: "100%",
     maxWidth: 340,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderRadius: 24,
     paddingVertical: 32,
     paddingHorizontal: 24,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.15)",
+    borderColor: c.goldBorder,
   },
   iconWrap: {
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: "rgba(242,178,51,0.1)",
+    backgroundColor: c.goldSoft,
     alignItems: "center",
     justifyContent: "center",
   },
   title: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 16,
     fontFamily: "Almarai_800ExtraBold",
     marginTop: 6,
     textAlign: "center",
   },
   sub: {
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 12,
     fontFamily: "Almarai_400Regular",
     marginTop: 6,
@@ -173,13 +175,13 @@ const s = StyleSheet.create({
   },
   retryBtn: {
     marginTop: 18,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
     borderRadius: 14,
     paddingHorizontal: 28,
     paddingVertical: 11,
   },
   retryText: {
-    color: "#17100B",
+    color: c.bg,
     fontSize: 13,
     fontFamily: "Almarai_800ExtraBold",
   },

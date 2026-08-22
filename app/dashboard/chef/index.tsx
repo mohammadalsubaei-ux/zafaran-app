@@ -22,24 +22,24 @@ import { pickCompressedImage, uploadImageToBucket } from "@/utils/images";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 
-const STATUS: any = {
-  pending:        { label: "بانتظار القبول",        color: "#F0A500" },
-  pending_time:   { label: "بانتظار تأكيد الوقت",   color: "#FF9800" },
-  time_confirmed: { label: "تم تأكيد الوقت",        color: "#8BC34A" },
-  accepted:       { label: "تم القبول",              color: "#2196F3" },
-  preparing:      { label: "قيد التحضير",            color: "#FF6600" },
-  ready:          { label: "جاهز",                    color: "#9C27B0" },
-  delivering:     { label: "في الطريق",              color: "#03A9F4" },
-  delivered:      { label: "تم التسليم",             color: "#4CAF50" },
-  cancelled:      { label: "ملغي",                   color: "#E53935" },
-};
+const makeSTATUS = (c: Colors): any => ({
+  pending:        { label: "بانتظار القبول",        color: c.gold },
+  pending_time:   { label: "بانتظار تأكيد الوقت",   color: c.gold },
+  time_confirmed: { label: "تم تأكيد الوقت",        color: c.success },
+  accepted:       { label: "تم القبول",              color: c.info },
+  preparing:      { label: "قيد التحضير",            color: c.gold },
+  ready:          { label: "جاهز",                    color: c.info },
+  delivering:     { label: "في الطريق",              color: c.info },
+  delivered:      { label: "تم التسليم",             color: c.success },
+  cancelled:      { label: "ملغي",                   color: c.danger },
+});
 
 
 
-const CHEF_STATUS = [
-  { id: "open",          label: "مفتوح",          desc: "يستقبل طلبات فورية",          color: "#4CAF50" },
-  { id: "preorder",      label: "حجز مسبق فقط",   desc: "للبوفيهات والطلبات الكبيرة", color: "#F0A500" },
-  { id: "closed",        label: "غير متاح",        desc: "يختفي من القائمة كلياً",     color: "#E53935" },
+const makeCHEF_STATUS = (c: Colors) => [
+  { id: "open",          label: "مفتوح",          desc: "يستقبل طلبات فورية",          color: c.success },
+  { id: "preorder",      label: "حجز مسبق فقط",   desc: "للبوفيهات والطلبات الكبيرة", color: c.gold },
+  { id: "closed",        label: "غير متاح",        desc: "يختفي من القائمة كلياً",     color: c.danger },
 ];
 
 
@@ -93,6 +93,10 @@ export default function DashboardScreen() {
   const [timeLoading, setTimeLoading]         = useState(false);
 
   const router = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
+  const statusMap = useMemo(() => makeSTATUS(c), [c]);
+  const chefStatusList = useMemo(() => makeCHEF_STATUS(c), [c]);
   const [fontsLoaded] = useFonts({ Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold });
 
   const availableDates = useMemo(() => {
@@ -306,7 +310,7 @@ export default function DashboardScreen() {
     if (json.success) {
       setChefStatus(newStatus);
       setShowStatus(false);
-      Alert.alert("تم التحديث", `حالتك الآن: ${CHEF_STATUS.find(s => s.id === newStatus)?.label}`);
+      Alert.alert("تم التحديث", `حالتك الآن: ${chefStatusList.find(s => s.id === newStatus)?.label}`);
     }
   };
 
@@ -385,7 +389,7 @@ export default function DashboardScreen() {
   const activeOrders  = orders.filter(o => !["delivered", "cancelled"].includes(o.status));
   const historyOrders = orders.filter(o => ["delivered",  "cancelled"].includes(o.status));
   const displayOrders = tab === "active" ? activeOrders : historyOrders;
-  const currentStatus = CHEF_STATUS.find(s => s.id === chefStatus) || CHEF_STATUS[0];
+  const currentStatus = chefStatusList.find(s => s.id === chefStatus) || chefStatusList[0];
 
   const getActions = (status: string, id: string, order: any) => {
     const isPreorder = order.order_type === "preorder";
@@ -398,7 +402,7 @@ export default function DashboardScreen() {
         <View>
           {requestedTime && (
             <View style={s.requestedTimeBox}>
-              <CalendarDays size={14} color="#FF9800" strokeWidth={1.8} />
+              <CalendarDays size={14} color={c.gold} strokeWidth={1.8} />
               <Text style={s.requestedTimeText}>
                 الوقت المطلوب: {formatArabicDateTime(requestedTime)}
               </Text>
@@ -406,17 +410,17 @@ export default function DashboardScreen() {
           )}
           <View style={s.btns}>
             <TouchableOpacity style={s.btnAcc} onPress={() => openTimeModal(order, "confirm")}>
-              <View style={s.btnInner}><CheckCircle2 size={14} color="#F0A500" /><Text style={s.btnText}>تأكيد الوقت</Text></View>
+              <View style={s.btnInner}><CheckCircle2 size={14} color={c.gold} /><Text style={s.btnText}>تأكيد الوقت</Text></View>
             </TouchableOpacity>
             <TouchableOpacity style={s.btnProp} onPress={() => openTimeModal(order, "propose")}>
-              <View style={s.btnInner}><Clock3 size={14} color="#8BC34A" /><Text style={s.btnTextProp}>وقت بديل</Text></View>
+              <View style={s.btnInner}><Clock3 size={14} color={c.success} /><Text style={s.btnTextProp}>وقت بديل</Text></View>
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={[s.btnRej, { marginTop: 8 }]} onPress={() => Alert.alert("رفض الحجز", "تبي ترفض طلب الحجز؟", [
             { text: "لا", style: "cancel" },
             { text: "نعم", style: "destructive", onPress: () => updateStatus(id, "cancelled") },
           ])}>
-            <View style={s.btnInner}><X size={14} color="#E53935" /><Text style={s.btnTextRej}>رفض الحجز</Text></View>
+            <View style={s.btnInner}><X size={14} color={c.danger} /><Text style={s.btnTextRej}>رفض الحجز</Text></View>
           </TouchableOpacity>
         </View>
       );
@@ -426,7 +430,7 @@ export default function DashboardScreen() {
     if (status === "pending" && isPreorder && negotiation === "chef_countered") {
       return (
         <View style={s.requestedTimeBox}>
-          <Clock3 size={14} color="#8BC34A" strokeWidth={1.8} />
+          <Clock3 size={14} color={c.success} strokeWidth={1.8} />
           <Text style={s.requestedTimeText}>
             بانتظار رد العميل على الوقت البديل المقترح
           </Text>
@@ -439,7 +443,7 @@ export default function DashboardScreen() {
       return (
         <View style={s.btns}>
           <TouchableOpacity style={s.btnAcc} onPress={() => updateStatus(id, "accepted")}>
-            <View style={s.btnInner}><Check size={14} color="#F0A500" /><Text style={s.btnText}>قبول وبدء التحضير</Text></View>
+            <View style={s.btnInner}><Check size={14} color={c.gold} /><Text style={s.btnText}>قبول وبدء التحضير</Text></View>
           </TouchableOpacity>
         </View>
       );
@@ -451,13 +455,13 @@ export default function DashboardScreen() {
           { text: "لا", style: "cancel" },
           { text: "نعم", onPress: () => updateStatus(id, "accepted") },
         ])}>
-          <View style={s.btnInner}><Check size={14} color="#F0A500" /><Text style={s.btnText}>قبول</Text></View>
+          <View style={s.btnInner}><Check size={14} color={c.gold} /><Text style={s.btnText}>قبول</Text></View>
         </TouchableOpacity>
         <TouchableOpacity style={s.btnRej} onPress={() => Alert.alert("رفض الطلب", "تبي ترفض؟", [
           { text: "لا", style: "cancel" },
           { text: "نعم", style: "destructive", onPress: () => updateStatus(id, "cancelled") },
         ])}>
-          <View style={s.btnInner}><X size={14} color="#E53935" /><Text style={s.btnTextRej}>رفض</Text></View>
+          <View style={s.btnInner}><X size={14} color={c.danger} /><Text style={s.btnTextRej}>رفض</Text></View>
         </TouchableOpacity>
       </View>
     );
@@ -465,13 +469,13 @@ export default function DashboardScreen() {
 
     if (status === "accepted") return (
       <TouchableOpacity style={s.btnAcc} onPress={() => updateStatus(id, "preparing")}>
-        <View style={s.btnInner}><Flame size={14} color="#F0A500" /><Text style={s.btnText}>بدأ التحضير</Text></View>
+        <View style={s.btnInner}><Flame size={14} color={c.gold} /><Text style={s.btnText}>بدأ التحضير</Text></View>
       </TouchableOpacity>
     );
 
     if (status === "preparing") return (
       <TouchableOpacity style={s.btnAcc} onPress={() => updateStatus(id, "ready")}>
-        <View style={s.btnInner}><Check size={14} color="#F0A500" /><Text style={s.btnText}>{order.delivery_address === "استلام شخصي" ? "الطلب جاهز — أبلغ العميل" : "الطلب جاهز — ابلغ المندوب"}</Text></View>
+        <View style={s.btnInner}><Check size={14} color={c.gold} /><Text style={s.btnText}>{order.delivery_address === "استلام شخصي" ? "الطلب جاهز — أبلغ العميل" : "الطلب جاهز — ابلغ المندوب"}</Text></View>
       </TouchableOpacity>
     );
 
@@ -481,7 +485,7 @@ export default function DashboardScreen() {
         { text: "لا", style: "cancel" },
         { text: "نعم", onPress: () => updateStatus(id, "delivered") },
       ])}>
-        <View style={s.btnInner}><CheckCircle2 size={14} color="#F0A500" /><Text style={s.btnText}>تم استلام العميل — إتمام الطلب</Text></View>
+        <View style={s.btnInner}><CheckCircle2 size={14} color={c.gold} /><Text style={s.btnText}>تم استلام العميل — إتمام الطلب</Text></View>
       </TouchableOpacity>
     );
 
@@ -495,15 +499,15 @@ export default function DashboardScreen() {
       <View style={s.header}>
         <View style={{ flexDirection: "row-reverse", alignItems: "center", gap: 10 }}>
           <TouchableOpacity onPress={() => router.push("/(tabs)" as any)} style={s.backHomeBtn}>
-            <ArrowRight size={20} color="#F0A500" />
+            <ArrowRight size={20} color={c.gold} />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleLogout} style={s.logoutBtn}>
-            <LogOut size={18} color="#E53935" strokeWidth={1.8} />
+            <LogOut size={18} color={c.danger} strokeWidth={1.8} />
           </TouchableOpacity>
         </View>
         <Text style={s.title}>{chef?.offers_drinks ? "لوحة الباريستا" : "لوحة متجري"}</Text>
         <TouchableOpacity onPress={() => load(true)} style={s.refreshBtn}>
-          <RefreshCw size={18} color="#F0A500" />
+          <RefreshCw size={18} color={c.gold} />
         </TouchableOpacity>
       </View>
 
@@ -512,7 +516,7 @@ export default function DashboardScreen() {
             data={loading ? [] : displayOrders}
             keyExtractor={i => i.id}
             contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 0, paddingBottom: 40 }}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F0A500" />}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.gold} />}
             ListHeaderComponent={
               <View style={{ marginHorizontal: -16 }}>
           <TouchableOpacity style={[s.statusBar, { borderColor: currentStatus.color + "44" }]} onPress={() => setShowStatus(true)}>
@@ -531,18 +535,18 @@ export default function DashboardScreen() {
             <Switch
               value={Boolean(chef?.offers_drinks)}
               onValueChange={toggleDrinks}
-              trackColor={{ false: "#3A2A1A", true: "#F0A50055" }}
-              thumbColor={chef?.offers_drinks ? "#F0A500" : "#8A6030"}
+              trackColor={{ false: c.surfaceAlt, true: c.goldBorder }}
+              thumbColor={chef?.offers_drinks ? c.gold : c.textSoft}
             />
             <View style={s.drinksInfo}>
-              <Coffee size={15} color="#F0A500" strokeWidth={1.8} />
+              <Coffee size={15} color={c.gold} strokeWidth={1.8} />
               <Text style={s.drinksText}>أقدّم مشروبات (باريستا)</Text>
             </View>
           </View>
 
           <TouchableOpacity style={s.locationBtn} onPress={openLocationMap}>
             <View style={s.btnInner}>
-              <MapPin size={16} color={chef?.lat && chef?.lng ? "#4CAF50" : "#E53935"} strokeWidth={1.8} />
+              <MapPin size={16} color={chef?.lat && chef?.lng ? c.success : c.danger} strokeWidth={1.8} />
               <Text style={s.locationBtnText}>
                 {chef?.lat && chef?.lng ? "تحديث موقعي على الخريطة" : "حدد موقعك الآن (مطلوب لحساب التوصيل)"}
               </Text>
@@ -554,7 +558,7 @@ export default function DashboardScreen() {
               <View style={s.certRow}>
                 <FileText
                   size={16}
-                  color={certInfo.state === "uploaded" ? "#4CAF50" : certInfo.state === "late" ? "#E53935" : "#F0A500"}
+                  color={certInfo.state === "uploaded" ? c.success : certInfo.state === "late" ? c.danger : c.gold}
                   strokeWidth={1.8}
                 />
                 <Text style={s.certTitle}>شهادة العمل الحر</Text>
@@ -563,8 +567,8 @@ export default function DashboardScreen() {
               <Text
                 style={[
                   s.certStatus,
-                  certInfo.state === "uploaded" && { color: "#8AF0A5" },
-                  certInfo.state === "late" && { color: "#FF9A9A" },
+                  certInfo.state === "uploaded" && { color: c.success },
+                  certInfo.state === "late" && { color: c.danger },
                 ]}
               >
                 {certInfo.state === "uploaded"
@@ -576,7 +580,7 @@ export default function DashboardScreen() {
 
               <TouchableOpacity style={s.certBtn} onPress={uploadCert} disabled={certUploading}>
                 {certUploading
-                  ? <ActivityIndicator color="#1C0F00" size="small" />
+                  ? <ActivityIndicator color={c.surface} size="small" />
                   : <Text style={s.certBtnText}>{certInfo.state === "uploaded" ? "استبدال الشهادة" : "رفع الشهادة"}</Text>}
               </TouchableOpacity>
             </View>
@@ -584,14 +588,14 @@ export default function DashboardScreen() {
 
           <TouchableOpacity style={s.menuBtn} onPress={() => router.push("/menu" as any)}>
             <View style={s.btnInner}>
-              <UtensilsCrossed size={16} color="#F0A500" />
+              <UtensilsCrossed size={16} color={c.gold} />
               <Text style={s.menuBtnText}>قائمتي</Text>
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity style={s.menuBtn} onPress={() => router.push("/dashboard/chef/earnings" as any)}>
             <View style={s.btnInner}>
-              <Wallet size={16} color="#F0A500" />
+              <Wallet size={16} color={c.gold} />
               <Text style={s.menuBtnText}>الأرباح والمحفظة</Text>
             </View>
           </TouchableOpacity>
@@ -604,7 +608,7 @@ export default function DashboardScreen() {
             }}
           >
             <View style={s.btnInner}>
-              <Eye size={16} color="#F0A500" />
+              <Eye size={16} color={c.gold} />
               <Text style={s.menuBtnText}>معاينة متجري</Text>
             </View>
           </TouchableOpacity>
@@ -621,7 +625,7 @@ export default function DashboardScreen() {
             }}
           >
             <View style={s.btnInner}>
-              <Share2 size={16} color="#F0A500" />
+              <Share2 size={16} color={c.gold} />
               <Text style={s.menuBtnText}>مشاركة متجري</Text>
             </View>
           </TouchableOpacity>
@@ -633,7 +637,7 @@ export default function DashboardScreen() {
             </View>
             <View style={s.statCard}>
               <Text style={s.statNum}>{activeOrders.filter(o => o.order_type === "preorder").length}</Text>
-              <Text style={[s.statLabel, { color: "#FF9800" }]}>حجوزات</Text>
+              <Text style={[s.statLabel, { color: c.gold }]}>حجوزات</Text>
             </View>
             <View style={s.statCard}>
               <Text style={s.statNum}>{historyOrders.filter(o => o.status === "delivered").length}</Text>
@@ -641,7 +645,7 @@ export default function DashboardScreen() {
             </View>
             <View style={s.statCard}>
               <View style={s.btnInner}>
-                <Star size={12} color="#F0A500" />
+                <Star size={12} color={c.gold} />
                 <Text style={s.statNum}>{chef?.rating_avg || "—"}</Text>
               </View>
               <Text style={s.statLabel}>التقييم</Text>
@@ -666,13 +670,13 @@ export default function DashboardScreen() {
                   <View style={s.badgesRow}>
                     {item.order_type === "preorder" && (
                       <View style={s.preorderTag}>
-                        <CalendarDays size={10} color="#FF9800" strokeWidth={1.8} />
+                        <CalendarDays size={10} color={c.gold} strokeWidth={1.8} />
                         <Text style={s.preorderTagText}>حجز مسبق</Text>
                       </View>
                     )}
-                    <View style={[s.badge, { backgroundColor: STATUS[item.status]?.color + "22" }]}>
-                      <Text style={[s.badgeText, { color: STATUS[item.status]?.color }]}>
-                        {STATUS[item.status]?.label}
+                    <View style={[s.badge, { backgroundColor: statusMap[item.status]?.color + "22" }]}>
+                      <Text style={[s.badgeText, { color: statusMap[item.status]?.color }]}>
+                        {statusMap[item.status]?.label}
                       </Text>
                     </View>
                   </View>
@@ -696,7 +700,7 @@ export default function DashboardScreen() {
                 {/* وقت الحجز المؤكد */}
                 {item.confirmed_time && (
                   <View style={s.confirmedTimeBox}>
-                    <CheckCircle2 size={14} color="#8BC34A" strokeWidth={1.8} />
+                    <CheckCircle2 size={14} color={c.success} strokeWidth={1.8} />
                     <Text style={s.confirmedTimeText}>
                       الوقت المؤكد: {formatArabicDateTime(item.confirmed_time)}
                     </Text>
@@ -708,9 +712,9 @@ export default function DashboardScreen() {
             )}
             ListEmptyComponent={
               loading
-                ? <ActivityIndicator color="#F0A500" style={{ marginTop: 40 }} size="large" />
+                ? <ActivityIndicator color={c.gold} style={{ marginTop: 40 }} size="large" />
                 : <View style={s.emptyWrap}>
-                    {tab === "active" ? <Package size={52} color="#5A3A18" /> : <ClipboardList size={52} color="#5A3A18" />}
+                    {tab === "active" ? <Package size={52} color={c.textMuted} /> : <ClipboardList size={52} color={c.textMuted} />}
                     <Text style={s.empty}>{tab === "active" ? "ما في طلبات نشطة" : "ما في سجل بعد"}</Text>
                   </View>
             }
@@ -721,7 +725,7 @@ export default function DashboardScreen() {
         <View style={s.modalOverlay}>
           <View style={s.modalBox}>
             <Text style={s.modalTitle}>اختر حالة متجرك</Text>
-            {CHEF_STATUS.map(st => (
+            {chefStatusList.map(st => (
               <TouchableOpacity key={st.id}
                 style={[s.statusOption, chefStatus === st.id && { borderColor: st.color, backgroundColor: st.color + "11" }]}
                 onPress={() => changeStatus(st.id)}>
@@ -750,7 +754,7 @@ export default function DashboardScreen() {
             {/* الباك إند يخزّن وقت العميل في proposed_time — requested_time اسم بديل فقط */}
             {(timeModalOrder?.proposed_time || timeModalOrder?.requested_time) && (
               <View style={s.requestedTimeBox}>
-                <CalendarDays size={14} color="#FF9800" strokeWidth={1.8} />
+                <CalendarDays size={14} color={c.gold} strokeWidth={1.8} />
                 <Text style={s.requestedTimeText}>
                   طلب العميل: {formatArabicDateTime(timeModalOrder.proposed_time || timeModalOrder.requested_time)}
                 </Text>
@@ -805,9 +809,9 @@ export default function DashboardScreen() {
 
             <TouchableOpacity style={s.btnAcc}
               onPress={handleConfirmTime} disabled={timeLoading || !selectedDate} activeOpacity={0.9}>
-              {timeLoading ? <ActivityIndicator color="#F0A500" /> : (
+              {timeLoading ? <ActivityIndicator color={c.gold} /> : (
                 <View style={s.btnInner}>
-                  <CheckCircle2 size={14} color="#F0A500" />
+                  <CheckCircle2 size={14} color={c.gold} />
                   <Text style={s.btnText}>
                     {timeAction === "confirm" ? "تأكيد الوقت" : "إرسال الوقت البديل"}
                     {selectedDate ? ` — ${formatArabicTime(selectedHour, selectedMinute)}` : ""}
@@ -825,7 +829,7 @@ export default function DashboardScreen() {
 
       {/* مودال تحديد الموقع على الخريطة */}
       <Modal visible={showLocationMap} animationType="slide" onRequestClose={() => setShowLocationMap(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#17100B" }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
           <View style={s.mapHeader}>
             <TouchableOpacity onPress={() => setShowLocationMap(false)}>
               <Text style={s.mapHeaderBtn}>إلغاء</Text>
@@ -845,7 +849,7 @@ export default function DashboardScreen() {
             {selectedLocation && (
               <Marker
                 coordinate={{ latitude: selectedLocation.lat, longitude: selectedLocation.lng }}
-                pinColor="#F0A500"
+                pinColor={c.gold}
               />
             )}
           </MapView>
@@ -853,9 +857,9 @@ export default function DashboardScreen() {
           <View style={s.mapFooter}>
             <Text style={s.mapHint}>اضغط على الخريطة لتحديد موقع متجرك بدقة</Text>
             <TouchableOpacity style={s.useCurrentBtn} onPress={useMyCurrentLocation} disabled={locating}>
-              {locating ? <ActivityIndicator color="#F0A500" size="small" /> : (
+              {locating ? <ActivityIndicator color={c.gold} size="small" /> : (
                 <>
-                  <MapPin size={14} color="#F0A500" strokeWidth={1.8} />
+                  <MapPin size={14} color={c.gold} strokeWidth={1.8} />
                   <Text style={s.useCurrentBtnText}>استخدم موقعي الحالي</Text>
                 </>
               )}
@@ -866,7 +870,7 @@ export default function DashboardScreen() {
               disabled={!selectedLocation || savingLocation}
             >
               {savingLocation
-                ? <ActivityIndicator color="#17100B" />
+                ? <ActivityIndicator color={c.onGold} />
                 : <Text style={s.saveLocationBtnText}>حفظ الموقع</Text>}
             </TouchableOpacity>
           </View>
@@ -876,100 +880,100 @@ export default function DashboardScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  safe:              { flex: 1, backgroundColor: "#0E0700" },
-  header:            { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottomWidth: 1, borderBottomColor: "rgba(240,165,0,0.12)" },
-  title:             { fontSize: 18, fontWeight: "900", color: "#FDF0DC", fontFamily: "Almarai_800ExtraBold" },
+const make_s = (c: Colors) => StyleSheet.create({
+  safe:              { flex: 1, backgroundColor: c.bg },
+  header:            { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottomWidth: 1, borderBottomColor: c.border },
+  title:             { fontSize: 18, fontWeight: "900", color: c.text, fontFamily: "Almarai_800ExtraBold" },
   refreshBtn:        { padding: 4 },
   logoutBtn:         { padding: 4 },
-  backHomeBtn:       { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: "rgba(240,165,0,0.25)", alignItems: "center", justifyContent: "center" },
-  statusBar:         { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", margin: 16, backgroundColor: "#1C1000", borderRadius: 16, padding: 16, borderWidth: 1 },
-  drinksBar:         { flexDirection: "row-reverse", alignItems: "center", gap: 10, marginHorizontal: 16, marginBottom: 12, backgroundColor: "#1C1000", borderRadius: 14, padding: 12, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)" },
+  backHomeBtn:       { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: c.goldBorder, alignItems: "center", justifyContent: "center" },
+  statusBar:         { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", margin: 16, backgroundColor: c.surface, borderRadius: 16, padding: 16, borderWidth: 1 },
+  drinksBar:         { flexDirection: "row-reverse", alignItems: "center", gap: 10, marginHorizontal: 16, marginBottom: 12, backgroundColor: c.surface, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: c.goldBorder },
   drinksInfo:        { flexDirection: "row-reverse", alignItems: "center", gap: 6, flex: 1 },
-  drinksText:        { color: "#FDF0DC", fontSize: 13, fontFamily: "Almarai_700Bold" },
+  drinksText:        { color: c.text, fontSize: 13, fontFamily: "Almarai_700Bold" },
 
-  locationBtn:        { marginHorizontal: 16, marginBottom: 12, backgroundColor: "#1C1000", borderRadius: 14, padding: 13, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)" },
-  locationBtnText:     { color: "#FDF0DC", fontSize: 13, fontFamily: "Almarai_700Bold" },
-  certCard:            { marginHorizontal: 16, marginBottom: 12, backgroundColor: "#1C1000", borderRadius: 14, padding: 13, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)" },
+  locationBtn:        { marginHorizontal: 16, marginBottom: 12, backgroundColor: c.surface, borderRadius: 14, padding: 13, borderWidth: 1, borderColor: c.goldBorder },
+  locationBtnText:     { color: c.text, fontSize: 13, fontFamily: "Almarai_700Bold" },
+  certCard:            { marginHorizontal: 16, marginBottom: 12, backgroundColor: c.surface, borderRadius: 14, padding: 13, borderWidth: 1, borderColor: c.goldBorder },
   certRow:             { flexDirection: "row-reverse", alignItems: "center", gap: 7 },
-  certTitle:           { color: "#FDF0DC", fontSize: 13, fontFamily: "Almarai_700Bold" },
-  certStatus:          { color: "#FFD27A", fontSize: 12, lineHeight: 20, marginTop: 6, fontFamily: "Almarai_400Regular", textAlign: "right" },
-  certBtn:             { marginTop: 10, backgroundColor: "#F0A500", borderRadius: 12, paddingVertical: 10, alignItems: "center", justifyContent: "center" },
-  certBtnText:         { color: "#1C0F00", fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
+  certTitle:           { color: c.text, fontSize: 13, fontFamily: "Almarai_700Bold" },
+  certStatus:          { color: c.gold, fontSize: 12, lineHeight: 20, marginTop: 6, fontFamily: "Almarai_400Regular", textAlign: "right" },
+  certBtn:             { marginTop: 10, backgroundColor: c.gold, borderRadius: 12, paddingVertical: 10, alignItems: "center", justifyContent: "center" },
+  certBtnText:         { color: c.surface, fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
 
-  mapHeader:          { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1, borderBottomColor: "rgba(242,178,51,0.1)" },
-  mapHeaderBtn:        { color: "#F0A500", fontSize: 14, fontFamily: "Almarai_700Bold" },
-  mapHeaderTitle:      { color: "#FDF0DC", fontSize: 15, fontFamily: "Almarai_800ExtraBold" },
-  mapFooter:          { padding: 16, backgroundColor: "#1C1000", borderTopWidth: 1, borderTopColor: "rgba(242,178,51,0.1)" },
-  mapHint:            { color: "#A98961", fontSize: 12, fontFamily: "Almarai_400Regular", textAlign: "center", marginBottom: 12 },
-  saveLocationBtn:     { backgroundColor: "#F2B233", borderRadius: 14, paddingVertical: 14, alignItems: "center" },
-  saveLocationBtnText: { color: "#17100B", fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
+  mapHeader:          { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1, borderBottomColor: c.goldSoft },
+  mapHeaderBtn:        { color: c.gold, fontSize: 14, fontFamily: "Almarai_700Bold" },
+  mapHeaderTitle:      { color: c.text, fontSize: 15, fontFamily: "Almarai_800ExtraBold" },
+  mapFooter:          { padding: 16, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.goldSoft },
+  mapHint:            { color: c.textSoft, fontSize: 12, fontFamily: "Almarai_400Regular", textAlign: "center", marginBottom: 12 },
+  saveLocationBtn:     { backgroundColor: c.gold, borderRadius: 14, paddingVertical: 14, alignItems: "center" },
+  saveLocationBtnText: { color: c.bg, fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
   useCurrentBtn:       { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 10, paddingVertical: 10, minHeight: 40 },
-  useCurrentBtnText:   { color: "#F0A500", fontSize: 13, fontFamily: "Almarai_700Bold" },
-  statusTitle:       { fontSize: 11, color: "#8A6030", textAlign: "right", fontFamily: "Almarai_400Regular", marginBottom: 4 },
+  useCurrentBtnText:   { color: c.gold, fontSize: 13, fontFamily: "Almarai_700Bold" },
+  statusTitle:       { fontSize: 11, color: c.textSoft, textAlign: "right", fontFamily: "Almarai_400Regular", marginBottom: 4 },
   statusVal:         { fontSize: 15, fontWeight: "800", textAlign: "right", fontFamily: "Almarai_700Bold" },
-  statusDesc:        { fontSize: 11, color: "#8A6030", textAlign: "right", fontFamily: "Almarai_400Regular", marginTop: 2 },
+  statusDesc:        { fontSize: 11, color: c.textSoft, textAlign: "right", fontFamily: "Almarai_400Regular", marginTop: 2 },
   statusChange:      { fontSize: 13, fontWeight: "700", fontFamily: "Almarai_700Bold" },
-  menuBtn:           { marginHorizontal: 16, marginBottom: 12, backgroundColor: "rgba(240,165,0,0.1)", borderRadius: 14, padding: 14, alignItems: "center", borderWidth: 1, borderColor: "rgba(240,165,0,0.25)" },
-  menuBtnText:       { color: "#F0A500", fontSize: 15, fontWeight: "900", fontFamily: "Almarai_800ExtraBold" },
+  menuBtn:           { marginHorizontal: 16, marginBottom: 12, backgroundColor: c.goldSoft, borderRadius: 14, padding: 14, alignItems: "center", borderWidth: 1, borderColor: c.goldBorder },
+  menuBtnText:       { color: c.gold, fontSize: 15, fontWeight: "900", fontFamily: "Almarai_800ExtraBold" },
   statsRow:          { flexDirection: "row-reverse", paddingHorizontal: 16, gap: 8, marginBottom: 12 },
-  statCard:          { flex: 1, backgroundColor: "#1C1000", borderRadius: 14, padding: 12, alignItems: "center", borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
-  statNum:           { fontSize: 20, fontWeight: "900", color: "#F0A500", fontFamily: "Almarai_800ExtraBold" },
-  statLabel:         { fontSize: 10, color: "#8A6030", fontFamily: "Almarai_400Regular", marginTop: 2 },
+  statCard:          { flex: 1, backgroundColor: c.surface, borderRadius: 14, padding: 12, alignItems: "center", borderWidth: 1, borderColor: c.goldSoft },
+  statNum:           { fontSize: 20, fontWeight: "900", color: c.gold, fontFamily: "Almarai_800ExtraBold" },
+  statLabel:         { fontSize: 10, color: c.textSoft, fontFamily: "Almarai_400Regular", marginTop: 2 },
   tabRow:            { flexDirection: "row-reverse", paddingHorizontal: 16, gap: 8, marginBottom: 4 },
-  tabBtn:            { flex: 1, backgroundColor: "#1C1000", borderRadius: 12, paddingVertical: 8, alignItems: "center", borderWidth: 1, borderColor: "rgba(240,165,0,0.1)" },
-  tabBtnActive:      { backgroundColor: "rgba(240,165,0,0.12)", borderColor: "rgba(240,165,0,0.4)" },
-  tabText:           { fontSize: 12, color: "#8A6030", fontFamily: "Almarai_700Bold" },
-  tabTextActive:     { color: "#F0A500" },
-  card:              { backgroundColor: "#1C1000", borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "rgba(240,165,0,0.12)" },
-  cardPreorder:      { borderColor: "rgba(255,152,0,0.35)", backgroundColor: "#1A1200" },
+  tabBtn:            { flex: 1, backgroundColor: c.surface, borderRadius: 12, paddingVertical: 8, alignItems: "center", borderWidth: 1, borderColor: c.goldSoft },
+  tabBtnActive:      { backgroundColor: c.border, borderColor: c.goldBorder },
+  tabText:           { fontSize: 12, color: c.textSoft, fontFamily: "Almarai_700Bold" },
+  tabTextActive:     { color: c.gold },
+  card:              { backgroundColor: c.surface, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: c.border },
+  cardPreorder:      { borderColor: c.border, backgroundColor: c.surface },
   row:               { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
   badgesRow:         { flexDirection: "row-reverse", alignItems: "center", gap: 6 },
-  preorderTag:       { flexDirection: "row-reverse", alignItems: "center", gap: 4, backgroundColor: "rgba(255,152,0,0.15)", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  preorderTagText:   { color: "#FF9800", fontSize: 10, fontFamily: "Almarai_700Bold" },
-  orderId:           { fontSize: 13, fontWeight: "800", color: "#FDF0DC", fontFamily: "Almarai_700Bold" },
+  preorderTag:       { flexDirection: "row-reverse", alignItems: "center", gap: 4, backgroundColor: c.border, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  preorderTagText:   { color: c.gold, fontSize: 10, fontFamily: "Almarai_700Bold" },
+  orderId:           { fontSize: 13, fontWeight: "800", color: c.text, fontFamily: "Almarai_700Bold" },
   badge:             { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 50 },
   badgeText:         { fontSize: 11, fontWeight: "800", fontFamily: "Almarai_700Bold" },
-  customer:          { fontSize: 14, color: "#FDF0DC", textAlign: "right", marginBottom: 2, fontFamily: "Almarai_700Bold" },
-  phone:             { fontSize: 12, color: "#F0A500", textAlign: "right", marginBottom: 4, fontFamily: "Almarai_400Regular" },
-  address:           { fontSize: 12, color: "#8A6030", textAlign: "right", marginBottom: 8, fontFamily: "Almarai_400Regular" },
-  orderItem:         { fontSize: 12, color: "#C97D20", textAlign: "right", marginBottom: 2, fontFamily: "Almarai_400Regular" },
+  customer:          { fontSize: 14, color: c.text, textAlign: "right", marginBottom: 2, fontFamily: "Almarai_700Bold" },
+  phone:             { fontSize: 12, color: c.gold, textAlign: "right", marginBottom: 4, fontFamily: "Almarai_400Regular" },
+  address:           { fontSize: 12, color: c.textSoft, textAlign: "right", marginBottom: 8, fontFamily: "Almarai_400Regular" },
+  orderItem:         { fontSize: 12, color: c.gold, textAlign: "right", marginBottom: 2, fontFamily: "Almarai_400Regular" },
   totalRow:          { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", marginTop: 8, marginBottom: 4 },
-  total:             { fontSize: 16, fontWeight: "900", color: "#F0A500", fontFamily: "Almarai_800ExtraBold" },
-  delivery:          { fontSize: 11, color: "#8A6030", fontFamily: "Almarai_400Regular" },
-  notes:             { fontSize: 12, color: "#8A6030", textAlign: "right", marginBottom: 10, fontFamily: "Almarai_400Regular" },
-  requestedTimeBox:  { flexDirection: "row-reverse", alignItems: "center", gap: 6, backgroundColor: "rgba(255,152,0,0.1)", padding: 10, borderRadius: 12, marginBottom: 8, borderWidth: 1, borderColor: "rgba(255,152,0,0.2)" },
-  requestedTimeText: { flex: 1, color: "#FF9800", textAlign: "right", fontSize: 12, fontFamily: "Almarai_700Bold" },
-  confirmedTimeBox:  { flexDirection: "row-reverse", alignItems: "center", gap: 6, backgroundColor: "rgba(139,195,74,0.1)", padding: 10, borderRadius: 12, marginBottom: 8, borderWidth: 1, borderColor: "rgba(139,195,74,0.2)" },
-  confirmedTimeText: { flex: 1, color: "#8BC34A", textAlign: "right", fontSize: 12, fontFamily: "Almarai_700Bold" },
+  total:             { fontSize: 16, fontWeight: "900", color: c.gold, fontFamily: "Almarai_800ExtraBold" },
+  delivery:          { fontSize: 11, color: c.textSoft, fontFamily: "Almarai_400Regular" },
+  notes:             { fontSize: 12, color: c.textSoft, textAlign: "right", marginBottom: 10, fontFamily: "Almarai_400Regular" },
+  requestedTimeBox:  { flexDirection: "row-reverse", alignItems: "center", gap: 6, backgroundColor: c.border, padding: 10, borderRadius: 12, marginBottom: 8, borderWidth: 1, borderColor: c.border },
+  requestedTimeText: { flex: 1, color: c.gold, textAlign: "right", fontSize: 12, fontFamily: "Almarai_700Bold" },
+  confirmedTimeBox:  { flexDirection: "row-reverse", alignItems: "center", gap: 6, backgroundColor: c.successSoft, padding: 10, borderRadius: 12, marginBottom: 8, borderWidth: 1, borderColor: c.successSoft },
+  confirmedTimeText: { flex: 1, color: c.success, textAlign: "right", fontSize: 12, fontFamily: "Almarai_700Bold" },
   btns:              { flexDirection: "row-reverse", gap: 8, marginTop: 8 },
   btnInner:          { flexDirection: "row-reverse", alignItems: "center", gap: 6 },
-  btnAcc:            { flex: 1, backgroundColor: "rgba(240,165,0,0.15)", borderRadius: 12, padding: 12, alignItems: "center", borderWidth: 1, borderColor: "rgba(240,165,0,0.3)", marginTop: 8 },
-  btnRej:            { flex: 1, backgroundColor: "rgba(229,57,53,0.1)", borderRadius: 12, padding: 12, alignItems: "center", borderWidth: 1, borderColor: "rgba(229,57,53,0.2)", marginTop: 8 },
-  btnProp:           { flex: 1, backgroundColor: "rgba(139,195,74,0.1)", borderRadius: 12, padding: 12, alignItems: "center", borderWidth: 1, borderColor: "rgba(139,195,74,0.25)", marginTop: 8 },
-  btnText:           { color: "#F0A500", fontSize: 13, fontWeight: "800", fontFamily: "Almarai_700Bold" },
-  btnTextRej:        { color: "#E53935", fontSize: 13, fontWeight: "800", fontFamily: "Almarai_700Bold" },
-  btnTextProp:       { color: "#8BC34A", fontSize: 13, fontWeight: "800", fontFamily: "Almarai_700Bold" },
+  btnAcc:            { flex: 1, backgroundColor: c.goldBorder, borderRadius: 12, padding: 12, alignItems: "center", borderWidth: 1, borderColor: c.goldBorder, marginTop: 8 },
+  btnRej:            { flex: 1, backgroundColor: c.dangerSoft, borderRadius: 12, padding: 12, alignItems: "center", borderWidth: 1, borderColor: c.dangerSoft, marginTop: 8 },
+  btnProp:           { flex: 1, backgroundColor: c.successSoft, borderRadius: 12, padding: 12, alignItems: "center", borderWidth: 1, borderColor: c.successSoft, marginTop: 8 },
+  btnText:           { color: c.gold, fontSize: 13, fontWeight: "800", fontFamily: "Almarai_700Bold" },
+  btnTextRej:        { color: c.danger, fontSize: 13, fontWeight: "800", fontFamily: "Almarai_700Bold" },
+  btnTextProp:       { color: c.success, fontSize: 13, fontWeight: "800", fontFamily: "Almarai_700Bold" },
   emptyWrap:         { alignItems: "center", marginTop: 60, gap: 16 },
-  empty:             { textAlign: "center", color: "#8A6030", fontSize: 14, fontFamily: "Almarai_400Regular" },
-  modalOverlay:      { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
-  modalBox:          { backgroundColor: "#1C1000", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, borderWidth: 1, borderColor: "rgba(240,165,0,0.15)", maxHeight: "85%" },
-  modalTitle:        { fontSize: 18, fontWeight: "900", color: "#FDF0DC", textAlign: "right", marginBottom: 16, fontFamily: "Almarai_800ExtraBold" },
-  statusOption:      { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", padding: 16, borderRadius: 14, marginBottom: 10, borderWidth: 1, borderColor: "rgba(240,165,0,0.1)", backgroundColor: "#251400" },
+  empty:             { textAlign: "center", color: c.textSoft, fontSize: 14, fontFamily: "Almarai_400Regular" },
+  modalOverlay:      { flex: 1, backgroundColor: c.overlay, justifyContent: "flex-end" },
+  modalBox:          { backgroundColor: c.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, borderWidth: 1, borderColor: c.goldBorder, maxHeight: "85%" },
+  modalTitle:        { fontSize: 18, fontWeight: "900", color: c.text, textAlign: "right", marginBottom: 16, fontFamily: "Almarai_800ExtraBold" },
+  statusOption:      { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", padding: 16, borderRadius: 14, marginBottom: 10, borderWidth: 1, borderColor: c.goldSoft, backgroundColor: c.surfaceAlt },
   statusOptionLabel: { fontSize: 15, fontWeight: "800", textAlign: "right", fontFamily: "Almarai_700Bold", marginBottom: 4 },
-  statusOptionDesc:  { fontSize: 11, color: "#8A6030", textAlign: "right", fontFamily: "Almarai_400Regular" },
-  modalClose:        { backgroundColor: "rgba(229,57,53,0.1)", borderRadius: 14, padding: 14, alignItems: "center", marginTop: 8, borderWidth: 1, borderColor: "rgba(229,57,53,0.2)" },
-  modalCloseText:    { color: "#E53935", fontSize: 14, fontWeight: "700", fontFamily: "Almarai_700Bold" },
-  pickerLabel:       { color: "#F0A500", textAlign: "right", fontSize: 12, fontFamily: "Almarai_800ExtraBold", marginBottom: 8, marginTop: 12 },
+  statusOptionDesc:  { fontSize: 11, color: c.textSoft, textAlign: "right", fontFamily: "Almarai_400Regular" },
+  modalClose:        { backgroundColor: c.dangerSoft, borderRadius: 14, padding: 14, alignItems: "center", marginTop: 8, borderWidth: 1, borderColor: c.dangerSoft },
+  modalCloseText:    { color: c.danger, fontSize: 14, fontWeight: "700", fontFamily: "Almarai_700Bold" },
+  pickerLabel:       { color: c.gold, textAlign: "right", fontSize: 12, fontFamily: "Almarai_800ExtraBold", marginBottom: 8, marginTop: 12 },
   datesRow:          { flexDirection: "row-reverse", gap: 8, paddingVertical: 4, paddingBottom: 8 },
-  dateChip:          { width: 54, height: 64, borderRadius: 14, backgroundColor: "#251400", borderWidth: 1, borderColor: "rgba(240,165,0,0.12)", alignItems: "center", justifyContent: "center", gap: 4 },
-  dateChipActive:    { backgroundColor: "rgba(240,165,0,0.15)", borderColor: "rgba(240,165,0,0.5)" },
-  dateChipDay:       { color: "#8A6030", fontSize: 10, fontFamily: "Almarai_400Regular" },
-  dateChipNum:       { color: "#FDF0DC", fontSize: 17, fontFamily: "Almarai_800ExtraBold" },
-  dateChipTextActive:{ color: "#F0A500" },
-  timeChip:          { paddingHorizontal: 14, height: 40, borderRadius: 12, backgroundColor: "#251400", borderWidth: 1, borderColor: "rgba(240,165,0,0.12)", alignItems: "center", justifyContent: "center" },
-  timeChipText:      { color: "#8A6030", fontSize: 12, fontFamily: "Almarai_700Bold" },
+  dateChip:          { width: 54, height: 64, borderRadius: 14, backgroundColor: c.surfaceAlt, borderWidth: 1, borderColor: c.border, alignItems: "center", justifyContent: "center", gap: 4 },
+  dateChipActive:    { backgroundColor: c.goldBorder, borderColor: c.goldBorder },
+  dateChipDay:       { color: c.textSoft, fontSize: 10, fontFamily: "Almarai_400Regular" },
+  dateChipNum:       { color: c.text, fontSize: 17, fontFamily: "Almarai_800ExtraBold" },
+  dateChipTextActive:{ color: c.gold },
+  timeChip:          { paddingHorizontal: 14, height: 40, borderRadius: 12, backgroundColor: c.surfaceAlt, borderWidth: 1, borderColor: c.border, alignItems: "center", justifyContent: "center" },
+  timeChipText:      { color: c.textSoft, fontSize: 12, fontFamily: "Almarai_700Bold" },
   minutesRow:        { flexDirection: "row-reverse", gap: 10, marginBottom: 8 },
-  minuteChip:        { flex: 1, height: 46, borderRadius: 12, backgroundColor: "#251400", borderWidth: 1, borderColor: "rgba(240,165,0,0.12)", alignItems: "center", justifyContent: "center" },
-  minuteChipText:    { color: "#8A6030", fontSize: 14, fontFamily: "Almarai_700Bold" },
+  minuteChip:        { flex: 1, height: 46, borderRadius: 12, backgroundColor: c.surfaceAlt, borderWidth: 1, borderColor: c.border, alignItems: "center", justifyContent: "center" },
+  minuteChipText:    { color: c.textSoft, fontSize: 14, fontFamily: "Almarai_700Bold" },
 });

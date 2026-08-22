@@ -366,7 +366,7 @@ export default function FavoritesScreen() {
         ) : null}
       </View>
     );
-  }, [chefs.length, error, onRefresh]);
+  }, [c, s, chefs.length, error, onRefresh]);
 
   if (!fontsLoaded) {
     return (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Almarai_400Regular,
@@ -28,6 +29,8 @@ const API = "https://zafaran-backend-production.up.railway.app";
 
 export default function ReviewScreen() {
   const router = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
   const { id } = useLocalSearchParams();
   const orderId = Array.isArray(id) ? id[0] : id;
 
@@ -117,7 +120,7 @@ export default function ReviewScreen() {
       <SafeAreaView style={s.safe}>
         <View style={s.doneWrap}>
           <View style={s.doneIcon}>
-            <CheckCircle2 size={64} color="#4CAF50" strokeWidth={1.6} />
+            <CheckCircle2 size={64} color={c.success} strokeWidth={1.6} />
           </View>
 
           <Text style={s.doneTitle}>شكرًا لتقييمك</Text>
@@ -139,7 +142,7 @@ export default function ReviewScreen() {
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
         <TouchableOpacity style={s.headerBtn} onPress={() => router.back()}>
-          <ArrowRight size={20} color="#F2B233" />
+          <ArrowRight size={20} color={c.gold} />
         </TouchableOpacity>
 
         <Text style={s.title}>تقييم الطلب</Text>
@@ -176,8 +179,8 @@ export default function ReviewScreen() {
                     >
                       <Star
                         size={34}
-                        color="#F2B233"
-                        fill={active ? "#F2B233" : "transparent"}
+                        color={c.gold}
+                        fill={active ? c.gold : "transparent"}
                         strokeWidth={1.7}
                       />
                     </TouchableOpacity>
@@ -207,7 +210,7 @@ export default function ReviewScreen() {
                 value={comment}
                 onChangeText={setComment}
                 placeholder="اكتب ملاحظتك عن الطلب..."
-                placeholderTextColor="#6D4E2D"
+                placeholderTextColor={c.textMuted}
                 style={s.input}
                 textAlign="right"
                 multiline
@@ -226,10 +229,10 @@ export default function ReviewScreen() {
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator color="#17100B" />
+                <ActivityIndicator color={c.onGold} />
               ) : (
                 <>
-                  <Send size={18} color="#17100B" strokeWidth={2} />
+                  <Send size={18} color={c.onGold} strokeWidth={2} />
                   <Text style={s.submitText}>إرسال التقييم</Text>
                 </>
               )}
@@ -241,10 +244,10 @@ export default function ReviewScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const make_s = (c: Colors) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
   },
 
   keyboardWrap: {
@@ -256,7 +259,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(242,178,51,0.1)",
+    borderBottomColor: c.goldSoft,
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
@@ -268,9 +271,9 @@ const s = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.14)",
+    borderColor: c.border,
   },
 
   headerBtnGhost: {
@@ -279,7 +282,7 @@ const s = StyleSheet.create({
   },
 
   title: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 18,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -290,16 +293,16 @@ const s = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderRadius: 26,
     padding: 18,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.12)",
+    borderColor: c.border,
   },
 
   kicker: {
-    color: "#F2B233",
+    color: c.gold,
     textAlign: "right",
     fontSize: 11,
     marginBottom: 6,
@@ -307,14 +310,14 @@ const s = StyleSheet.create({
   },
 
   cardTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "right",
     fontSize: 23,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   cardSub: {
-    color: "#A98961",
+    color: c.textSoft,
     textAlign: "right",
     fontSize: 13,
     lineHeight: 22,
@@ -333,20 +336,20 @@ const s = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 18,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.12)",
+    borderColor: c.border,
   },
 
   starBtnActive: {
-    backgroundColor: "rgba(242,178,51,0.1)",
-    borderColor: "rgba(242,178,51,0.35)",
+    backgroundColor: c.goldSoft,
+    borderColor: c.goldBorder,
   },
 
   ratingText: {
-    color: "#F2B233",
+    color: c.gold,
     textAlign: "center",
     fontSize: 15,
     marginTop: 16,
@@ -354,7 +357,7 @@ const s = StyleSheet.create({
   },
 
   inputLabel: {
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "right",
     fontSize: 15,
     marginBottom: 10,
@@ -364,19 +367,19 @@ const s = StyleSheet.create({
   input: {
     minHeight: 130,
     borderRadius: 18,
-    backgroundColor: "#17100B",
-    color: "#FDF0DC",
+    backgroundColor: c.bg,
+    color: c.text,
     textAlignVertical: "top",
     padding: 14,
     fontSize: 14,
     lineHeight: 23,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.1)",
+    borderColor: c.goldSoft,
     fontFamily: "Almarai_400Regular",
   },
 
   counter: {
-    color: "#6D4E2D",
+    color: c.textMuted,
     textAlign: "left",
     marginTop: 8,
     fontSize: 11,
@@ -386,7 +389,7 @@ const s = StyleSheet.create({
   submitBtn: {
     minHeight: 58,
     borderRadius: 20,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
@@ -398,7 +401,7 @@ const s = StyleSheet.create({
   },
 
   submitText: {
-    color: "#17100B",
+    color: c.bg,
     fontSize: 16,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -414,23 +417,23 @@ const s = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 42,
-    backgroundColor: "rgba(76,175,80,0.1)",
+    backgroundColor: c.successSoft,
     borderWidth: 1,
-    borderColor: "rgba(76,175,80,0.2)",
+    borderColor: c.successSoft,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 22,
   },
 
   doneTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "center",
     fontSize: 24,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   doneSub: {
-    color: "#A98961",
+    color: c.textSoft,
     textAlign: "center",
     fontSize: 13,
     lineHeight: 23,
@@ -442,14 +445,14 @@ const s = StyleSheet.create({
   primaryBtn: {
     minHeight: 52,
     borderRadius: 18,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
     paddingHorizontal: 24,
     alignItems: "center",
     justifyContent: "center",
   },
 
   primaryBtnText: {
-    color: "#17100B",
+    color: c.bg,
     fontSize: 14,
     fontFamily: "Almarai_800ExtraBold",
   },
