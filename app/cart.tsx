@@ -41,6 +41,7 @@ import {
 } from "lucide-react-native";
 
 import { useCart } from "@/context/CartContext";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 import PaymentGateway, { PaymentMethod as GatewayMethod } from "@/components/PaymentGateway";
 
 const API = "https://zafaran-backend-production.up.railway.app";
@@ -138,6 +139,8 @@ function getMinDate(): Date {
 
 export default function CartScreen() {
   const router = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
   const { items, updateQty, clearCart, total, totalItems, chef_id } = useCart();
 
   const [loading, setLoading]       = useState(false);
@@ -457,7 +460,7 @@ export default function CartScreen() {
   }, [clearCart, payingOrderId, router]);
 
   if (!fontsLoaded) {
-    return <SafeAreaView style={s.safe}><ActivityIndicator color="#F2B233" style={{ marginTop: 100 }} /></SafeAreaView>;
+    return <SafeAreaView style={s.safe}><ActivityIndicator color={c.gold} style={{ marginTop: 100 }} /></SafeAreaView>;
   }
 
   if (isCartEmpty) {
@@ -465,14 +468,14 @@ export default function CartScreen() {
       <SafeAreaView style={s.safe}>
         <View style={s.header}>
           <TouchableOpacity activeOpacity={0.8} style={s.headerBtn} onPress={goBack}>
-            <ArrowRight size={20} color="#F2B233" />
+            <ArrowRight size={20} color={c.gold} />
           </TouchableOpacity>
           <Text style={s.title}>السلة</Text>
           <View style={s.headerBtnGhost} />
         </View>
         <View style={s.emptyWrap}>
           <View style={s.emptyIcon}>
-            <ShoppingBag size={62} color="#F2B233" strokeWidth={1.4} />
+            <ShoppingBag size={62} color={c.gold} strokeWidth={1.4} />
           </View>
           <Text style={s.emptyTitle}>السلة فاضية</Text>
           <Text style={s.emptyText}>اختر طلبك من المتاجر، وبعدها كمل الطلب من هنا.</Text>
@@ -488,14 +491,14 @@ export default function CartScreen() {
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
         <TouchableOpacity activeOpacity={0.8} style={s.headerBtn} onPress={goBack}>
-          <ArrowRight size={20} color="#F2B233" />
+          <ArrowRight size={20} color={c.gold} />
         </TouchableOpacity>
         <View style={s.headerTitleWrap}>
           <Text style={s.title}>سلتي</Text>
           <Text style={s.headerSub}>{totalItems} عنصر</Text>
         </View>
         <TouchableOpacity activeOpacity={0.8} style={s.clearBtn} onPress={confirmClearCart}>
-          <Trash2 size={18} color="#FF8A8A" />
+          <Trash2 size={18} color={c.danger} />
         </TouchableOpacity>
       </View>
 
@@ -507,18 +510,18 @@ export default function CartScreen() {
           <View>
             <View style={s.chefCard}>
               <View style={s.chefIcon}>
-                <UtensilsCrossed size={24} color="#F2B233" strokeWidth={1.5} />
+                <UtensilsCrossed size={24} color={c.gold} strokeWidth={1.5} />
               </View>
               <View style={s.chefText}>
                 <Text style={s.chefLabel}>طلبك من</Text>
                 <Text style={s.chefName} numberOfLines={1}>{chefName}</Text>
               </View>
-              <CheckCircle2 size={20} color="#4CAF50" />
+              <CheckCircle2 size={20} color={c.success} />
             </View>
 
             {hasPreorder && (
               <View style={s.preorderBanner}>
-                <CalendarDays size={18} color="#F2B233" strokeWidth={1.8} />
+                <CalendarDays size={18} color={c.gold} strokeWidth={1.8} />
                 <Text style={s.preorderBannerText}>سلتك تحتوي على وجبة حجز مسبق — حدد وقت التسليم أدناه</Text>
               </View>
             )}
@@ -533,7 +536,7 @@ export default function CartScreen() {
                 <Image source={{ uri: item.image_url }} style={s.itemImg} />
               ) : (
                 <View style={s.itemPlaceholder}>
-                  <UtensilsCrossed size={24} color="#6D4E2D" />
+                  <UtensilsCrossed size={24} color={c.textMuted} />
                 </View>
               )}
               <View style={s.itemInfo}>
@@ -542,7 +545,7 @@ export default function CartScreen() {
                   <Text style={s.itemPrice}>{money(Number(item.price || 0))}</Text>
                   {item.status === "preorder" && (
                     <View style={s.preorderBadge}>
-                      <Clock3 size={10} color="#F2B233" strokeWidth={1.8} />
+                      <Clock3 size={10} color={c.gold} strokeWidth={1.8} />
                       <Text style={s.preorderBadgeText}>حجز مسبق</Text>
                     </View>
                   )}
@@ -551,11 +554,11 @@ export default function CartScreen() {
             </View>
             <View style={s.qtyBox}>
               <TouchableOpacity activeOpacity={0.8} style={s.qtyBtn} onPress={() => updateQty(item.id, Number(item.quantity || 0) + 1)}>
-                <Plus size={16} color="#F2B233" strokeWidth={2.3} />
+                <Plus size={16} color={c.gold} strokeWidth={2.3} />
               </TouchableOpacity>
               <Text style={s.qtyNum}>{Number(item.quantity || 0)}</Text>
               <TouchableOpacity activeOpacity={0.8} style={s.qtyBtn} onPress={() => updateQty(item.id, Math.max(1, Number(item.quantity || 1) - 1))}>
-                <Minus size={16} color="#F2B233" strokeWidth={2.3} />
+                <Minus size={16} color={c.gold} strokeWidth={2.3} />
               </TouchableOpacity>
             </View>
           </View>
@@ -566,18 +569,18 @@ export default function CartScreen() {
             {hasPreorder && (
               <View style={s.section}>
                 <View style={s.sectionTitleRow}>
-                  <CalendarDays size={18} color="#F2B233" />
+                  <CalendarDays size={18} color={c.gold} />
                   <Text style={s.sectionTitle}>وقت التسليم المطلوب</Text>
                 </View>
 
                 <TouchableOpacity style={s.datePickerBtn} onPress={() => setShowDatePicker(true)} activeOpacity={0.9}>
-                  <CalendarDays size={18} color={scheduledAt ? "#4CAF50" : "#F2B233"} strokeWidth={1.8} />
-                  <Text style={[s.datePickerBtnText, scheduledAt && { color: "#4CAF50" }]}>
+                  <CalendarDays size={18} color={scheduledAt ? c.success : c.gold} strokeWidth={1.8} />
+                  <Text style={[s.datePickerBtnText, scheduledAt && { color: c.success }]}>
                     {scheduledAt
                       ? `${formatArabicDate(scheduledAt)} — ${formatArabicTime(selectedHour, selectedMinute)}`
                       : "اختر تاريخ ووقت التسليم"}
                   </Text>
-                  {scheduledAt && <CheckCircle2 size={18} color="#4CAF50" />}
+                  {scheduledAt && <CheckCircle2 size={18} color={c.success} />}
                 </TouchableOpacity>
 
                 {!scheduledAt && (
@@ -589,21 +592,21 @@ export default function CartScreen() {
             {/* طريقة الاستلام */}
             <View style={s.section}>
               <View style={s.sectionTitleRow}>
-                <Truck size={18} color="#F2B233" />
+                <Truck size={18} color={c.gold} />
                 <Text style={s.sectionTitle}>طريقة الاستلام</Text>
               </View>
               <View style={s.deliveryRow}>
                 <TouchableOpacity activeOpacity={0.9}
                   style={[s.deliveryCard, deliveryType === "delivery" && s.deliveryCardActive]}
                   onPress={() => setDeliveryType("delivery")}>
-                  <Truck size={24} color={deliveryType === "delivery" ? "#F2B233" : "#6D4E2D"} />
+                  <Truck size={24} color={deliveryType === "delivery" ? c.gold : c.textMuted} />
                   <Text style={[s.deliveryTitle, deliveryType === "delivery" && s.deliveryTitleActive]}>توصيل</Text>
                   <Text style={s.deliverySub}>+ {money(deliveryType === "delivery" ? deliveryFee : feeParams.delivery_base_fee)}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity activeOpacity={0.9}
                   style={[s.deliveryCard, deliveryType === "pickup" && s.deliveryCardActive]}
                   onPress={() => { setDeliveryType("pickup"); setAddress(""); setLat(null); setLng(null); setSelectedAddrId(null); }}>
-                  <ShoppingBag size={24} color={deliveryType === "pickup" ? "#F2B233" : "#6D4E2D"} />
+                  <ShoppingBag size={24} color={deliveryType === "pickup" ? c.gold : c.textMuted} />
                   <Text style={[s.deliveryTitle, deliveryType === "pickup" && s.deliveryTitleActive]}>استلام</Text>
                   <Text style={s.deliverySub}>مجاني</Text>
                 </TouchableOpacity>
@@ -614,7 +617,7 @@ export default function CartScreen() {
             {deliveryType === "delivery" && (
               <View style={s.section}>
                 <View style={s.sectionTitleRow}>
-                  <MapPin size={18} color="#F2B233" />
+                  <MapPin size={18} color={c.gold} />
                   <Text style={s.sectionTitle}>عنوان التوصيل</Text>
                 </View>
                 {savedAddresses.length > 0 && (
@@ -628,7 +631,7 @@ export default function CartScreen() {
                           style={[s.savedRow, active && s.savedRowActive]}
                           onPress={() => pickSavedAddress(addr)}
                         >
-                          <MapPin size={17} color={active ? "#F2B233" : "#8A6030"} strokeWidth={1.8} />
+                          <MapPin size={17} color={active ? c.gold : c.textSoft} strokeWidth={1.8} />
                           <View style={s.savedTextWrap}>
                             <Text style={[s.savedLabel, active && s.savedLabelActive]} numberOfLines={1}>
                               {text(addr.label, "عنوان")}
@@ -645,14 +648,14 @@ export default function CartScreen() {
                 )}
 
                 <TouchableOpacity activeOpacity={0.9} style={s.addAddrBtn} onPress={() => router.push("/addresses" as any)}>
-                  <Plus size={16} color="#F2B233" strokeWidth={2} />
+                  <Plus size={16} color={c.gold} strokeWidth={2} />
                   <Text style={s.addAddrText}>إضافة عنوان جديد</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity activeOpacity={0.9} style={s.locationBtn} onPress={getLocation} disabled={locLoading}>
-                  {locLoading ? <ActivityIndicator color="#17100B" /> : (
+                  {locLoading ? <ActivityIndicator color={c.onGold} /> : (
                     <>
-                      <Navigation size={18} color="#17100B" />
+                      <Navigation size={18} color={c.onGold} />
                       <Text style={s.locationBtnText}>
                         {savedAddresses.length > 0 ? "استخدام موقعي الحالي بدلاً منها" : "تحديد موقعي تلقائيًا"}
                       </Text>
@@ -662,7 +665,7 @@ export default function CartScreen() {
 
                 {address ? (
                   <View style={s.addressCard}>
-                    <CheckCircle2 size={18} color="#4CAF50" />
+                    <CheckCircle2 size={18} color={c.success} />
                     <Text style={s.addressText} numberOfLines={2}>{address}</Text>
                   </View>
                 ) : (
@@ -674,7 +677,7 @@ export default function CartScreen() {
             {/* طريقة الدفع */}
             <View style={s.section}>
               <View style={s.sectionTitleRow}>
-                <CreditCard size={18} color="#F2B233" />
+                <CreditCard size={18} color={c.gold} />
                 <Text style={s.sectionTitle}>طريقة الدفع</Text>
               </View>
               <View style={s.paymentGrid}>
@@ -687,7 +690,7 @@ export default function CartScreen() {
                       style={[s.paymentOption, active && s.paymentOptionActive, !method.enabled && s.paymentOptionDisabled]}
                       onPress={() => setPaymentMethod(method.id)}>
                       <View style={s.paymentIconBox}>
-                        <Icon size={20} color={active ? "#F2B233" : method.enabled ? "#8A6030" : "#6D4E2D"} strokeWidth={1.8} />
+                        <Icon size={20} color={active ? c.gold : method.enabled ? c.textSoft : c.textMuted} strokeWidth={1.8} />
                       </View>
                       <View style={s.paymentTextWrap}>
                         <Text style={[s.paymentTitle, active && s.paymentTitleActive, !method.enabled && s.paymentTextDisabled]}>{method.title}</Text>
@@ -705,7 +708,7 @@ export default function CartScreen() {
             {/* ملخص الطلب */}
             <View style={s.section}>
               <View style={s.sectionTitleRow}>
-                <Clock3 size={18} color="#F2B233" />
+                <Clock3 size={18} color={c.gold} />
                 <Text style={s.sectionTitle}>ملخص الطلب</Text>
               </View>
               <View style={s.summaryRow}>
@@ -721,7 +724,7 @@ export default function CartScreen() {
               {hasPreorder && scheduledAt && (
                 <View style={s.summaryRow}>
                   <Text style={s.summaryLabel}>نوع الطلب</Text>
-                  <Text style={[s.summaryValue, { color: "#F2B233" }]}>حجز مسبق</Text>
+                  <Text style={[s.summaryValue, { color: c.gold }]}>حجز مسبق</Text>
                 </View>
               )}
               <View style={s.summaryDivider} />
@@ -738,11 +741,11 @@ export default function CartScreen() {
         <TouchableOpacity activeOpacity={0.92}
           style={[s.orderBtn, loading && s.orderBtnDisabled]}
           onPress={handleOrder} disabled={loading}>
-          {loading ? <ActivityIndicator color="#17100B" /> : (
+          {loading ? <ActivityIndicator color={c.onGold} /> : (
             <>
               <Text style={s.orderBtnText}>{hasPreorder ? "إرسال طلب الحجز" : "إرسال الطلب"}</Text>
               <Text style={s.orderBtnPrice}>{money(grandTotal)}</Text>
-              <ChevronLeft size={20} color="#17100B" />
+              <ChevronLeft size={20} color={c.onGold} />
             </>
           )}
         </TouchableOpacity>
@@ -834,112 +837,112 @@ export default function CartScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  safe:              { flex: 1, backgroundColor: "#17100B" },
-  header:            { minHeight: 66, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "rgba(242,178,51,0.1)", flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", backgroundColor: "#17100B" },
-  headerBtn:         { width: 42, height: 42, borderRadius: 15, backgroundColor: "rgba(242,178,51,0.08)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,178,51,0.14)" },
+const make_s = (c: Colors) => StyleSheet.create({
+  safe:              { flex: 1, backgroundColor: c.bg },
+  header:            { minHeight: 66, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.goldSoft, flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", backgroundColor: c.bg },
+  headerBtn:         { width: 42, height: 42, borderRadius: 15, backgroundColor: c.goldSoft, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: c.border },
   headerBtnGhost:    { width: 42, height: 42 },
-  clearBtn:          { width: 42, height: 42, borderRadius: 15, backgroundColor: "rgba(229,57,53,0.09)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(229,57,53,0.18)" },
+  clearBtn:          { width: 42, height: 42, borderRadius: 15, backgroundColor: c.dangerSoft, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: c.dangerSoft },
   headerTitleWrap:   { alignItems: "center" },
-  title:             { color: "#FDF0DC", fontSize: 20, fontFamily: "Almarai_800ExtraBold" },
-  headerSub:         { marginTop: 3, color: "#8A6030", fontSize: 11, fontFamily: "Almarai_400Regular" },
+  title:             { color: c.text, fontSize: 20, fontFamily: "Almarai_800ExtraBold" },
+  headerSub:         { marginTop: 3, color: c.textSoft, fontSize: 11, fontFamily: "Almarai_400Regular" },
   listContent:       { padding: 16, paddingBottom: 190 },
-  chefCard:          { backgroundColor: "#21160D", borderRadius: 24, padding: 15, flexDirection: "row-reverse", alignItems: "center", gap: 12, borderWidth: 1, borderColor: "rgba(242,178,51,0.12)", marginBottom: 12 },
-  chefIcon:          { width: 54, height: 54, borderRadius: 18, backgroundColor: "rgba(242,178,51,0.08)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,178,51,0.15)" },
+  chefCard:          { backgroundColor: c.surface, borderRadius: 24, padding: 15, flexDirection: "row-reverse", alignItems: "center", gap: 12, borderWidth: 1, borderColor: c.border, marginBottom: 12 },
+  chefIcon:          { width: 54, height: 54, borderRadius: 18, backgroundColor: c.goldSoft, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: c.goldBorder },
   chefText:          { flex: 1 },
-  chefLabel:         { color: "#8A6030", textAlign: "right", fontSize: 11, fontFamily: "Almarai_400Regular" },
-  chefName:          { color: "#FDF0DC", textAlign: "right", fontSize: 15, marginTop: 4, fontFamily: "Almarai_800ExtraBold" },
-  preorderBanner:    { backgroundColor: "rgba(242,178,51,0.1)", borderRadius: 16, padding: 12, flexDirection: "row-reverse", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "rgba(242,178,51,0.25)", marginBottom: 12 },
-  preorderBannerText:{ flex: 1, color: "#F2B233", textAlign: "right", fontSize: 12, lineHeight: 20, fontFamily: "Almarai_700Bold" },
-  sectionHeading:    { color: "#FDF0DC", fontSize: 16, textAlign: "right", marginBottom: 12, fontFamily: "Almarai_800ExtraBold" },
-  itemCard:          { backgroundColor: "#21160D", borderRadius: 22, padding: 13, marginBottom: 10, borderWidth: 1, borderColor: "rgba(242,178,51,0.09)", flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  chefLabel:         { color: c.textSoft, textAlign: "right", fontSize: 11, fontFamily: "Almarai_400Regular" },
+  chefName:          { color: c.text, textAlign: "right", fontSize: 15, marginTop: 4, fontFamily: "Almarai_800ExtraBold" },
+  preorderBanner:    { backgroundColor: c.goldSoft, borderRadius: 16, padding: 12, flexDirection: "row-reverse", alignItems: "center", gap: 8, borderWidth: 1, borderColor: c.goldBorder, marginBottom: 12 },
+  preorderBannerText:{ flex: 1, color: c.gold, textAlign: "right", fontSize: 12, lineHeight: 20, fontFamily: "Almarai_700Bold" },
+  sectionHeading:    { color: c.text, fontSize: 16, textAlign: "right", marginBottom: 12, fontFamily: "Almarai_800ExtraBold" },
+  itemCard:          { backgroundColor: c.surface, borderRadius: 22, padding: 13, marginBottom: 10, borderWidth: 1, borderColor: c.goldSoft, flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", gap: 10 },
   itemRight:         { flex: 1, flexDirection: "row-reverse", alignItems: "center", gap: 11 },
-  itemImg:           { width: 58, height: 58, borderRadius: 18, backgroundColor: "#2A1E00" },
-  itemPlaceholder:   { width: 58, height: 58, borderRadius: 18, backgroundColor: "#2A1E00", alignItems: "center", justifyContent: "center" },
+  itemImg:           { width: 58, height: 58, borderRadius: 18, backgroundColor: c.surfaceAlt },
+  itemPlaceholder:   { width: 58, height: 58, borderRadius: 18, backgroundColor: c.surfaceAlt, alignItems: "center", justifyContent: "center" },
   itemInfo:          { flex: 1 },
-  itemName:          { color: "#FDF0DC", textAlign: "right", fontSize: 14, lineHeight: 22, fontFamily: "Almarai_800ExtraBold" },
+  itemName:          { color: c.text, textAlign: "right", fontSize: 14, lineHeight: 22, fontFamily: "Almarai_800ExtraBold" },
   itemMeta:          { flexDirection: "row-reverse", alignItems: "center", gap: 8, marginTop: 4 },
-  itemPrice:         { color: "#F2B233", fontSize: 12, fontFamily: "Almarai_700Bold" },
-  preorderBadge:     { flexDirection: "row-reverse", alignItems: "center", gap: 3, backgroundColor: "rgba(242,178,51,0.12)", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  preorderBadgeText: { color: "#F2B233", fontSize: 9, fontFamily: "Almarai_700Bold" },
-  qtyBox:            { backgroundColor: "#17100B", borderRadius: 16, padding: 5, flexDirection: "row-reverse", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "rgba(242,178,51,0.1)" },
-  qtyBtn:            { width: 30, height: 30, borderRadius: 11, backgroundColor: "rgba(242,178,51,0.08)", alignItems: "center", justifyContent: "center" },
-  qtyNum:            { minWidth: 22, color: "#FDF0DC", textAlign: "center", fontSize: 15, fontFamily: "Almarai_800ExtraBold" },
-  section:           { backgroundColor: "#21160D", borderRadius: 24, padding: 15, marginTop: 12, borderWidth: 1, borderColor: "rgba(242,178,51,0.1)" },
+  itemPrice:         { color: c.gold, fontSize: 12, fontFamily: "Almarai_700Bold" },
+  preorderBadge:     { flexDirection: "row-reverse", alignItems: "center", gap: 3, backgroundColor: c.border, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  preorderBadgeText: { color: c.gold, fontSize: 9, fontFamily: "Almarai_700Bold" },
+  qtyBox:            { backgroundColor: c.bg, borderRadius: 16, padding: 5, flexDirection: "row-reverse", alignItems: "center", gap: 8, borderWidth: 1, borderColor: c.goldSoft },
+  qtyBtn:            { width: 30, height: 30, borderRadius: 11, backgroundColor: c.goldSoft, alignItems: "center", justifyContent: "center" },
+  qtyNum:            { minWidth: 22, color: c.text, textAlign: "center", fontSize: 15, fontFamily: "Almarai_800ExtraBold" },
+  section:           { backgroundColor: c.surface, borderRadius: 24, padding: 15, marginTop: 12, borderWidth: 1, borderColor: c.goldSoft },
   sectionTitleRow:   { flexDirection: "row-reverse", alignItems: "center", gap: 8, marginBottom: 13 },
-  sectionTitle:      { color: "#FDF0DC", fontSize: 15, textAlign: "right", fontFamily: "Almarai_800ExtraBold" },
-  datePickerBtn:     { minHeight: 52, borderRadius: 17, backgroundColor: "#17100B", borderWidth: 1, borderColor: "rgba(242,178,51,0.2)", flexDirection: "row-reverse", alignItems: "center", paddingHorizontal: 14, gap: 10 },
-  datePickerBtnText: { flex: 1, color: "#F2B233", textAlign: "right", fontSize: 13, fontFamily: "Almarai_700Bold" },
-  dateHint:          { color: "#E53935", textAlign: "right", marginTop: 8, fontSize: 11, fontFamily: "Almarai_400Regular" },
+  sectionTitle:      { color: c.text, fontSize: 15, textAlign: "right", fontFamily: "Almarai_800ExtraBold" },
+  datePickerBtn:     { minHeight: 52, borderRadius: 17, backgroundColor: c.bg, borderWidth: 1, borderColor: c.goldBorder, flexDirection: "row-reverse", alignItems: "center", paddingHorizontal: 14, gap: 10 },
+  datePickerBtnText: { flex: 1, color: c.gold, textAlign: "right", fontSize: 13, fontFamily: "Almarai_700Bold" },
+  dateHint:          { color: c.danger, textAlign: "right", marginTop: 8, fontSize: 11, fontFamily: "Almarai_400Regular" },
   deliveryRow:       { flexDirection: "row-reverse", gap: 10 },
-  deliveryCard:      { flex: 1, minHeight: 104, backgroundColor: "#17100B", borderRadius: 20, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,178,51,0.09)", gap: 5 },
-  deliveryCardActive:{ backgroundColor: "rgba(242,178,51,0.1)", borderColor: "rgba(242,178,51,0.45)" },
-  deliveryTitle:     { color: "#6D4E2D", fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
-  deliveryTitleActive:{ color: "#F2B233" },
-  deliverySub:       { color: "#8A6030", fontSize: 11, fontFamily: "Almarai_400Regular" },
+  deliveryCard:      { flex: 1, minHeight: 104, backgroundColor: c.bg, borderRadius: 20, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: c.goldSoft, gap: 5 },
+  deliveryCardActive:{ backgroundColor: c.goldSoft, borderColor: c.goldBorder },
+  deliveryTitle:     { color: c.textMuted, fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
+  deliveryTitleActive:{ color: c.gold },
+  deliverySub:       { color: c.textSoft, fontSize: 11, fontFamily: "Almarai_400Regular" },
   savedList:         { gap: 8, marginBottom: 10 },
-  savedRow:          { minHeight: 56, borderRadius: 16, backgroundColor: "#17100B", borderWidth: 1, borderColor: "rgba(242,178,51,0.1)", paddingHorizontal: 13, paddingVertical: 10, flexDirection: "row-reverse", alignItems: "center", gap: 10 },
-  savedRowActive:    { backgroundColor: "rgba(242,178,51,0.1)", borderColor: "rgba(242,178,51,0.45)" },
+  savedRow:          { minHeight: 56, borderRadius: 16, backgroundColor: c.bg, borderWidth: 1, borderColor: c.goldSoft, paddingHorizontal: 13, paddingVertical: 10, flexDirection: "row-reverse", alignItems: "center", gap: 10 },
+  savedRowActive:    { backgroundColor: c.goldSoft, borderColor: c.goldBorder },
   savedTextWrap:     { flex: 1 },
-  savedLabel:        { color: "#FDF0DC", textAlign: "right", fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
-  savedLabelActive:  { color: "#F2B233" },
-  savedAddr:         { color: "#8A6030", textAlign: "right", marginTop: 2, fontSize: 11, fontFamily: "Almarai_400Regular" },
-  addAddrBtn:        { minHeight: 44, borderRadius: 14, borderWidth: 1, borderColor: "rgba(242,178,51,0.25)", borderStyle: "dashed", alignItems: "center", justifyContent: "center", flexDirection: "row-reverse", gap: 7, marginBottom: 10 },
-  addAddrText:       { color: "#F2B233", fontSize: 12, fontFamily: "Almarai_700Bold" },
-  locationBtn:       { minHeight: 50, borderRadius: 17, backgroundColor: "#F2B233", alignItems: "center", justifyContent: "center", flexDirection: "row-reverse", gap: 8 },
-  locationBtnText:   { color: "#17100B", fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
-  addressCard:       { marginTop: 10, borderRadius: 16, padding: 12, backgroundColor: "rgba(76,175,80,0.08)", borderWidth: 1, borderColor: "rgba(76,175,80,0.18)", flexDirection: "row-reverse", alignItems: "center", gap: 8 },
-  addressText:       { flex: 1, color: "#A4F0B5", textAlign: "right", fontSize: 12, lineHeight: 20, fontFamily: "Almarai_700Bold" },
-  addressHint:       { color: "#8A6030", textAlign: "right", marginTop: 10, fontSize: 12, fontFamily: "Almarai_400Regular" },
+  savedLabel:        { color: c.text, textAlign: "right", fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
+  savedLabelActive:  { color: c.gold },
+  savedAddr:         { color: c.textSoft, textAlign: "right", marginTop: 2, fontSize: 11, fontFamily: "Almarai_400Regular" },
+  addAddrBtn:        { minHeight: 44, borderRadius: 14, borderWidth: 1, borderColor: c.goldBorder, borderStyle: "dashed", alignItems: "center", justifyContent: "center", flexDirection: "row-reverse", gap: 7, marginBottom: 10 },
+  addAddrText:       { color: c.gold, fontSize: 12, fontFamily: "Almarai_700Bold" },
+  locationBtn:       { minHeight: 50, borderRadius: 17, backgroundColor: c.gold, alignItems: "center", justifyContent: "center", flexDirection: "row-reverse", gap: 8 },
+  locationBtnText:   { color: c.bg, fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
+  addressCard:       { marginTop: 10, borderRadius: 16, padding: 12, backgroundColor: c.successSoft, borderWidth: 1, borderColor: c.successSoft, flexDirection: "row-reverse", alignItems: "center", gap: 8 },
+  addressText:       { flex: 1, color: c.success, textAlign: "right", fontSize: 12, lineHeight: 20, fontFamily: "Almarai_700Bold" },
+  addressHint:       { color: c.textSoft, textAlign: "right", marginTop: 10, fontSize: 12, fontFamily: "Almarai_400Regular" },
   paymentGrid:       { gap: 10 },
-  paymentOption:     { minHeight: 58, borderRadius: 18, backgroundColor: "#17100B", borderWidth: 1, borderColor: "rgba(242,178,51,0.1)", paddingHorizontal: 13, paddingVertical: 10, flexDirection: "row-reverse", alignItems: "center", gap: 10 },
-  paymentOptionActive:{ backgroundColor: "rgba(242,178,51,0.1)", borderColor: "rgba(242,178,51,0.45)" },
+  paymentOption:     { minHeight: 58, borderRadius: 18, backgroundColor: c.bg, borderWidth: 1, borderColor: c.goldSoft, paddingHorizontal: 13, paddingVertical: 10, flexDirection: "row-reverse", alignItems: "center", gap: 10 },
+  paymentOptionActive:{ backgroundColor: c.goldSoft, borderColor: c.goldBorder },
   paymentOptionDisabled:{ opacity: 0.45 },
-  paymentIconBox:    { width: 34, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(242,178,51,0.06)" },
+  paymentIconBox:    { width: 34, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: c.goldSoft },
   paymentTextWrap:   { flex: 1 },
-  paymentTitle:      { color: "#FDF0DC", textAlign: "right", fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
-  paymentTitleActive:{ color: "#F2B233" },
-  paymentSub:        { color: "#8A6030", textAlign: "right", marginTop: 3, fontSize: 11, fontFamily: "Almarai_400Regular" },
-  paymentTextDisabled:{ color: "#6D4E2D" },
-  radioOuter:        { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: "rgba(242,178,51,0.22)", alignItems: "center", justifyContent: "center" },
-  radioOuterActive:  { borderColor: "#F2B233" },
-  radioInner:        { width: 10, height: 10, borderRadius: 5, backgroundColor: "#F2B233" },
+  paymentTitle:      { color: c.text, textAlign: "right", fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
+  paymentTitleActive:{ color: c.gold },
+  paymentSub:        { color: c.textSoft, textAlign: "right", marginTop: 3, fontSize: 11, fontFamily: "Almarai_400Regular" },
+  paymentTextDisabled:{ color: c.textMuted },
+  radioOuter:        { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: c.goldBorder, alignItems: "center", justifyContent: "center" },
+  radioOuterActive:  { borderColor: c.gold },
+  radioInner:        { width: 10, height: 10, borderRadius: 5, backgroundColor: c.gold },
   summaryRow:        { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  summaryLabel:      { color: "#8A6030", fontSize: 13, fontFamily: "Almarai_400Regular" },
-  summaryValue:      { color: "#FDF0DC", fontSize: 13, fontFamily: "Almarai_700Bold" },
-  summaryDivider:    { height: 1, backgroundColor: "rgba(242,178,51,0.12)", marginVertical: 4 },
-  totalLabel:        { color: "#FDF0DC", fontSize: 16, fontFamily: "Almarai_800ExtraBold" },
-  totalValue:        { color: "#F2B233", fontSize: 20, fontFamily: "Almarai_800ExtraBold" },
-  footer:            { position: "absolute", left: 0, right: 0, bottom: 0, padding: 16, paddingBottom: 20, backgroundColor: "rgba(23,16,11,0.98)", borderTopWidth: 1, borderTopColor: "rgba(242,178,51,0.12)" },
-  orderBtn:          { minHeight: 58, borderRadius: 20, backgroundColor: "#F2B233", alignItems: "center", justifyContent: "center", flexDirection: "row-reverse", gap: 10 },
+  summaryLabel:      { color: c.textSoft, fontSize: 13, fontFamily: "Almarai_400Regular" },
+  summaryValue:      { color: c.text, fontSize: 13, fontFamily: "Almarai_700Bold" },
+  summaryDivider:    { height: 1, backgroundColor: c.border, marginVertical: 4 },
+  totalLabel:        { color: c.text, fontSize: 16, fontFamily: "Almarai_800ExtraBold" },
+  totalValue:        { color: c.gold, fontSize: 20, fontFamily: "Almarai_800ExtraBold" },
+  footer:            { position: "absolute", left: 0, right: 0, bottom: 0, padding: 16, paddingBottom: 20, backgroundColor: c.bg, borderTopWidth: 1, borderTopColor: c.border },
+  orderBtn:          { minHeight: 58, borderRadius: 20, backgroundColor: c.gold, alignItems: "center", justifyContent: "center", flexDirection: "row-reverse", gap: 10 },
   orderBtnDisabled:  { opacity: 0.72 },
-  orderBtnText:      { color: "#17100B", fontSize: 16, fontFamily: "Almarai_800ExtraBold" },
-  orderBtnPrice:     { color: "#17100B", fontSize: 13, fontFamily: "Almarai_700Bold", opacity: 0.85 },
+  orderBtnText:      { color: c.bg, fontSize: 16, fontFamily: "Almarai_800ExtraBold" },
+  orderBtnPrice:     { color: c.bg, fontSize: 13, fontFamily: "Almarai_700Bold", opacity: 0.85 },
   emptyWrap:         { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 30 },
-  emptyIcon:         { width: 118, height: 118, borderRadius: 40, backgroundColor: "#21160D", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(242,178,51,0.14)", marginBottom: 22 },
-  emptyTitle:        { color: "#FDF0DC", fontSize: 21, fontFamily: "Almarai_800ExtraBold" },
-  emptyText:         { color: "#A98961", textAlign: "center", fontSize: 13, lineHeight: 24, marginTop: 9, marginBottom: 22, fontFamily: "Almarai_400Regular" },
-  primaryBtn:        { minWidth: 190, borderRadius: 17, backgroundColor: "#F2B233", paddingHorizontal: 24, paddingVertical: 14, alignItems: "center" },
-  primaryBtnText:    { color: "#17100B", fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
+  emptyIcon:         { width: 118, height: 118, borderRadius: 40, backgroundColor: c.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: c.border, marginBottom: 22 },
+  emptyTitle:        { color: c.text, fontSize: 21, fontFamily: "Almarai_800ExtraBold" },
+  emptyText:         { color: c.textSoft, textAlign: "center", fontSize: 13, lineHeight: 24, marginTop: 9, marginBottom: 22, fontFamily: "Almarai_400Regular" },
+  primaryBtn:        { minWidth: 190, borderRadius: 17, backgroundColor: c.gold, paddingHorizontal: 24, paddingVertical: 14, alignItems: "center" },
+  primaryBtnText:    { color: c.bg, fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
   // Modal
-  modalOverlay:      { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
-  modalBox:          { backgroundColor: "#1C1000", borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 36, borderWidth: 1, borderColor: "rgba(242,178,51,0.15)" },
+  modalOverlay:      { flex: 1, backgroundColor: c.overlay, justifyContent: "flex-end" },
+  modalBox:          { backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 36, borderWidth: 1, borderColor: c.goldBorder },
   modalHeader:       { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  modalTitle:        { color: "#FDF0DC", fontSize: 18, fontFamily: "Almarai_800ExtraBold" },
+  modalTitle:        { color: c.text, fontSize: 18, fontFamily: "Almarai_800ExtraBold" },
   modalCloseBtn:     { padding: 6 },
-  modalCloseText:    { color: "#8A6030", fontSize: 13, fontFamily: "Almarai_700Bold" },
-  pickerLabel:       { color: "#F2B233", textAlign: "right", fontSize: 12, fontFamily: "Almarai_800ExtraBold", marginBottom: 8, marginTop: 12 },
+  modalCloseText:    { color: c.textSoft, fontSize: 13, fontFamily: "Almarai_700Bold" },
+  pickerLabel:       { color: c.gold, textAlign: "right", fontSize: 12, fontFamily: "Almarai_800ExtraBold", marginBottom: 8, marginTop: 12 },
   datesRow:          { flexDirection: "row-reverse", gap: 8, paddingVertical: 4, paddingBottom: 8 },
-  dateChip:          { width: 58, height: 68, borderRadius: 16, backgroundColor: "#251400", borderWidth: 1, borderColor: "rgba(242,178,51,0.12)", alignItems: "center", justifyContent: "center", gap: 4 },
-  dateChipActive:    { backgroundColor: "rgba(242,178,51,0.15)", borderColor: "rgba(242,178,51,0.5)" },
-  dateChipDay:       { color: "#8A6030", fontSize: 10, fontFamily: "Almarai_400Regular" },
-  dateChipNum:       { color: "#FDF0DC", fontSize: 18, fontFamily: "Almarai_800ExtraBold" },
-  dateChipTextActive:{ color: "#F2B233" },
-  timeChip:          { paddingHorizontal: 14, height: 42, borderRadius: 14, backgroundColor: "#251400", borderWidth: 1, borderColor: "rgba(242,178,51,0.12)", alignItems: "center", justifyContent: "center" },
-  timeChipText:      { color: "#8A6030", fontSize: 13, fontFamily: "Almarai_700Bold" },
+  dateChip:          { width: 58, height: 68, borderRadius: 16, backgroundColor: c.surfaceAlt, borderWidth: 1, borderColor: c.border, alignItems: "center", justifyContent: "center", gap: 4 },
+  dateChipActive:    { backgroundColor: c.goldBorder, borderColor: c.goldBorder },
+  dateChipDay:       { color: c.textSoft, fontSize: 10, fontFamily: "Almarai_400Regular" },
+  dateChipNum:       { color: c.text, fontSize: 18, fontFamily: "Almarai_800ExtraBold" },
+  dateChipTextActive:{ color: c.gold },
+  timeChip:          { paddingHorizontal: 14, height: 42, borderRadius: 14, backgroundColor: c.surfaceAlt, borderWidth: 1, borderColor: c.border, alignItems: "center", justifyContent: "center" },
+  timeChipText:      { color: c.textSoft, fontSize: 13, fontFamily: "Almarai_700Bold" },
   minutesRow:        { flexDirection: "row-reverse", gap: 10, marginBottom: 8 },
-  minuteChip:        { flex: 1, height: 48, borderRadius: 14, backgroundColor: "#251400", borderWidth: 1, borderColor: "rgba(242,178,51,0.12)", alignItems: "center", justifyContent: "center" },
-  minuteChipText:    { color: "#8A6030", fontSize: 15, fontFamily: "Almarai_700Bold" },
-  confirmDateBtn:    { marginTop: 16, minHeight: 52, borderRadius: 17, backgroundColor: "#F2B233", alignItems: "center", justifyContent: "center", paddingHorizontal: 16 },
-  confirmDateBtnText:{ color: "#17100B", fontSize: 14, fontFamily: "Almarai_800ExtraBold", textAlign: "center" },
+  minuteChip:        { flex: 1, height: 48, borderRadius: 14, backgroundColor: c.surfaceAlt, borderWidth: 1, borderColor: c.border, alignItems: "center", justifyContent: "center" },
+  minuteChipText:    { color: c.textSoft, fontSize: 15, fontFamily: "Almarai_700Bold" },
+  confirmDateBtn:    { marginTop: 16, minHeight: 52, borderRadius: 17, backgroundColor: c.gold, alignItems: "center", justifyContent: "center", paddingHorizontal: 16 },
+  confirmDateBtnText:{ color: c.bg, fontSize: 14, fontFamily: "Almarai_800ExtraBold", textAlign: "center" },
 });

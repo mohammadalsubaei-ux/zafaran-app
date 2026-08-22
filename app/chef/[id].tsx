@@ -37,6 +37,7 @@ import {
 } from "lucide-react-native";
 
 import { useCart } from "@/context/CartContext";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 
@@ -97,8 +98,8 @@ function itemStatusMeta(status?: string | null) {
   if (status === "preorder") {
     return {
       label: "حجز مسبق",
-      color: "#F2B233",
-      bg: "rgba(242,178,51,0.1)",
+      color: c.gold,
+      bg: c.goldSoft,
       Icon: CalendarDays,
     };
   }
@@ -106,16 +107,16 @@ function itemStatusMeta(status?: string | null) {
   if (status === "unavailable") {
     return {
       label: "غير متاح",
-      color: "#E53935",
-      bg: "rgba(229,57,53,0.1)",
+      color: c.danger,
+      bg: c.dangerSoft,
       Icon: XCircle,
     };
   }
 
   return {
     label: "متاح",
-    color: "#4CAF50",
-    bg: "rgba(76,175,80,0.1)",
+    color: c.success,
+    bg: c.successSoft,
     Icon: BadgeCheck,
   };
 }
@@ -125,6 +126,8 @@ export default function ChefScreen() {
   const chefIdParam = Array.isArray(id) ? id[0] : id;
 
   const router = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
 
   const [chef, setChef] = useState<Chef | null>(null);
   const [loading, setLoading] = useState(true);
@@ -288,7 +291,7 @@ export default function ChefScreen() {
       <View>
         <View style={s.topHeader}>
           <TouchableOpacity activeOpacity={0.85} style={s.headerBtn} onPress={() => router.back()}>
-            <ArrowRight size={20} color="#F2B233" strokeWidth={1.9} />
+            <ArrowRight size={20} color={c.gold} strokeWidth={1.9} />
           </TouchableOpacity>
 
           <View style={s.headerTitleWrap}>
@@ -297,13 +300,13 @@ export default function ChefScreen() {
           </View>
 
           <TouchableOpacity activeOpacity={0.85} style={s.headerBtn} onPress={onRefresh}>
-            <RefreshCw size={18} color="#F2B233" strokeWidth={1.8} />
+            <RefreshCw size={18} color={c.gold} strokeWidth={1.8} />
           </TouchableOpacity>
         </View>
 
         <View style={s.heroCard}>
           <View style={s.avatarWrap}>
-            <Store size={38} color="#F2B233" strokeWidth={1.5} />
+            <Store size={38} color={c.gold} strokeWidth={1.5} />
           </View>
 
           <Text style={s.chefName} numberOfLines={1}>
@@ -311,7 +314,7 @@ export default function ChefScreen() {
           </Text>
 
           <View style={s.cityRow}>
-            <MapPin size={13} color="#8A6030" strokeWidth={1.6} />
+            <MapPin size={13} color={c.textSoft} strokeWidth={1.6} />
             <Text style={s.chefCity} numberOfLines={1}>
               {text(chefLocation, "الموقع غير محدد")}
             </Text>
@@ -320,9 +323,9 @@ export default function ChefScreen() {
           <View style={s.statusRow}>
             {(() => {
               const STATUS_UI: Record<string, { bg: string; dot: string; text: string; label: string }> = {
-                open:     { bg: "rgba(76,175,80,0.1)", dot: "#4CAF50", text: "#8AF0A5", label: "مفتوح الآن" },
-                preorder: { bg: "rgba(240,165,0,0.1)", dot: "#F0A500", text: "#FFD27A", label: "حجز مسبق فقط" },
-                closed:   { bg: "rgba(229,57,53,0.1)", dot: "#E53935", text: "#FF9A9A", label: "مغلق حاليًا" },
+                open:     { bg: c.successSoft, dot: c.success, text: c.success, label: "مفتوح الآن" },
+                preorder: { bg: c.goldSoft, dot: c.gold, text: c.gold, label: "حجز مسبق فقط" },
+                closed:   { bg: c.dangerSoft, dot: c.danger, text: c.danger, label: "مغلق حاليًا" },
               };
               const ui = STATUS_UI[chefStatus] ?? STATUS_UI.closed;
               return (
@@ -337,7 +340,7 @@ export default function ChefScreen() {
           <View style={s.statsBox}>
             <View style={s.statItem}>
               <View style={s.statIconLine}>
-                <Star size={15} color="#F2B233" fill="#F2B233" />
+                <Star size={15} color={c.gold} fill={c.gold} />
                 <Text style={s.statValue}>{numberValue(chef?.rating_avg).toFixed(1).replace(".0", "")}</Text>
               </View>
               <Text style={s.statLabel}>التقييم</Text>
@@ -360,8 +363,8 @@ export default function ChefScreen() {
 
           {!isOpen ? (
             <View style={s.closedBanner}>
-              <AlertCircle size={16} color={isPreorderOnly ? "#F0A500" : "#E53935"} strokeWidth={1.8} />
-              <Text style={[s.closedText, isPreorderOnly && { color: "#FFD27A" }]}>
+              <AlertCircle size={16} color={isPreorderOnly ? c.gold : c.danger} strokeWidth={1.8} />
+              <Text style={[s.closedText, isPreorderOnly && { color: c.gold }]}>
                 {isPreorderOnly
                   ? "يستقبل حجوزات مسبقة فقط حاليًا — يمكنك تصفح القائمة."
                   : "المتجر مغلق حاليًا، يمكنك تصفح القائمة فقط."}
@@ -372,7 +375,7 @@ export default function ChefScreen() {
 
         <View style={s.menuHeader}>
           <View style={s.menuTitleRow}>
-            <Store size={17} color="#F2B233" strokeWidth={1.8} />
+            <Store size={17} color={c.gold} strokeWidth={1.8} />
             <Text style={s.menuTitle}>القائمة</Text>
           </View>
 
@@ -412,7 +415,7 @@ export default function ChefScreen() {
                 <Image source={{ uri: item.image_url }} style={s.itemImg} />
               ) : (
                 <View style={s.itemImgPlaceholder}>
-                  <ImageOff size={28} color="#6D4E2D" strokeWidth={1.5} />
+                  <ImageOff size={28} color={c.textMuted} strokeWidth={1.5} />
                 </View>
               )}
 
@@ -445,7 +448,7 @@ export default function ChefScreen() {
 
                   {preparation ? (
                     <View style={s.timeRow}>
-                      <Clock3 size={12} color="#8A6030" strokeWidth={1.5} />
+                      <Clock3 size={12} color={c.textSoft} strokeWidth={1.5} />
                       <Text style={s.itemTime}>{preparation}</Text>
                     </View>
                   ) : null}
@@ -463,7 +466,7 @@ export default function ChefScreen() {
                     style={s.qtyBtn}
                     onPress={() => updateQty(String(item.id), qty - 1)}
                   >
-                    <Minus size={16} color="#F2B233" strokeWidth={2.4} />
+                    <Minus size={16} color={c.gold} strokeWidth={2.4} />
                   </TouchableOpacity>
 
                   <Text style={s.qtyNum}>{qty}</Text>
@@ -473,18 +476,18 @@ export default function ChefScreen() {
                     style={s.qtyBtn}
                     onPress={() => addToCart(item)}
                   >
-                    <Plus size={16} color="#F2B233" strokeWidth={2.4} />
+                    <Plus size={16} color={c.gold} strokeWidth={2.4} />
                   </TouchableOpacity>
                 </View>
               ) : (
                 <TouchableOpacity activeOpacity={0.9} style={s.addBtn} onPress={() => addToCart(item)}>
-                  <Plus size={17} color="#17100B" strokeWidth={2.4} />
+                  <Plus size={17} color={c.onGold} strokeWidth={2.4} />
                   <Text style={s.addBtnText}>إضافة</Text>
                 </TouchableOpacity>
               )
             ) : (
               <View style={s.disabledBtn}>
-                <XCircle size={15} color="#6D4E2D" strokeWidth={1.8} />
+                <XCircle size={15} color={c.textMuted} strokeWidth={1.8} />
                 <Text style={s.disabledBtnText}>غير متاح للطلب</Text>
               </View>
             )}
@@ -492,14 +495,14 @@ export default function ChefScreen() {
         </View>
       );
     },
-    [addToCart, getItemQty, isOpen, openItem, updateQty]
+    [c, s, addToCart, getItemQty, isOpen, openItem, updateQty]
   );
 
   if (!fontsLoaded || loading) {
     return (
       <SafeAreaView style={s.safe}>
         <View style={s.loadingWrap}>
-          <ActivityIndicator color="#F2B233" size="large" />
+          <ActivityIndicator color={c.gold} size="large" />
           <Text style={s.loadingText}>جاري تحميل صفحة المتجر...</Text>
         </View>
       </SafeAreaView>
@@ -511,7 +514,7 @@ export default function ChefScreen() {
       <SafeAreaView style={s.safe}>
         <View style={s.topHeader}>
           <TouchableOpacity activeOpacity={0.85} style={s.headerBtn} onPress={() => router.back()}>
-            <ArrowRight size={20} color="#F2B233" strokeWidth={1.9} />
+            <ArrowRight size={20} color={c.gold} strokeWidth={1.9} />
           </TouchableOpacity>
 
           <View style={s.headerTitleWrap}>
@@ -520,13 +523,13 @@ export default function ChefScreen() {
           </View>
 
           <TouchableOpacity activeOpacity={0.85} style={s.headerBtn} onPress={onRefresh}>
-            <RefreshCw size={18} color="#F2B233" strokeWidth={1.8} />
+            <RefreshCw size={18} color={c.gold} strokeWidth={1.8} />
           </TouchableOpacity>
         </View>
 
         <View style={s.emptyScreen}>
           <View style={s.emptyIcon}>
-            <AlertCircle size={58} color="#E53935" strokeWidth={1.5} />
+            <AlertCircle size={58} color={c.danger} strokeWidth={1.5} />
           </View>
           <Text style={s.emptyTitle}>تعذر عرض المتجر</Text>
           <Text style={s.emptySub}>{error || "لم نتمكن من العثور على بيانات هذا المتجر."}</Text>
@@ -551,12 +554,12 @@ export default function ChefScreen() {
           { paddingBottom: totalItems > 0 ? 118 : 34 },
         ]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B233" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.gold} />
         }
         ListEmptyComponent={
           <View style={s.emptyWrap}>
             <View style={s.emptyIcon}>
-              <Store size={54} color="#5A3A18" strokeWidth={1.5} />
+              <Store size={54} color={c.textMuted} strokeWidth={1.5} />
             </View>
             <Text style={s.emptyTitle}>لا توجد منتجات حاليًا</Text>
             <Text style={s.emptySub}>القائمة لم يتم تحديثها من المتجر بعد.</Text>
@@ -576,21 +579,21 @@ export default function ChefScreen() {
           </View>
 
           <View style={s.cartTotalBox}>
-            <ShoppingCart size={17} color="#17100B" strokeWidth={2} />
+            <ShoppingCart size={17} color={c.onGold} strokeWidth={2} />
             <Text style={s.cartBarTotal}>{money(total)}</Text>
           </View>
 
-          <ChevronLeft size={20} color="#17100B" strokeWidth={2.2} />
+          <ChevronLeft size={20} color={c.onGold} strokeWidth={2.2} />
         </TouchableOpacity>
       ) : null}
     </SafeAreaView>
   );
 }
 
-const s = StyleSheet.create({
+const make_s = (c: Colors) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
   },
 
   loadingWrap: {
@@ -601,7 +604,7 @@ const s = StyleSheet.create({
   },
 
   loadingText: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 14,
     fontFamily: "Almarai_700Bold",
   },
@@ -621,9 +624,9 @@ const s = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.14)",
+    borderColor: c.border,
   },
 
   headerTitleWrap: {
@@ -631,13 +634,13 @@ const s = StyleSheet.create({
   },
 
   headerTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 17,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   headerSub: {
-    color: "#8A6030",
+    color: c.textSoft,
     fontSize: 11,
     marginTop: 3,
     fontFamily: "Almarai_400Regular",
@@ -649,21 +652,21 @@ const s = StyleSheet.create({
 
   heroCard: {
     marginHorizontal: 16,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderRadius: 32,
     padding: 20,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.14)",
+    borderColor: c.border,
   },
 
   avatarWrap: {
     width: 92,
     height: 92,
     borderRadius: 32,
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.18)",
+    borderColor: c.goldBorder,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 14,
@@ -672,7 +675,7 @@ const s = StyleSheet.create({
   chefName: {
     maxWidth: "92%",
     fontSize: 23,
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "center",
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -685,7 +688,7 @@ const s = StyleSheet.create({
   },
 
   chefCity: {
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 12,
     fontFamily: "Almarai_400Regular",
   },
@@ -718,9 +721,9 @@ const s = StyleSheet.create({
     width: "100%",
     marginTop: 18,
     borderRadius: 23,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.09)",
+    borderColor: c.goldSoft,
     padding: 14,
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -739,13 +742,13 @@ const s = StyleSheet.create({
   },
 
   statValue: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 16,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   statLabel: {
-    color: "#6D4E2D",
+    color: c.textMuted,
     fontSize: 10,
     fontFamily: "Almarai_400Regular",
   },
@@ -753,7 +756,7 @@ const s = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 42,
-    backgroundColor: "rgba(242,178,51,0.1)",
+    backgroundColor: c.goldSoft,
   },
 
   closedBanner: {
@@ -761,9 +764,9 @@ const s = StyleSheet.create({
     marginTop: 14,
     borderRadius: 18,
     padding: 12,
-    backgroundColor: "rgba(229,57,53,0.09)",
+    backgroundColor: c.dangerSoft,
     borderWidth: 1,
-    borderColor: "rgba(229,57,53,0.18)",
+    borderColor: c.dangerSoft,
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
@@ -772,7 +775,7 @@ const s = StyleSheet.create({
 
   closedText: {
     flex: 1,
-    color: "#FF9A9A",
+    color: c.danger,
     textAlign: "right",
     fontSize: 12,
     lineHeight: 20,
@@ -795,7 +798,7 @@ const s = StyleSheet.create({
   },
 
   menuTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 17,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -804,13 +807,13 @@ const s = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.12)",
+    borderColor: c.border,
   },
 
   menuCountText: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 11,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -818,11 +821,11 @@ const s = StyleSheet.create({
   card: {
     marginHorizontal: 16,
     marginBottom: 12,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderRadius: 24,
     padding: 13,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.09)",
+    borderColor: c.goldSoft,
   },
 
   cardMuted: {
@@ -839,14 +842,14 @@ const s = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 21,
-    backgroundColor: "#2A1E00",
+    backgroundColor: c.surfaceAlt,
   },
 
   itemImgPlaceholder: {
     width: 88,
     height: 88,
     borderRadius: 21,
-    backgroundColor: "#2A1E00",
+    backgroundColor: c.surfaceAlt,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -860,7 +863,7 @@ const s = StyleSheet.create({
   },
 
   itemName: {
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "right",
     fontSize: 15,
     lineHeight: 23,
@@ -883,7 +886,7 @@ const s = StyleSheet.create({
   },
 
   itemDesc: {
-    color: "#8A6030",
+    color: c.textSoft,
     textAlign: "right",
     marginTop: 7,
     fontSize: 12,
@@ -900,7 +903,7 @@ const s = StyleSheet.create({
   },
 
   itemPrice: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 15,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -912,7 +915,7 @@ const s = StyleSheet.create({
   },
 
   itemTime: {
-    color: "#8A6030",
+    color: c.textSoft,
     fontSize: 11,
     fontFamily: "Almarai_400Regular",
   },
@@ -928,9 +931,9 @@ const s = StyleSheet.create({
     gap: 10,
     borderRadius: 16,
     padding: 6,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.1)",
+    borderColor: c.goldSoft,
   },
 
   qtyBtn: {
@@ -939,12 +942,12 @@ const s = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
   },
 
   qtyNum: {
     minWidth: 24,
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "center",
     fontSize: 16,
     fontFamily: "Almarai_800ExtraBold",
@@ -954,7 +957,7 @@ const s = StyleSheet.create({
     minHeight: 42,
     borderRadius: 15,
     paddingHorizontal: 18,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
@@ -962,7 +965,7 @@ const s = StyleSheet.create({
   },
 
   addBtnText: {
-    color: "#17100B",
+    color: c.bg,
     fontSize: 13,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -971,17 +974,17 @@ const s = StyleSheet.create({
     minHeight: 42,
     borderRadius: 15,
     paddingHorizontal: 14,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.08)",
+    borderColor: c.goldSoft,
   },
 
   disabledBtnText: {
-    color: "#6D4E2D",
+    color: c.textMuted,
     fontSize: 12,
     fontFamily: "Almarai_700Bold",
   },
@@ -993,7 +996,7 @@ const s = StyleSheet.create({
     bottom: 16,
     minHeight: 66,
     borderRadius: 23,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
     paddingHorizontal: 13,
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -1006,11 +1009,11 @@ const s = StyleSheet.create({
     borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
   },
 
   cartBadgeText: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 14,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -1021,13 +1024,13 @@ const s = StyleSheet.create({
   },
 
   cartBarText: {
-    color: "#17100B",
+    color: c.bg,
     fontSize: 16,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   cartBarSub: {
-    color: "rgba(23,16,11,0.7)",
+    color: c.bg,
     fontSize: 11,
     marginTop: 2,
     fontFamily: "Almarai_700Bold",
@@ -1040,7 +1043,7 @@ const s = StyleSheet.create({
   },
 
   cartBarTotal: {
-    color: "#17100B",
+    color: c.bg,
     fontSize: 13,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -1062,23 +1065,23 @@ const s = StyleSheet.create({
     width: 112,
     height: 112,
     borderRadius: 39,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.1)",
+    borderColor: c.goldSoft,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 18,
   },
 
   emptyTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "center",
     fontSize: 18,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   emptySub: {
-    color: "#8A6030",
+    color: c.textSoft,
     textAlign: "center",
     marginTop: 8,
     marginBottom: 18,
@@ -1091,14 +1094,14 @@ const s = StyleSheet.create({
     minWidth: 170,
     minHeight: 48,
     borderRadius: 16,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 22,
   },
 
   primaryBtnText: {
-    color: "#17100B",
+    color: c.bg,
     fontSize: 13,
     fontFamily: "Almarai_800ExtraBold",
   },

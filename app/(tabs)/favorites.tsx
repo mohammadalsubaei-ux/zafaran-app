@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   AlertCircle,
@@ -68,6 +69,8 @@ function normalizeIds(value: unknown): string[] {
 
 export default function FavoritesScreen() {
   const router = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
 
   const [chefs, setChefs] = useState<Chef[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
@@ -256,7 +259,7 @@ export default function FavoritesScreen() {
           onPress={() => openChef(chefId)}
         >
           <View style={s.avatarWrap}>
-            <Store size={25} color="#F2B233" strokeWidth={1.5} />
+            <Store size={25} color={c.gold} strokeWidth={1.5} />
           </View>
 
           <View style={s.info}>
@@ -268,19 +271,19 @@ export default function FavoritesScreen() {
               <View
                 style={[
                   s.statusPill,
-                  { backgroundColor: item.is_open ? "#14351F" : "#381818" },
+                  { backgroundColor: item.is_open ? c.successSoft : c.dangerSoft },
                 ]}
               >
                 <View
                   style={[
                     s.statusDot,
-                    { backgroundColor: item.is_open ? "#4CAF50" : "#E53935" },
+                    { backgroundColor: item.is_open ? c.success : c.danger },
                   ]}
                 />
                 <Text
                   style={[
                     s.statusText,
-                    { color: item.is_open ? "#8AF0A5" : "#FF9A9A" },
+                    { color: item.is_open ? c.success : c.danger },
                   ]}
                 >
                   {item.is_open ? "متاح" : "مغلق"}
@@ -289,14 +292,14 @@ export default function FavoritesScreen() {
             </View>
 
             <View style={s.cityRow}>
-              <MapPin size={12} color="#8A6030" strokeWidth={1.5} />
+              <MapPin size={12} color={c.textSoft} strokeWidth={1.5} />
               <Text style={s.city} numberOfLines={1}>
                 {city} · {neighborhood}
               </Text>
             </View>
 
             <View style={s.meta}>
-              <Star size={12} color="#F2B233" fill="#F2B233" />
+              <Star size={12} color={c.gold} fill={c.gold} />
               <Text style={s.rating}>{num(item.rating_avg)}</Text>
               <Text style={s.orders}>{num(item.total_orders)} طلب</Text>
             </View>
@@ -309,17 +312,17 @@ export default function FavoritesScreen() {
             disabled={isRemoving}
           >
             {isRemoving ? (
-              <ActivityIndicator size="small" color="#F2B233" />
+              <ActivityIndicator size="small" color={c.gold} />
             ) : (
-              <Heart size={20} color="#F2B233" fill="#F2B233" strokeWidth={1.8} />
+              <Heart size={20} color={c.gold} fill={c.gold} strokeWidth={1.8} />
             )}
           </TouchableOpacity>
 
-          <ChevronLeft size={18} color="#5A3A18" strokeWidth={1.8} />
+          <ChevronLeft size={18} color={c.textMuted} strokeWidth={1.8} />
         </TouchableOpacity>
       );
     },
-    [openChef, removeFavorite, removingId]
+    [c, s, openChef, removeFavorite, removingId]
   );
 
   const Header = useCallback(() => {
@@ -327,7 +330,7 @@ export default function FavoritesScreen() {
       <View style={s.header}>
         <View style={s.headerTop}>
           <View style={s.badge}>
-            <Sparkles size={13} color="#F2B233" />
+            <Sparkles size={13} color={c.gold} />
             <Text style={s.badgeText}>مختاراتك</Text>
           </View>
 
@@ -340,7 +343,7 @@ export default function FavoritesScreen() {
 
         <View style={s.summaryCard}>
           <View style={s.summaryIcon}>
-            <ShieldCheck size={22} color="#F2B233" strokeWidth={1.7} />
+            <ShieldCheck size={22} color={c.gold} strokeWidth={1.7} />
           </View>
 
           <View style={s.summaryTextWrap}>
@@ -353,12 +356,12 @@ export default function FavoritesScreen() {
 
         {error ? (
           <TouchableOpacity activeOpacity={0.85} style={s.errorBox} onPress={onRefresh}>
-            <AlertCircle size={18} color="#FFB0B0" />
+            <AlertCircle size={18} color={c.danger} />
             <View style={s.errorTextWrap}>
               <Text style={s.errorTitle}>حدثت مشكلة</Text>
               <Text style={s.errorText}>{error}</Text>
             </View>
-            <RefreshCw size={17} color="#F2B233" />
+            <RefreshCw size={17} color={c.gold} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -368,7 +371,7 @@ export default function FavoritesScreen() {
   if (!fontsLoaded) {
     return (
       <SafeAreaView style={s.safe}>
-        <ActivityIndicator color="#F2B233" style={{ marginTop: 90 }} />
+        <ActivityIndicator color={c.gold} style={{ marginTop: 90 }} />
       </SafeAreaView>
     );
   }
@@ -377,7 +380,7 @@ export default function FavoritesScreen() {
     return (
       <SafeAreaView style={s.safe}>
         <View style={s.loadingWrap}>
-          <ActivityIndicator color="#F2B233" size="large" />
+          <ActivityIndicator color={c.gold} size="large" />
           <Text style={s.loadingText}>جاري تحميل مفضلتك...</Text>
         </View>
       </SafeAreaView>
@@ -389,7 +392,7 @@ export default function FavoritesScreen() {
       <SafeAreaView style={s.safe}>
         <View style={s.guestWrap}>
           <View style={s.guestIcon}>
-            <Heart size={54} color="#F2B233" strokeWidth={1.4} />
+            <Heart size={54} color={c.gold} strokeWidth={1.4} />
           </View>
 
           <Text style={s.guestTitle}>سجل دخولك أولًا</Text>
@@ -421,13 +424,13 @@ export default function FavoritesScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#F2B233"
+            tintColor={c.gold}
           />
         }
         ListEmptyComponent={
           <View style={s.emptyWrap}>
             <View style={s.emptyIcon}>
-              <Heart size={54} color="#5A3A18" strokeWidth={1.5} />
+              <Heart size={54} color={c.textMuted} strokeWidth={1.5} />
             </View>
 
             <Text style={s.emptyTitle}>ما عندك مفضلة بعد</Text>
@@ -445,10 +448,10 @@ export default function FavoritesScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const make_s = (c: Colors) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
   },
 
   listContent: {
@@ -463,7 +466,7 @@ const s = StyleSheet.create({
   },
 
   loadingText: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 14,
     fontFamily: "Almarai_700Bold",
   },
@@ -483,13 +486,13 @@ const s = StyleSheet.create({
 
   title: {
     fontSize: 24,
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "right",
     fontFamily: "Almarai_800ExtraBold",
   },
 
   subtitle: {
-    color: "#A98961",
+    color: c.textSoft,
     textAlign: "right",
     fontSize: 13,
     lineHeight: 22,
@@ -500,8 +503,8 @@ const s = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(242,178,51,0.09)",
-    borderColor: "rgba(242,178,51,0.18)",
+    backgroundColor: c.goldSoft,
+    borderColor: c.goldBorder,
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -509,20 +512,20 @@ const s = StyleSheet.create({
   },
 
   badgeText: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 11,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   summaryCard: {
     marginTop: 16,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderRadius: 24,
     padding: 16,
     flexDirection: "row-reverse",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.12)",
+    borderColor: c.border,
     gap: 12,
   },
 
@@ -532,9 +535,9 @@ const s = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.15)",
+    borderColor: c.goldBorder,
   },
 
   summaryTextWrap: {
@@ -542,14 +545,14 @@ const s = StyleSheet.create({
   },
 
   summaryTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "right",
     fontSize: 15,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   summarySub: {
-    color: "#8A6030",
+    color: c.textSoft,
     textAlign: "right",
     marginTop: 4,
     fontSize: 12,
@@ -560,9 +563,9 @@ const s = StyleSheet.create({
     marginTop: 12,
     borderRadius: 18,
     padding: 13,
-    backgroundColor: "#321717",
+    backgroundColor: c.dangerSoft,
     borderWidth: 1,
-    borderColor: "rgba(229,57,53,0.25)",
+    borderColor: c.dangerSoft,
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 10,
@@ -573,14 +576,14 @@ const s = StyleSheet.create({
   },
 
   errorTitle: {
-    color: "#FFB0B0",
+    color: c.danger,
     textAlign: "right",
     fontSize: 13,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   errorText: {
-    color: "#FFCECE",
+    color: c.danger,
     textAlign: "right",
     marginTop: 3,
     fontSize: 11,
@@ -593,11 +596,11 @@ const s = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 16,
     marginBottom: 10,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderRadius: 22,
     padding: 14,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.09)",
+    borderColor: c.goldSoft,
     gap: 11,
   },
 
@@ -605,11 +608,11 @@ const s = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 20,
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.16)",
+    borderColor: c.goldBorder,
   },
 
   info: {
@@ -626,7 +629,7 @@ const s = StyleSheet.create({
   name: {
     flex: 1,
     fontSize: 14,
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "right",
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -661,7 +664,7 @@ const s = StyleSheet.create({
   city: {
     flex: 1,
     fontSize: 11,
-    color: "#8A6030",
+    color: c.textSoft,
     textAlign: "right",
     fontFamily: "Almarai_400Regular",
   },
@@ -674,13 +677,13 @@ const s = StyleSheet.create({
 
   rating: {
     fontSize: 12,
-    color: "#F2B233",
+    color: c.gold,
     fontFamily: "Almarai_700Bold",
   },
 
   orders: {
     fontSize: 11,
-    color: "#6D4E2D",
+    color: c.textMuted,
     fontFamily: "Almarai_400Regular",
   },
 
@@ -690,7 +693,7 @@ const s = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
   },
 
   heartBtnDisabled: {
@@ -709,15 +712,15 @@ const s = StyleSheet.create({
     borderRadius: 34,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.08)",
+    borderColor: c.goldSoft,
     marginBottom: 18,
   },
 
   emptyTitle: {
     fontSize: 17,
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "center",
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -727,7 +730,7 @@ const s = StyleSheet.create({
     marginBottom: 18,
     fontSize: 12,
     lineHeight: 21,
-    color: "#8A6030",
+    color: c.textSoft,
     fontFamily: "Almarai_400Regular",
     textAlign: "center",
   },
@@ -745,20 +748,20 @@ const s = StyleSheet.create({
     borderRadius: 38,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.12)",
+    borderColor: c.border,
     marginBottom: 22,
   },
 
   guestTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 20,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   guestSub: {
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 13,
     lineHeight: 23,
     textAlign: "center",
@@ -769,7 +772,7 @@ const s = StyleSheet.create({
 
   primaryBtn: {
     minWidth: 190,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
     borderRadius: 16,
     paddingHorizontal: 24,
     paddingVertical: 13,
@@ -777,7 +780,7 @@ const s = StyleSheet.create({
   },
 
   primaryBtnText: {
-    color: "#17100B",
+    color: c.bg,
     fontSize: 14,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -790,12 +793,12 @@ const s = StyleSheet.create({
     paddingVertical: 13,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.18)",
-    backgroundColor: "rgba(242,178,51,0.04)",
+    borderColor: c.goldBorder,
+    backgroundColor: c.goldSoft,
   },
 
   secondaryBtnText: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 13,
     fontFamily: "Almarai_700Bold",
   },

@@ -32,6 +32,7 @@ import {
 } from "lucide-react-native";
 
 import { useCart } from "@/context/CartContext";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 
 function paramText(value: unknown, fallback = "") {
   if (Array.isArray(value)) return decodeURIComponent(String(value[0] || fallback));
@@ -51,6 +52,8 @@ function money(value: unknown) {
 export default function ItemScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
 
   const { addItem, updateQty, items, chef_id: cartChefId, clearCart } = useCart();
 
@@ -154,7 +157,7 @@ export default function ItemScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
         <View style={s.header}>
           <TouchableOpacity activeOpacity={0.85} style={s.headerBtn} onPress={goBack}>
-            <ArrowRight size={20} color="#F2B233" strokeWidth={1.9} />
+            <ArrowRight size={20} color={c.gold} strokeWidth={1.9} />
           </TouchableOpacity>
 
           <View style={s.headerTitleWrap}>
@@ -163,7 +166,7 @@ export default function ItemScreen() {
           </View>
 
           <TouchableOpacity activeOpacity={0.85} style={s.headerBtn} onPress={goCart}>
-            <ShoppingCart size={18} color="#F2B233" strokeWidth={1.9} />
+            <ShoppingCart size={18} color={c.gold} strokeWidth={1.9} />
           </TouchableOpacity>
         </View>
 
@@ -172,13 +175,13 @@ export default function ItemScreen() {
             <Image source={{ uri: item.image_url }} style={s.heroImage} />
           ) : (
             <View style={s.heroPlaceholder}>
-              <ImageOff size={54} color="#6D4E2D" strokeWidth={1.4} />
+              <ImageOff size={54} color={c.textMuted} strokeWidth={1.4} />
               <Text style={s.placeholderText}>لا توجد صورة للوجبة</Text>
             </View>
           )}
 
           <View style={s.floatingBadge}>
-            <Sparkles size={13} color="#F2B233" strokeWidth={1.8} />
+            <Sparkles size={13} color={c.gold} strokeWidth={1.8} />
             <Text style={s.floatingBadgeText}>اختيار مميز</Text>
           </View>
         </View>
@@ -191,9 +194,9 @@ export default function ItemScreen() {
 
             {(() => {
               const STATUS_UI: Record<string, { bg: string; color: string; label: string }> = {
-                available: { bg: "rgba(76,175,80,0.12)",  color: "#4CAF50", label: "متاحة" },
-                preorder:  { bg: "rgba(240,165,0,0.12)",  color: "#F0A500", label: "حجز مسبق" },
-                unavailable: { bg: "rgba(229,57,53,0.12)", color: "#E53935", label: "غير متاحة" },
+                available: { bg: c.successSoft,  color: c.success, label: "متاحة" },
+                preorder:  { bg: c.goldSoft,  color: c.gold, label: "حجز مسبق" },
+                unavailable: { bg: c.dangerSoft, color: c.danger, label: "غير متاحة" },
               };
               const ui = STATUS_UI[item.status] ?? STATUS_UI.available;
               return (
@@ -206,7 +209,7 @@ export default function ItemScreen() {
           </View>
 
           <View style={s.chefRow}>
-            <ChefHat size={15} color="#8A6030" strokeWidth={1.7} />
+            <ChefHat size={15} color={c.textSoft} strokeWidth={1.7} />
             <Text style={s.chefName} numberOfLines={1}>
               مقدمة من {item.chef_name}
             </Text>
@@ -216,14 +219,14 @@ export default function ItemScreen() {
             <Text style={s.desc}>{item.description}</Text>
           ) : (
             <View style={s.noDescBox}>
-              <CircleAlert size={16} color="#8A6030" strokeWidth={1.7} />
+              <CircleAlert size={16} color={c.textSoft} strokeWidth={1.7} />
               <Text style={s.noDescText}>لم يضف المتجر وصفًا لهذا المنتج بعد.</Text>
             </View>
           )}
 
           <View style={s.priceBox}>
             <View style={s.priceIconBox}>
-              <ReceiptText size={20} color="#F2B233" strokeWidth={1.8} />
+              <ReceiptText size={20} color={c.gold} strokeWidth={1.8} />
             </View>
 
             <View style={s.priceTextWrap}>
@@ -236,7 +239,7 @@ export default function ItemScreen() {
         {qty > 0 ? (
           <View style={s.cartStateCard}>
             <View style={s.cartStateIcon}>
-              <ShoppingCart size={20} color="#4CAF50" strokeWidth={1.8} />
+              <ShoppingCart size={20} color={c.success} strokeWidth={1.8} />
             </View>
 
             <View style={s.cartStateInfo}>
@@ -258,13 +261,13 @@ export default function ItemScreen() {
               disabled={qty <= 0}
               onPress={decreaseQty}
             >
-              <Minus size={17} color={qty <= 0 ? "#5A3A18" : "#F2B233"} strokeWidth={2.4} />
+              <Minus size={17} color={qty <= 0 ? c.textMuted : c.gold} strokeWidth={2.4} />
             </TouchableOpacity>
 
             <Text style={s.qtyNum}>{qty || 0}</Text>
 
             <TouchableOpacity activeOpacity={0.85} style={s.qtyBtn} onPress={handleAdd}>
-              <Plus size={17} color="#F2B233" strokeWidth={2.4} />
+              <Plus size={17} color={c.gold} strokeWidth={2.4} />
             </TouchableOpacity>
           </View>
         </View>
@@ -278,7 +281,7 @@ export default function ItemScreen() {
           onPress={handleAdd}
         >
           <View style={s.primaryLeft}>
-            <ShoppingCart size={18} color="#17100B" strokeWidth={2.2} />
+            <ShoppingCart size={18} color={c.onGold} strokeWidth={2.2} />
             <Text style={s.primaryText}>{qty > 0 ? "إضافة المزيد" : "إضافة للسلة"}</Text>
           </View>
 
@@ -288,7 +291,7 @@ export default function ItemScreen() {
         {qty > 0 ? (
           <TouchableOpacity activeOpacity={0.9} style={s.secondaryBtn} onPress={goCart}>
             <Text style={s.secondaryText}>عرض السلة</Text>
-            <ChevronLeft size={18} color="#F2B233" strokeWidth={2} />
+            <ChevronLeft size={18} color={c.gold} strokeWidth={2} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -296,10 +299,10 @@ export default function ItemScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const make_s = (c: Colors) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
   },
 
   content: {
@@ -319,9 +322,9 @@ const s = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 15,
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.14)",
+    borderColor: c.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -331,13 +334,13 @@ const s = StyleSheet.create({
   },
 
   headerTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 17,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   headerSub: {
-    color: "#8A6030",
+    color: c.textSoft,
     fontSize: 11,
     marginTop: 3,
     fontFamily: "Almarai_400Regular",
@@ -347,9 +350,9 @@ const s = StyleSheet.create({
     marginHorizontal: 16,
     borderRadius: 30,
     overflow: "hidden",
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.12)",
+    borderColor: c.border,
     position: "relative",
   },
 
@@ -364,11 +367,11 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
   },
 
   placeholderText: {
-    color: "#6D4E2D",
+    color: c.textMuted,
     fontSize: 12,
     fontFamily: "Almarai_700Bold",
   },
@@ -380,16 +383,16 @@ const s = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(23,16,11,0.88)",
+    backgroundColor: c.bg,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.2)",
+    borderColor: c.goldBorder,
     paddingHorizontal: 11,
     paddingVertical: 7,
     borderRadius: 999,
   },
 
   floatingBadgeText: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 11,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -398,9 +401,9 @@ const s = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 14,
     borderRadius: 26,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.1)",
+    borderColor: c.goldSoft,
     padding: 16,
   },
 
@@ -409,7 +412,7 @@ const s = StyleSheet.create({
   },
 
   name: {
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "right",
     fontSize: 24,
     lineHeight: 34,
@@ -422,14 +425,14 @@ const s = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 5,
-    backgroundColor: "rgba(76,175,80,0.1)",
+    backgroundColor: c.successSoft,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
   },
 
   statusText: {
-    color: "#8AF0A5",
+    color: c.success,
     fontSize: 11,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -443,7 +446,7 @@ const s = StyleSheet.create({
 
   chefName: {
     flex: 1,
-    color: "#8A6030",
+    color: c.textSoft,
     textAlign: "right",
     fontSize: 12,
     fontFamily: "Almarai_400Regular",
@@ -451,7 +454,7 @@ const s = StyleSheet.create({
 
   desc: {
     marginTop: 14,
-    color: "#A98961",
+    color: c.textSoft,
     textAlign: "right",
     fontSize: 13,
     lineHeight: 24,
@@ -462,9 +465,9 @@ const s = StyleSheet.create({
     marginTop: 14,
     borderRadius: 16,
     padding: 12,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.08)",
+    borderColor: c.goldSoft,
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 8,
@@ -472,7 +475,7 @@ const s = StyleSheet.create({
 
   noDescText: {
     flex: 1,
-    color: "#8A6030",
+    color: c.textSoft,
     textAlign: "right",
     fontSize: 12,
     lineHeight: 20,
@@ -482,9 +485,9 @@ const s = StyleSheet.create({
   priceBox: {
     marginTop: 16,
     borderRadius: 20,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.1)",
+    borderColor: c.goldSoft,
     padding: 13,
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -497,7 +500,7 @@ const s = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
   },
 
   priceTextWrap: {
@@ -505,14 +508,14 @@ const s = StyleSheet.create({
   },
 
   priceLabel: {
-    color: "#8A6030",
+    color: c.textSoft,
     textAlign: "right",
     fontSize: 11,
     fontFamily: "Almarai_400Regular",
   },
 
   price: {
-    color: "#F2B233",
+    color: c.gold,
     textAlign: "right",
     marginTop: 3,
     fontSize: 22,
@@ -524,9 +527,9 @@ const s = StyleSheet.create({
     marginTop: 12,
     borderRadius: 20,
     padding: 13,
-    backgroundColor: "rgba(76,175,80,0.08)",
+    backgroundColor: c.successSoft,
     borderWidth: 1,
-    borderColor: "rgba(76,175,80,0.17)",
+    borderColor: c.successSoft,
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 11,
@@ -538,7 +541,7 @@ const s = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(76,175,80,0.1)",
+    backgroundColor: c.successSoft,
   },
 
   cartStateInfo: {
@@ -546,14 +549,14 @@ const s = StyleSheet.create({
   },
 
   cartStateTitle: {
-    color: "#A4F0B5",
+    color: c.success,
     textAlign: "right",
     fontSize: 13,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   cartStateSub: {
-    color: "#7CCB8A",
+    color: c.success,
     textAlign: "right",
     marginTop: 3,
     fontSize: 11,
@@ -565,16 +568,16 @@ const s = StyleSheet.create({
     marginTop: 12,
     borderRadius: 22,
     padding: 15,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.1)",
+    borderColor: c.goldSoft,
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "space-between",
   },
 
   quantityTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 15,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -583,11 +586,11 @@ const s = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
     padding: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.1)",
+    borderColor: c.goldSoft,
   },
 
   qtyBtn: {
@@ -596,16 +599,16 @@ const s = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
   },
 
   qtyBtnDisabled: {
-    backgroundColor: "rgba(242,178,51,0.03)",
+    backgroundColor: c.goldSoft,
   },
 
   qtyNum: {
     minWidth: 24,
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "center",
     fontSize: 16,
     fontFamily: "Almarai_800ExtraBold",
@@ -618,16 +621,16 @@ const s = StyleSheet.create({
     bottom: 0,
     padding: 16,
     paddingBottom: 20,
-    backgroundColor: "rgba(23,16,11,0.98)",
+    backgroundColor: c.bg,
     borderTopWidth: 1,
-    borderTopColor: "rgba(242,178,51,0.12)",
+    borderTopColor: c.border,
     gap: 10,
   },
 
   primaryBtn: {
     minHeight: 58,
     borderRadius: 20,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
     paddingHorizontal: 16,
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -645,13 +648,13 @@ const s = StyleSheet.create({
   },
 
   primaryText: {
-    color: "#17100B",
+    color: c.bg,
     fontSize: 16,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   primaryPrice: {
-    color: "#17100B",
+    color: c.bg,
     fontSize: 13,
     opacity: 0.85,
     fontFamily: "Almarai_800ExtraBold",
@@ -660,9 +663,9 @@ const s = StyleSheet.create({
   secondaryBtn: {
     minHeight: 50,
     borderRadius: 18,
-    backgroundColor: "rgba(242,178,51,0.06)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.18)",
+    borderColor: c.goldBorder,
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
@@ -670,7 +673,7 @@ const s = StyleSheet.create({
   },
 
   secondaryText: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 14,
     fontFamily: "Almarai_800ExtraBold",
   },
