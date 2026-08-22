@@ -29,7 +29,8 @@ export type Track = {
   id: TrackId;
   label: string;
   sub: string;
-  color: string;
+  color: string;       // للوضع الليلي
+  colorLight: string;  // للوضع النهاري — الألوان الفاتحة تذوب على الخلفية الفاتحة
   Icon: any;
 };
 
@@ -37,7 +38,8 @@ export type Category = {
   id: string;
   label: string;
   track: TrackId;
-  color: string;
+  color: string;       // للوضع الليلي
+  colorLight: string;  // للوضع النهاري
   Icon: any;
   aliases: string[];
 };
@@ -49,6 +51,7 @@ export const TRACKS: Track[] = [
     label: "اطلب الآن",
     sub: "جاهز اليوم",
     color: "#F2B233",
+    colorLight: "#8A5E12",
     Icon: Zap,
   },
   {
@@ -56,6 +59,7 @@ export const TRACKS: Track[] = [
     label: "احجز لمناسبتك",
     sub: "بموعد مسبق",
     color: "#E8A0BF",
+    colorLight: "#A3486D",
     Icon: CalendarDays,
   },
   {
@@ -63,6 +67,7 @@ export const TRACKS: Track[] = [
     label: "من البيت",
     sub: "مؤن تدوم معك",
     color: "#A8D8A8",
+    colorLight: "#2E7A3C",
     Icon: Package,
   },
 ];
@@ -74,6 +79,7 @@ export const CATEGORIES: Category[] = [
     label: "أرز ومندي",
     track: "now",
     color: "#F2B233",
+    colorLight: "#8A5E12",
     Icon: Flame,
     aliases: ["rice", "mandi", "kabsa", "main", "mains"],
   },
@@ -82,6 +88,7 @@ export const CATEGORIES: Category[] = [
     label: "شعبيات",
     track: "now",
     color: "#F2B233",
+    colorLight: "#8A5E12",
     Icon: UtensilsCrossed,
     aliases: ["popular", "kitchen", "traditional", "stew", "soup"],
   },
@@ -90,6 +97,7 @@ export const CATEGORIES: Category[] = [
     label: "مشاوي وشاورما",
     track: "now",
     color: "#E07A5F",
+    colorLight: "#A34527",
     Icon: Flame,
     aliases: ["grills", "grill", "shawarma", "bbq", "meat"],
   },
@@ -98,6 +106,7 @@ export const CATEGORIES: Category[] = [
     label: "سمك وبحريات",
     track: "now",
     color: "#87CEEB",
+    colorLight: "#1B6E96",
     Icon: UtensilsCrossed,
     aliases: ["seafood", "fish", "shrimp"],
   },
@@ -106,6 +115,7 @@ export const CATEGORIES: Category[] = [
     label: "سلطات وإيدامات",
     track: "now",
     color: "#A8D8A8",
+    colorLight: "#2E7A3C",
     Icon: UtensilsCrossed,
     aliases: ["sides", "salad", "salads", "appetizers", "appetizer", "starters"],
   },
@@ -114,6 +124,7 @@ export const CATEGORIES: Category[] = [
     label: "معجنات",
     track: "now",
     color: "#D4A574",
+    colorLight: "#8A5E2A",
     Icon: Croissant,
     aliases: ["pastries", "pastry", "bakery", "bread", "pies", "pie"],
   },
@@ -122,6 +133,7 @@ export const CATEGORIES: Category[] = [
     label: "حلويات",
     track: "now",
     color: "#E8A0BF",
+    colorLight: "#A3486D",
     Icon: Cake,
     aliases: ["sweets", "sweet", "dessert", "desserts", "cake", "cakes"],
   },
@@ -130,6 +142,7 @@ export const CATEGORIES: Category[] = [
     label: "قهوة ومشروبات",
     track: "now",
     color: "#B08968",
+    colorLight: "#6E4A2A",
     Icon: Coffee,
     aliases: ["drinks", "drink", "coffee", "beverages", "juice", "juices", "tea"],
   },
@@ -139,6 +152,7 @@ export const CATEGORIES: Category[] = [
     label: "ذبائح",
     track: "occasion",
     color: "#C1666B",
+    colorLight: "#8E2F34",
     Icon: ChefHat,
     aliases: ["livestock", "lamb", "goat", "sheep"],
   },
@@ -147,6 +161,7 @@ export const CATEGORIES: Category[] = [
     label: "حمام وطيور",
     track: "occasion",
     color: "#C1666B",
+    colorLight: "#8E2F34",
     Icon: ChefHat,
     aliases: ["poultry", "pigeon", "chicken", "birds"],
   },
@@ -155,6 +170,7 @@ export const CATEGORIES: Category[] = [
     label: "تجهيز عزايم",
     track: "occasion",
     color: "#E8A0BF",
+    colorLight: "#A3486D",
     Icon: Store,
     aliases: ["catering", "buffet", "events"],
   },
@@ -164,6 +180,7 @@ export const CATEGORIES: Category[] = [
     label: "بهارات",
     track: "pantry",
     color: "#D68C45",
+    colorLight: "#8A4E12",
     Icon: PackageCheck,
     aliases: ["spices", "spice"],
   },
@@ -172,6 +189,7 @@ export const CATEGORIES: Category[] = [
     label: "شطات ومخللات",
     track: "pantry",
     color: "#C1666B",
+    colorLight: "#8E2F34",
     Icon: PackageCheck,
     aliases: ["sauces", "sauce", "pickles"],
   },
@@ -180,6 +198,7 @@ export const CATEGORIES: Category[] = [
     label: "عسل وسمن",
     track: "pantry",
     color: "#F2B233",
+    colorLight: "#8A5E12",
     Icon: PackageCheck,
     aliases: ["honey", "ghee"],
   },
@@ -188,6 +207,7 @@ export const CATEGORIES: Category[] = [
     label: "ورق عنب وملفوف",
     track: "pantry",
     color: "#A8D8A8",
+    colorLight: "#2E7A3C",
     Icon: PackageCheck,
     aliases: ["wraps", "vine_leaves", "cabbage"],
   },
@@ -196,6 +216,7 @@ export const CATEGORIES: Category[] = [
     label: "ألبان وزبادي",
     track: "pantry",
     color: "#CFCFCF",
+    colorLight: "#5C5C5C",
     Icon: PackageCheck,
     aliases: ["dairy", "yogurt", "laban", "cheese"],
   },
@@ -204,6 +225,7 @@ export const CATEGORIES: Category[] = [
     label: "معمول ومكسرات",
     track: "pantry",
     color: "#B08968",
+    colorLight: "#6E4A2A",
     Icon: PackageCheck,
     aliases: ["nuts", "maamoul", "dates"],
   },
@@ -215,6 +237,7 @@ export const ALL_CATEGORY: Category = {
   label: "الكل",
   track: "now",
   color: "#F2B233",
+    colorLight: "#8A5E12",
   Icon: Sparkles,
   aliases: ["all"],
 };
@@ -255,4 +278,10 @@ export function itemMatchesCategory(itemCategory: unknown, categoryId: string): 
 // هل قيمة menu_items.category تنتمي لهذا المسار؟
 export function itemMatchesTrack(itemCategory: unknown, track: TrackId): boolean {
   return categoriesOfTrack(track).some((cat) => itemMatchesCategory(itemCategory, cat.id));
+}
+
+
+// اللون المناسب للمظهر الحالي — يمنع ذوبان ألوان الوضع الليلي على الخلفية الفاتحة
+export function tone(item: { color: string; colorLight: string }, isDark: boolean): string {
+  return isDark ? item.color : item.colorLight;
 }

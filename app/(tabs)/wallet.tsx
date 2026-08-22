@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
+  FlatList,
+  RefreshControl,
   SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -21,23 +19,93 @@ import {
   Almarai_800ExtraBold,
   useFonts,
 } from "@expo-google-fonts/almarai";
-import { AlertTriangle, ArrowRight, Info, Trash2 } from "lucide-react-native";
+import {
+  ArrowRight,
+  BadgeCheck,
+  ChevronLeft,
+  CircleDollarSign,
+  Clock3,
+  CreditCard,
+  FileText,
+  LogIn,
+  Plus,
+  ReceiptText,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+  Zap,
+} from "lucide-react-native";
 
 const API = "https://zafaran-backend-production.up.railway.app";
+const AMOUNTS = [10, 25, 50, 100, 200, 500];
 
-type Blocker = { code: string; message: string };
+type UserSession = {
+  id?: string | number | null;
+  full_name?: string | null;
+  phone?: string | null;
+  role?: string | null;
+};
 
-export default function DeleteAccountScreen() {
+type WalletTransaction = {
+  id: string;
+  type?: "credit" | "debit" | string | null;
+  amount?: number | string | null;
+  description?: string | null;
+  created_at?: string | null;
+  status?: string | null;
+};
+
+function numberValue(value: unknown) {
+  const n = Number(value || 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function money(value: unknown) {
+  return `${numberValue(value).toFixed(2).replace(".00", "")} ريال`;
+}
+
+function cleanText(value: unknown, fallback = "غير محدد") {
+  if (value === null || value === undefined) return fallback;
+  const text = String(value).trim();
+  return text.length ? text : fallback;
+}
+
+function formatDate(value: unknown) {
+  const raw = cleanText(value, "");
+  if (!raw) return "غير محدد";
+
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return "غير محدد";
+
+  return date.toLocaleDateString("ar-SA", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+function txTypeLabel(type?: string | null) {
+  if (type === "credit") return "إيداع";
+  if (type === "debit") return "خصم";
+  return "معاملة";
+}
+
+export default function WalletScreen() {
   const router = useRouter();
   const { c } = useTheme();
   const s = useMemo(() => make_s(c), [c]);
 
-  const [userId, setUserId] = useState<string | null>(null);
-  const [checking, setChecking] = useState(true);
-  const [blockers, setBlockers] = useState<Blocker[]>([]);
-  const [canDelete, setCanDelete] = useState(false);
-  const [password, setPassword] = useState("");
-  const [deleting, setDeleting] = useState(false);
+  const [user, setUser] = useState<UserSession | null>(null);
+  const [balance, setBalance] = useState(0);
+  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [chargingAmount, setChargingAmount] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const [fontsLoaded] = useFonts({
     Almarai_400Regular,
@@ -45,203 +113,331 @@ export default function DeleteAccountScreen() {
     Almarai_800ExtraBold,
   });
 
-  // فحص الموانع أولاً — نعرض الأسباب بدل مفاجأة المستخدم برفض عند الضغط
-  const runCheck = useCallback(async () => {
-    setChecking(true);
+  const totalCredit = useMemo(() => {
+    return transactions
+      .filter((tx) => tx.type === "credit")
+      .reduce((sum, tx) => sum + numberValue(tx.amount), 0);
+  }, [transactions]);
+
+  const totalDebit = useMemo(() => {
+    return transactions
+      .filter((tx) => tx.type === "debit")
+      .reduce((sum, tx) => sum + numberValue(tx.amount), 0);
+  }, [transactions]);
+
+  const readUser = useCallback(async () => {
+    const stored = await AsyncStorage.getItem("user");
+
+    if (!stored) {
+      setUser(null);
+      return null;
+    }
 
     try {
-      const stored = await AsyncStorage.getItem("user");
-      if (!stored) {
-        router.replace("/login" as any);
-        return;
-      }
-
-      const user = JSON.parse(stored);
-      if (!user?.id) {
-        router.replace("/login" as any);
-        return;
-      }
-
-      setUserId(String(user.id));
-
-      const res = await fetch(`${API}/api/users/${user.id}/deletion-check`);
-      const json = await res.json().catch(() => null);
-
-      if (res.ok && json?.success && json.data) {
-        setBlockers(Array.isArray(json.data.blockers) ? json.data.blockers : []);
-        setCanDelete(Boolean(json.data.can_delete));
-      } else {
-        setBlockers([
-          { code: "network", message: json?.message || "تعذر التحقق من حالة حسابك — حاول لاحقاً" },
-        ]);
-        setCanDelete(false);
-      }
+      const parsed = JSON.parse(stored);
+      setUser(parsed);
+      return parsed as UserSession;
     } catch {
-      setBlockers([{ code: "network", message: "تعذر الاتصال بالخادم — تأكد من الإنترنت" }]);
-      setCanDelete(false);
-    } finally {
-      setChecking(false);
+      await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+      setUser(null);
+      return null;
     }
-  }, [router]);
+  }, []);
+
+  const loadWallet = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoading(true);
+      setError(null);
+
+      try {
+        const currentUser = await readUser();
+
+        if (!currentUser?.id) {
+          setBalance(0);
+          setTransactions([]);
+          return;
+        }
+
+        const response = await fetch(`${API}/api/wallet/${currentUser.id}`);
+
+        let json: any = null;
+        try {
+          json = await response.json();
+        } catch {
+          json = null;
+        }
+
+        if (!response.ok) {
+          setError(json?.message || `تعذر تحميل المحفظة. رمز الخطأ: ${response.status}`);
+          return;
+        }
+
+        if (!json?.success) {
+          setError(json?.message || "الخادم لم يرجع بيانات المحفظة بشكل صحيح.");
+          return;
+        }
+
+        setBalance(numberValue(json?.data?.balance));
+        setTransactions(Array.isArray(json?.data?.transactions) ? json.data.transactions : []);
+      } catch {
+        setError("تعذر الاتصال بالخادم. تأكد من الإنترنت وحاول مرة ثانية.");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [readUser]
+  );
 
   useEffect(() => {
-    runCheck();
-  }, [runCheck]);
+    loadWallet(false);
+  }, [loadWallet]);
 
-  const doDelete = useCallback(async () => {
-    if (!userId || deleting) return;
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadWallet(true);
+  }, [loadWallet]);
 
-    if (!password.trim()) {
-      Alert.alert("تنبيه", "اكتب كلمة المرور لتأكيد الحذف");
-      return;
-    }
+  const goBack = useCallback(() => {
+    // المحفظة بابها صفحة "حسابي" — الرجوع إليها دائماً
+    // (back العادي عبر التبويبات يضيع ويرمي للرئيسية)
+    router.push("/(tabs)/profile" as any);
+  }, [router]);
 
-    setDeleting(true);
+  const openLogin = useCallback(() => {
+    router.replace("/login" as any);
+  }, [router]);
 
-    try {
-      const res = await fetch(`${API}/api/users/${userId}/delete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: password.trim() }),
-      });
+  const handleCharge = useCallback((amount: number) => {
+    setChargingAmount(amount);
 
-      const json = await res.json().catch(() => null);
+    Alert.alert("شحن المحفظة", `هل تريد شحن المحفظة بمبلغ ${money(amount)}؟`, [
+      {
+        text: "إلغاء",
+        style: "cancel",
+        onPress: () => setChargingAmount(null),
+      },
+      {
+        text: "متابعة",
+        onPress: () => {
+          setChargingAmount(null);
+          Alert.alert(
+            "قريبًا",
+            "ربط بوابة الدفع لم يتم تفعيله بعد. سيتم دعم الشحن الإلكتروني لاحقًا."
+          );
+        },
+      },
+    ]);
+  }, []);
 
-      if (res.ok && json?.success) {
-        await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "push_token"]);
-        Alert.alert("تم حذف حسابك", "نشكرك على استخدامك زعفران", [
-          { text: "حسناً", onPress: () => router.replace("/login" as any) },
-        ]);
-        return;
-      }
+  const Header = useCallback(() => {
+    return (
+      <View>
+        <View style={s.balanceCard}>
+          <View style={s.balanceTop}>
+            <View style={s.balanceBadge}>
+              <ShieldCheck size={14} color={c.success} strokeWidth={1.8} />
+              <Text style={s.balanceBadgeText}>محفظة آمنة</Text>
+            </View>
 
-      Alert.alert("تعذر الحذف", json?.message || "حاول مرة ثانية");
-      // الرفض قد يكون بسبب مانع جديد ظهر — نعيد الفحص لعرضه
-      runCheck();
-    } catch {
-      Alert.alert("مشكلة اتصال", "تأكد من الإنترنت وحاول مرة ثانية");
-    } finally {
-      setDeleting(false);
-    }
-  }, [deleting, password, router, runCheck, userId]);
+            <View style={s.walletIcon}>
+              <Wallet size={26} color={c.gold} strokeWidth={1.8} />
+            </View>
+          </View>
 
-  const confirmDelete = useCallback(() => {
-    Alert.alert(
-      "حذف الحساب نهائياً",
-      "بعد الحذف لن تتمكن من الدخول لحسابك، وستفقد عناوينك المحفوظة ومفضلاتك.\n\nهل أنت متأكد؟",
-      [
-        { text: "تراجع", style: "cancel" },
-        { text: "نعم، احذف حسابي", style: "destructive", onPress: doDelete },
-      ]
+          <Text style={s.balanceLabel}>الرصيد المتاح</Text>
+          <Text style={s.balanceAmount}>{money(balance).replace(" ريال", "")}</Text>
+          <Text style={s.balanceCurrency}>ريال سعودي</Text>
+
+          <View style={s.balanceFooter}>
+            <View style={s.balanceMini}>
+              <TrendingUp size={16} color={c.success} strokeWidth={1.8} />
+              <Text style={s.balanceMiniLabel}>إجمالي الإيداع</Text>
+              <Text style={s.balanceMiniValue}>{money(totalCredit)}</Text>
+            </View>
+
+            <View style={s.balanceMiniDivider} />
+
+            <View style={s.balanceMini}>
+              <TrendingDown size={16} color={c.danger} strokeWidth={1.8} />
+              <Text style={s.balanceMiniLabel}>إجمالي الخصم</Text>
+              <Text style={s.balanceMiniValue}>{money(totalDebit)}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={s.section}>
+          <View style={s.sectionTitleRow}>
+            <Zap size={17} color={c.gold} strokeWidth={1.8} />
+            <Text style={s.sectionTitle}>شحن سريع</Text>
+          </View>
+
+          <View style={s.amountsGrid}>
+            {AMOUNTS.map((amount) => {
+              const active = chargingAmount === amount;
+
+              return (
+                <TouchableOpacity
+                  key={amount}
+                  activeOpacity={0.88}
+                  style={[s.amountBtn, active && s.amountBtnActive]}
+                  onPress={() => handleCharge(amount)}
+                >
+                  {active ? (
+                    <ActivityIndicator size="small" color={c.onGold} />
+                  ) : (
+                    <>
+                      <Plus size={16} color={c.gold} strokeWidth={2.2} />
+                      <Text style={s.amountText}>{amount} ر</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={s.section}>
+          <View style={s.sectionTitleRow}>
+            <ReceiptText size={17} color={c.gold} strokeWidth={1.8} />
+            <Text style={s.sectionTitle}>سجل المعاملات</Text>
+          </View>
+
+          {error ? (
+            <TouchableOpacity activeOpacity={0.85} style={s.errorBox} onPress={onRefresh}>
+              <RefreshCw size={17} color={c.gold} strokeWidth={1.8} />
+              <View style={s.errorTextWrap}>
+                <Text style={s.errorTitle}>حدثت مشكلة</Text>
+                <Text style={s.errorText}>{error}</Text>
+              </View>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
     );
-  }, [doDelete]);
+  }, [c, s, balance, chargingAmount, error, handleCharge, onRefresh, totalCredit, totalDebit]);
 
-  if (!fontsLoaded) return null;
+  const renderTransaction = useCallback(({ item }: { item: WalletTransaction }) => {
+    const isCredit = item.type === "credit";
+    const amountColor = isCredit ? c.success : c.danger;
+    const Icon = isCredit ? TrendingUp : TrendingDown;
+
+    return (
+      <View style={s.txCard}>
+        <View style={[s.txIcon, { backgroundColor: isCredit ? c.successSoft : c.dangerSoft }]}>
+          <Icon size={20} color={amountColor} strokeWidth={1.9} />
+        </View>
+
+        <View style={s.txInfo}>
+          <Text style={s.txDesc} numberOfLines={1}>
+            {cleanText(item.description, txTypeLabel(item.type))}
+          </Text>
+
+          <View style={s.txMetaRow}>
+            <Clock3 size={12} color={c.textMuted} strokeWidth={1.7} />
+            <Text style={s.txDate}>{formatDate(item.created_at)}</Text>
+          </View>
+        </View>
+
+        <View style={s.txAmountWrap}>
+          <Text style={[s.txAmount, { color: amountColor }]}>
+            {isCredit ? "+" : "-"}{money(item.amount)}
+          </Text>
+          <Text style={s.txType}>{txTypeLabel(item.type)}</Text>
+        </View>
+      </View>
+    );
+  }, [c, s]);
+
+  if (!fontsLoaded || loading) {
+    return (
+      <SafeAreaView style={s.safe}>
+        <View style={s.loadingWrap}>
+          <ActivityIndicator color={c.gold} size="large" />
+          <Text style={s.loadingText}>جاري تحميل المحفظة...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!user) {
+    return (
+      <SafeAreaView style={s.safe}>
+        <View style={s.header}>
+          <TouchableOpacity activeOpacity={0.8} style={s.headerBtn} onPress={goBack}>
+            <ArrowRight size={20} color={c.gold} />
+          </TouchableOpacity>
+
+          <View style={s.headerTitleWrap}>
+            <Text style={s.title}>محفظتي</Text>
+            <Text style={s.headerSub}>Zafaran Wallet</Text>
+          </View>
+
+          <View style={s.headerBtnGhost} />
+        </View>
+
+        <View style={s.guestWrap}>
+          <View style={s.guestIcon}>
+            <Wallet size={58} color={c.gold} strokeWidth={1.5} />
+          </View>
+
+          <Text style={s.guestTitle}>سجل دخولك أولًا</Text>
+          <Text style={s.guestSub}>
+            المحفظة مرتبطة بحسابك عشان نعرض الرصيد وسجل المعاملات بأمان.
+          </Text>
+
+          <TouchableOpacity activeOpacity={0.9} style={s.primaryBtn} onPress={openLogin}>
+            <LogIn size={18} color={c.onGold} strokeWidth={2} />
+            <Text style={s.primaryBtnText}>تسجيل الدخول</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
-        <TouchableOpacity activeOpacity={0.85} style={s.backBtn} onPress={() => router.back()}>
-          <ArrowRight size={20} color={c.gold} strokeWidth={1.9} />
+        <TouchableOpacity activeOpacity={0.8} style={s.headerBtn} onPress={goBack}>
+          <ArrowRight size={20} color={c.gold} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>حذف الحساب</Text>
-        <View style={{ width: 38 }} />
+
+        <View style={s.headerTitleWrap}>
+          <Text style={s.title}>محفظتي</Text>
+          <Text style={s.headerSub}>Zafaran Wallet</Text>
+        </View>
+
+        <TouchableOpacity activeOpacity={0.8} style={s.headerBtn} onPress={onRefresh}>
+          <RefreshCw size={18} color={c.gold} strokeWidth={1.8} />
+        </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-          <View style={s.iconWrap}>
-            <Trash2 size={40} color={c.danger} strokeWidth={1.5} />
-          </View>
-
-          <Text style={s.title}>حذف حسابك من زعفران</Text>
-
-          {checking ? (
-            <View style={s.loadingWrap}>
-              <ActivityIndicator color={c.gold} size="large" />
-              <Text style={s.loadingText}>جاري التحقق من حالة حسابك...</Text>
+      <FlatList
+        data={transactions}
+        keyExtractor={(item, index) => String(item.id || index)}
+        renderItem={renderTransaction}
+        ListHeaderComponent={Header}
+        contentContainerStyle={s.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={c.gold}
+          />
+        }
+        ListEmptyComponent={
+          <View style={s.emptyWrap}>
+            <View style={s.emptyIcon}>
+              <CreditCard size={54} color={c.textMuted} strokeWidth={1.5} />
             </View>
-          ) : (
-            <>
-              {/* الموانع — تُعرض بوضوح مع سبب كل واحد */}
-              {blockers.length > 0 ? (
-                <View style={s.blockersCard}>
-                  <View style={s.blockersHead}>
-                    <AlertTriangle size={18} color={c.gold} strokeWidth={1.9} />
-                    <Text style={s.blockersTitle}>ما نقدر نحذف حسابك حالياً</Text>
-                  </View>
 
-                  {blockers.map((b, i) => (
-                    <View key={b.code + i} style={s.blockerRow}>
-                      <View style={s.blockerDot} />
-                      <Text style={s.blockerText}>{b.message}</Text>
-                    </View>
-                  ))}
-
-                  <TouchableOpacity activeOpacity={0.86} style={s.recheckBtn} onPress={runCheck}>
-                    <Text style={s.recheckText}>إعادة التحقق</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : null}
-
-              {/* ما سيحدث بعد الحذف — شفافية مطلوبة قبل قرار لا رجعة فيه */}
-              <View style={s.infoCard}>
-                <View style={s.infoHead}>
-                  <Info size={17} color={c.textSoft} strokeWidth={1.8} />
-                  <Text style={s.infoTitle}>وش يصير بعد الحذف</Text>
-                </View>
-
-                <Text style={s.infoLine}>• ما تقدر تدخل حسابك مرة ثانية</Text>
-                <Text style={s.infoLine}>• تُحذف عناوينك المحفوظة ومفضلاتك</Text>
-                <Text style={s.infoLine}>• يختفي اسمك وصورتك ورقمك من التطبيق</Text>
-                <Text style={s.infoLine}>• تبقى سجلات طلباتك السابقة للأغراض المحاسبية فقط</Text>
-                <Text style={s.infoLine}>• تقدر تسجل حساب جديد بنفس رقمك متى شئت</Text>
-              </View>
-
-              {canDelete ? (
-                <View style={s.confirmCard}>
-                  <Text style={s.label}>اكتب كلمة المرور للتأكيد</Text>
-                  <View style={s.inputWrap}>
-                    <TextInput
-                      style={s.input}
-                      placeholder="••••••"
-                      placeholderTextColor={c.textMuted}
-                      secureTextEntry
-                      value={password}
-                      onChangeText={setPassword}
-                      textAlign="right"
-                    />
-                  </View>
-
-                  <TouchableOpacity
-                    activeOpacity={0.9}
-                    style={[s.deleteBtn, deleting && s.deleteBtnDisabled]}
-                    onPress={confirmDelete}
-                    disabled={deleting}
-                  >
-                    {deleting ? (
-                      <ActivityIndicator color="#FFF" />
-                    ) : (
-                      <Text style={s.deleteBtnText}>حذف حسابي نهائياً</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              ) : null}
-
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={s.cancelBtn}
-                onPress={() => router.back()}
-              >
-                <Text style={s.cancelText}>تراجع والاحتفاظ بحسابي</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
+            <Text style={s.emptyTitle}>لا توجد معاملات بعد</Text>
+            <Text style={s.emptySub}>
+              عند الشحن أو الدفع من المحفظة ستظهر العمليات هنا.
+            </Text>
+          </View>
+        }
+      />
     </SafeAreaView>
   );
 }
@@ -252,221 +448,395 @@ const make_s = (c: Colors) => StyleSheet.create({
     backgroundColor: c.bg,
   },
 
-  header: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: c.goldSoft,
-  },
-
-  backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 13,
-    borderWidth: 1,
-    borderColor: c.goldBorder,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  headerTitle: {
-    color: c.text,
-    fontSize: 16,
-    fontFamily: "Almarai_800ExtraBold",
-  },
-
-  scroll: {
-    padding: 22,
-    paddingBottom: 44,
-  },
-
-  iconWrap: {
-    width: 88,
-    height: 88,
-    borderRadius: 32,
-    alignSelf: "center",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: c.dangerSoft,
-    borderWidth: 1,
-    borderColor: c.dangerSoft,
-    marginBottom: 18,
-  },
-
-  title: {
-    color: c.text,
-    fontSize: 20,
-    textAlign: "center",
-    marginBottom: 22,
-    fontFamily: "Almarai_800ExtraBold",
-  },
-
   loadingWrap: {
+    flex: 1,
     alignItems: "center",
-    paddingVertical: 40,
+    justifyContent: "center",
     gap: 14,
   },
 
   loadingText: {
-    color: c.textSoft,
-    fontSize: 13,
-    fontFamily: "Almarai_400Regular",
-  },
-
-  blockersCard: {
-    backgroundColor: c.goldSoft,
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: c.goldBorder,
-    marginBottom: 16,
-  },
-
-  blockersHead: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
-  },
-
-  blockersTitle: {
-    color: c.gold,
+    color: c.text,
     fontSize: 14,
-    fontFamily: "Almarai_800ExtraBold",
-  },
-
-  blockerRow: {
-    flexDirection: "row-reverse",
-    alignItems: "flex-start",
-    gap: 8,
-    marginBottom: 9,
-  },
-
-  blockerDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: c.gold,
-    marginTop: 7,
-  },
-
-  blockerText: {
-    flex: 1,
-    color: c.gold,
-    fontSize: 12.5,
-    lineHeight: 21,
-    textAlign: "right",
-    fontFamily: "Almarai_400Regular",
-  },
-
-  recheckBtn: {
-    marginTop: 6,
-    alignSelf: "flex-end",
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: c.goldBorder,
-  },
-
-  recheckText: {
-    color: c.gold,
-    fontSize: 12,
     fontFamily: "Almarai_700Bold",
   },
 
-  infoCard: {
-    backgroundColor: c.surface,
-    borderRadius: 20,
-    padding: 16,
+  header: {
+    minHeight: 68,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: c.goldSoft,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  headerBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 15,
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
     borderColor: c.border,
-    marginBottom: 16,
-  },
-
-  infoHead: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
-  },
-
-  infoTitle: {
-    color: c.text,
-    fontSize: 14,
-    fontFamily: "Almarai_800ExtraBold",
-  },
-
-  infoLine: {
-    color: c.textSoft,
-    fontSize: 12.5,
-    lineHeight: 24,
-    textAlign: "right",
-    fontFamily: "Almarai_400Regular",
-  },
-
-  confirmCard: {
-    backgroundColor: c.surface,
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: c.dangerSoft,
-  },
-
-  label: {
-    color: c.gold,
-    fontSize: 11,
-    textAlign: "right",
-    marginBottom: 7,
-    fontFamily: "Almarai_700Bold",
-  },
-
-  inputWrap: {
-    backgroundColor: c.surfaceAlt,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: c.goldBorder,
-    paddingHorizontal: 14,
-    marginBottom: 16,
-  },
-
-  input: {
-    height: 50,
-    color: c.text,
-    fontSize: 15,
-    fontFamily: "Almarai_400Regular",
-  },
-
-  deleteBtn: {
-    minHeight: 52,
-    borderRadius: 16,
-    backgroundColor: c.danger,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  deleteBtnDisabled: {
-    opacity: 0.7,
+  headerBtnGhost: {
+    width: 42,
+    height: 42,
   },
 
-  deleteBtnText: {
-    color: "#FFF",
+  headerTitleWrap: {
+    alignItems: "center",
+  },
+
+  title: {
+    color: c.text,
+    fontSize: 19,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  headerSub: {
+    marginTop: 3,
+    color: c.textSoft,
+    fontSize: 11,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  listContent: {
+    paddingBottom: 34,
+  },
+
+  balanceCard: {
+    margin: 16,
+    borderRadius: 32,
+    padding: 20,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.goldBorder,
+  },
+
+  balanceTop: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 18,
+  },
+
+  balanceBadge: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: c.successSoft,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+
+  balanceBadgeText: {
+    color: c.success,
+    fontSize: 11,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  walletIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 19,
+    backgroundColor: c.goldSoft,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+
+  balanceLabel: {
+    color: c.textSoft,
+    textAlign: "right",
+    fontSize: 13,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  balanceAmount: {
+    color: c.gold,
+    textAlign: "right",
+    fontSize: 56,
+    lineHeight: 66,
+    marginTop: 4,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  balanceCurrency: {
+    color: c.textSoft,
+    textAlign: "right",
+    fontSize: 13,
+    fontFamily: "Almarai_700Bold",
+  },
+
+  balanceFooter: {
+    marginTop: 20,
+    borderRadius: 22,
+    backgroundColor: c.bg,
+    borderWidth: 1,
+    borderColor: c.goldSoft,
+    padding: 13,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+  },
+
+  balanceMini: {
+    flex: 1,
+    alignItems: "center",
+    gap: 4,
+  },
+
+  balanceMiniDivider: {
+    width: 1,
+    height: 48,
+    backgroundColor: c.goldSoft,
+  },
+
+  balanceMiniLabel: {
+    color: c.textMuted,
+    fontSize: 10,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  balanceMiniValue: {
+    color: c.text,
+    fontSize: 12,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  section: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 12,
+  },
+
+  sectionTitleRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+
+  sectionTitle: {
+    color: c.text,
+    textAlign: "right",
+    fontSize: 16,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  amountsGrid: {
+    flexDirection: "row-reverse",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+
+  amountBtn: {
+    width: "31%",
+    minHeight: 58,
+    borderRadius: 19,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.border,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row-reverse",
+    gap: 6,
+  },
+
+  amountBtnActive: {
+    backgroundColor: c.gold,
+  },
+
+  amountText: {
+    color: c.gold,
     fontSize: 15,
     fontFamily: "Almarai_800ExtraBold",
   },
 
-  cancelBtn: {
+  errorBox: {
+    flexDirection: "row-reverse",
     alignItems: "center",
-    marginTop: 20,
-    paddingVertical: 12,
+    gap: 10,
+    borderRadius: 18,
+    padding: 13,
+    backgroundColor: c.dangerSoft,
+    borderWidth: 1,
+    borderColor: c.dangerSoft,
   },
 
-  cancelText: {
-    color: c.gold,
+  errorTextWrap: {
+    flex: 1,
+  },
+
+  errorTitle: {
+    color: c.danger,
+    textAlign: "right",
+    fontSize: 13,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  errorText: {
+    color: c.danger,
+    textAlign: "right",
+    marginTop: 3,
+    fontSize: 11,
+    lineHeight: 18,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  txCard: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    backgroundColor: c.surface,
+    borderRadius: 21,
+    padding: 13,
+    borderWidth: 1,
+    borderColor: c.goldSoft,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 11,
+  },
+
+  txIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  txInfo: {
+    flex: 1,
+  },
+
+  txDesc: {
+    color: c.text,
+    textAlign: "right",
+    fontSize: 13,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  txMetaRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 5,
+  },
+
+  txDate: {
+    color: c.textMuted,
+    textAlign: "right",
+    fontSize: 11,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  txAmountWrap: {
+    alignItems: "flex-start",
+  },
+
+  txAmount: {
     fontSize: 14,
-    fontFamily: "Almarai_700Bold",
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  txType: {
+    marginTop: 3,
+    color: c.textMuted,
+    fontSize: 10,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  emptyWrap: {
+    alignItems: "center",
+    marginTop: 38,
+    paddingHorizontal: 26,
+  },
+
+  emptyIcon: {
+    width: 104,
+    height: 104,
+    borderRadius: 36,
+    backgroundColor: c.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: c.goldSoft,
+    marginBottom: 18,
+  },
+
+  emptyTitle: {
+    color: c.text,
+    textAlign: "center",
+    fontSize: 16,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  emptySub: {
+    color: c.textSoft,
+    textAlign: "center",
+    marginTop: 8,
+    fontSize: 12,
+    lineHeight: 21,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  guestWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 30,
+  },
+
+  guestIcon: {
+    width: 118,
+    height: 118,
+    borderRadius: 40,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.border,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 22,
+  },
+
+  guestTitle: {
+    color: c.text,
+    textAlign: "center",
+    fontSize: 21,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  guestSub: {
+    color: c.textSoft,
+    textAlign: "center",
+    fontSize: 13,
+    lineHeight: 24,
+    marginTop: 9,
+    marginBottom: 22,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  primaryBtn: {
+    minWidth: 190,
+    minHeight: 54,
+    borderRadius: 18,
+    backgroundColor: c.gold,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 24,
+  },
+
+  primaryBtnText: {
+    color: c.bg,
+    fontSize: 14,
+    fontFamily: "Almarai_800ExtraBold",
   },
 });

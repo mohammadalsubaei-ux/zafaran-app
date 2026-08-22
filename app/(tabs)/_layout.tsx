@@ -20,6 +20,7 @@ import {
 } from "@expo-google-fonts/almarai";
 import { BlurView } from "expo-blur";
 import { useLang } from "@/context/LanguageContext";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 import {
   Bell,
   Briefcase,
@@ -66,23 +67,26 @@ function shortAddress(value: unknown) {
 
 function AddrIcon({ label }: { label?: string | null }) {
   if (label === "منزل") {
-    return <Home size={18} color="#F2B233" strokeWidth={1.8} />;
+    return <Home size={18} color={c.gold} strokeWidth={1.8} />;
   }
 
   if (label === "عمل") {
-    return <Briefcase size={18} color="#F2B233" strokeWidth={1.8} />;
+    return <Briefcase size={18} color={c.gold} strokeWidth={1.8} />;
   }
 
-  return <MapPin size={18} color="#F2B233" strokeWidth={1.8} />;
+  return <MapPin size={18} color={c.gold} strokeWidth={1.8} />;
 }
 
 // النقطة السفلية أُزيلت — كانت تدفع الاسم خارج حدود الشريط فيُقصّ
 function TabIcon({ focused, color, Icon }: TabIconProps) {
+  const { c } = useTheme();
+  const t = useMemo(() => makeTabStyles(c), [c]);
+
   return (
     <View style={[t.tabIconWrap, focused && t.tabIconWrapActive]}>
       <Icon
         size={20}
-        color={focused ? "#F2B233" : color}
+        color={focused ? c.gold : color}
         strokeWidth={focused ? 2.1 : 1.75}
       />
     </View>
@@ -90,6 +94,8 @@ function TabIcon({ focused, color, Icon }: TabIconProps) {
 }
 
 function ZafaranHeader() {
+  const { c } = useTheme();
+  const h = useMemo(() => makeHeaderStyles(c), [c]);
   const router = useRouter();
 
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -210,17 +216,17 @@ function ZafaranHeader() {
       <View style={h.container}>
         <View style={h.leftWrap}>
           <TouchableOpacity activeOpacity={0.86} style={h.notifBtn} onPress={() => router.push("/notifications" as any)}>
-            <Bell size={19} color="#F2B233" strokeWidth={1.85} />
+            <Bell size={19} color={c.gold} strokeWidth={1.85} />
           </TouchableOpacity>
 
           <TouchableOpacity activeOpacity={0.86} style={h.avatarWrap} onPress={goProfile}>
-            <User size={16} color="#F2B233" strokeWidth={1.85} />
+            <User size={16} color={c.gold} strokeWidth={1.85} />
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity activeOpacity={0.9} style={h.locationWrap} onPress={openAddresses}>
           <View style={h.locationPill}>
-            <ChevronDown size={14} color="#F2B233" strokeWidth={2.1} />
+            <ChevronDown size={14} color={c.gold} strokeWidth={2.1} />
 
             <View style={h.locationTextWrap}>
               <Text style={h.locationLabel} numberOfLines={1}>
@@ -246,7 +252,7 @@ function ZafaranHeader() {
 
             <View style={h.modalHeader}>
               <TouchableOpacity activeOpacity={0.86} style={h.closeBtn} onPress={closeAddresses}>
-                <X size={18} color="#F2B233" strokeWidth={2.1} />
+                <X size={18} color={c.gold} strokeWidth={2.1} />
               </TouchableOpacity>
 
               <View style={h.modalTitleWrap}>
@@ -259,13 +265,13 @@ function ZafaranHeader() {
 
             {loading ? (
               <View style={h.loadingBox}>
-                <ActivityIndicator color="#F2B233" />
+                <ActivityIndicator color={c.gold} />
                 <Text style={h.loadingText}>جاري تحميل العناوين...</Text>
               </View>
             ) : addresses.length === 0 ? (
               <View style={h.emptyWrap}>
                 <View style={h.emptyIcon}>
-                  <MapPin size={34} color="#F2B233" strokeWidth={1.6} />
+                  <MapPin size={34} color={c.gold} strokeWidth={1.6} />
                 </View>
 
                 <Text style={h.emptyText}>ما عندك عناوين محفوظة</Text>
@@ -307,7 +313,7 @@ function ZafaranHeader() {
 
                       {active ? (
                         <View style={h.checkCircle}>
-                          <Check size={15} color="#17100B" strokeWidth={2.4} />
+                          <Check size={15} color={c.onGold} strokeWidth={2.4} />
                         </View>
                       ) : null}
                     </TouchableOpacity>
@@ -330,6 +336,8 @@ const TAB_LABELS: Record<string, Record<string, string>> = {
 
 export default function TabLayout() {
   const { lang } = useLang();
+  const { c, isDark } = useTheme();
+  const t = useMemo(() => makeTabStyles(c), [c]);
   const L = TAB_LABELS[lang] || TAB_LABELS.ar;
 
   const [fontsLoaded] = useFonts({
@@ -353,10 +361,14 @@ export default function TabLayout() {
           tabBarHideOnKeyboard: true,
           tabBarStyle: t.tabBar,
           tabBarBackground: () => (
-            <BlurView intensity={72} tint="dark" style={StyleSheet.absoluteFill} />
+            <BlurView
+              intensity={72}
+              tint={isDark ? "dark" : "light"}
+              style={StyleSheet.absoluteFill}
+            />
           ),
-          tabBarActiveTintColor: "#F2B233",
-          tabBarInactiveTintColor: "#8A6030",
+          tabBarActiveTintColor: c.gold,
+          tabBarInactiveTintColor: c.textSoft,
           // إظهار الاسم صراحةً — الاعتماد على السلوك الافتراضي كان يخفيه
           tabBarShowLabel: true,
           tabBarLabelPosition: "below-icon",
@@ -425,14 +437,14 @@ export default function TabLayout() {
   );
 }
 
-const t = StyleSheet.create({
+const makeTabStyles = (c: Colors) => StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#120B07",
+    backgroundColor: c.bg,
   },
 
   safeHeader: {
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
   },
 
   // الارتفاع وُسّع ليتسع للأيقونة والاسم معاً بدل قصّ الاسم
@@ -446,10 +458,10 @@ const t = StyleSheet.create({
     paddingBottom: 12,
     paddingHorizontal: 7,
     borderRadius: 28,
-    backgroundColor: "rgba(18,11,7,0.92)",
+    backgroundColor: c.surface,
     borderTopWidth: 0,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.13)",
+    borderColor: c.border,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -6 },
@@ -480,13 +492,13 @@ const t = StyleSheet.create({
   },
 
   tabIconWrapActive: {
-    backgroundColor: "rgba(242,178,51,0.095)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.16)",
+    borderColor: c.goldBorder,
   },
 });
 
-const h = StyleSheet.create({
+const makeHeaderStyles = (c: Colors) => StyleSheet.create({
   container: {
     minHeight: 76,
     flexDirection: "row",
@@ -495,8 +507,8 @@ const h = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(242,178,51,0.08)",
-    backgroundColor: "#17100B",
+    borderBottomColor: c.goldSoft,
+    backgroundColor: c.bg,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.18,
@@ -515,9 +527,9 @@ const h = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 15,
-    backgroundColor: "rgba(242,178,51,0.085)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.16)",
+    borderColor: c.goldBorder,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
@@ -530,18 +542,18 @@ const h = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: "#E53935",
+    backgroundColor: c.danger,
     borderWidth: 1,
-    borderColor: "#17100B",
+    borderColor: c.bg,
   },
 
   avatarWrap: {
     width: 38,
     height: 38,
     borderRadius: 15,
-    backgroundColor: "rgba(242,178,51,0.085)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.16)",
+    borderColor: c.goldBorder,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -561,9 +573,9 @@ const h = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 18,
-    backgroundColor: "rgba(242,178,51,0.045)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.08)",
+    borderColor: c.goldSoft,
   },
 
   locationTextWrap: {
@@ -573,7 +585,7 @@ const h = StyleSheet.create({
 
   locationLabel: {
     fontSize: 14,
-    color: "#F2B233",
+    color: c.gold,
     fontFamily: "Almarai_800ExtraBold",
     textAlign: "center",
   },
@@ -581,7 +593,7 @@ const h = StyleSheet.create({
   locationSub: {
     maxWidth: "100%",
     fontSize: 10,
-    color: "#A98961",
+    color: c.textSoft,
     fontFamily: "Almarai_400Regular",
     marginTop: 2,
     textAlign: "center",
@@ -600,9 +612,9 @@ const h = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 16,
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.18)",
+    borderColor: c.goldBorder,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -619,14 +631,14 @@ const h = StyleSheet.create({
   },
 
   brandName: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 21,
     lineHeight: 27,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   brandSub: {
-    color: "#8A6030",
+    color: c.textSoft,
     fontSize: 10,
     marginTop: -1,
     fontFamily: "Almarai_400Regular",
@@ -634,12 +646,12 @@ const h = StyleSheet.create({
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.74)",
+    backgroundColor: c.overlay,
     justifyContent: "flex-end",
   },
 
   modalBox: {
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     paddingHorizontal: 18,
@@ -647,7 +659,7 @@ const h = StyleSheet.create({
     paddingBottom: 20,
     maxHeight: "70%",
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.16)",
+    borderColor: c.goldBorder,
   },
 
   modalHandle: {
@@ -655,7 +667,7 @@ const h = StyleSheet.create({
     width: 48,
     height: 5,
     borderRadius: 999,
-    backgroundColor: "rgba(242,178,51,0.2)",
+    backgroundColor: c.goldBorder,
     marginBottom: 12,
   },
 
@@ -665,7 +677,7 @@ const h = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(242,178,51,0.08)",
+    borderBottomColor: c.goldSoft,
     paddingBottom: 12,
     marginBottom: 12,
   },
@@ -676,12 +688,12 @@ const h = StyleSheet.create({
 
   modalTitle: {
     fontSize: 19,
-    color: "#FDF0DC",
+    color: c.text,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   modalSub: {
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 11,
     marginTop: 3,
     fontFamily: "Almarai_400Regular",
@@ -691,9 +703,9 @@ const h = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 14,
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.14)",
+    borderColor: c.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -710,7 +722,7 @@ const h = StyleSheet.create({
   },
 
   loadingText: {
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 12,
     fontFamily: "Almarai_400Regular",
   },
@@ -728,21 +740,21 @@ const h = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 19,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.06)",
+    borderColor: c.goldSoft,
     marginBottom: 8,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
   },
 
   addrItemActive: {
-    backgroundColor: "rgba(242,178,51,0.09)",
-    borderColor: "rgba(242,178,51,0.22)",
+    backgroundColor: c.goldSoft,
+    borderColor: c.goldBorder,
   },
 
   addrIconWrap: {
     width: 43,
     height: 43,
     borderRadius: 16,
-    backgroundColor: "rgba(242,178,51,0.085)",
+    backgroundColor: c.goldSoft,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -753,24 +765,24 @@ const h = StyleSheet.create({
 
   addrLabel: {
     fontSize: 14,
-    color: "#FDF0DC",
+    color: c.text,
     fontFamily: "Almarai_800ExtraBold",
     textAlign: "right",
   },
 
   addrLabelActive: {
-    color: "#F2B233",
+    color: c.gold,
   },
 
   defaultTag: {
     fontSize: 11,
-    color: "#A98961",
+    color: c.textSoft,
     fontFamily: "Almarai_400Regular",
   },
 
   addrText: {
     fontSize: 11,
-    color: "#A98961",
+    color: c.textSoft,
     fontFamily: "Almarai_400Regular",
     textAlign: "right",
     marginTop: 4,
@@ -780,7 +792,7 @@ const h = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 11,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -795,9 +807,9 @@ const h = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 29,
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.15)",
+    borderColor: c.goldBorder,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 14,
@@ -805,14 +817,14 @@ const h = StyleSheet.create({
 
   emptyText: {
     fontSize: 16,
-    color: "#FDF0DC",
+    color: c.text,
     fontFamily: "Almarai_800ExtraBold",
     marginBottom: 6,
   },
 
   emptyHint: {
     fontSize: 12,
-    color: "#A98961",
+    color: c.textSoft,
     fontFamily: "Almarai_400Regular",
     textAlign: "center",
     marginBottom: 16,
@@ -821,14 +833,14 @@ const h = StyleSheet.create({
   addAddressBtn: {
     minHeight: 46,
     borderRadius: 16,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
     paddingHorizontal: 24,
     alignItems: "center",
     justifyContent: "center",
   },
 
   addAddressText: {
-    color: "#17100B",
+    color: c.bg,
     fontSize: 13,
     fontFamily: "Almarai_800ExtraBold",
   },

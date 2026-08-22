@@ -21,7 +21,7 @@ import { useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { pickCompressedImage, uploadImageToBucket } from "@/utils/images";
-import { CATEGORIES, TRACKS, categoriesOfTrack, categoryLabel } from "@/constants/categories";
+import { CATEGORIES, TRACKS, categoriesOfTrack, categoryLabel, tone } from "@/constants/categories";
 import {
   Almarai_400Regular,
   Almarai_700Bold,
@@ -121,7 +121,7 @@ function normalizeStatus(status?: string | null): MenuStatus {
 
 export default function MenuScreen() {
   const router = useRouter();
-  const { c } = useTheme();
+  const { c, isDark } = useTheme();
   const s = useMemo(() => make_s(c), [c]);
   const itemStatusList = useMemo(() => makeItemStatus(c), [c]);
   const statusColors = useMemo(() => makeStatusColors(c), [c]);
@@ -420,7 +420,7 @@ export default function MenuScreen() {
         </View>
       </View>
     );
-  }, [deleteItem, openEdit, toggleItemStatus]);
+  }, [c, s, statusColors, deleteItem, openEdit, toggleItemStatus]);
 
   if (!fontsLoaded || loading) {
     return (
@@ -607,7 +607,7 @@ export default function MenuScreen() {
               <Text style={s.label}>التصنيف</Text>
               {TRACKS.map(track => (
                 <View key={track.id}>
-                  <Text style={[s.trackLabel, { color: track.color }]}>{track.label}</Text>
+                  <Text style={[s.trackLabel, { color: tone(track, isDark) }]}>{track.label}</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.catRow}>
                     {categoriesOfTrack(track.id).map(c => (
                       <TouchableOpacity key={c.id} activeOpacity={0.86}

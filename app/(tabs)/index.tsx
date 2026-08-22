@@ -33,7 +33,7 @@ import {
   Almarai_800ExtraBold,
 } from "@expo-google-fonts/almarai";
 
-import { TRACKS, type TrackId } from "@/constants/categories";
+import { TRACKS, tone, type TrackId } from "@/constants/categories";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 
 const API = "https://zafaran-backend-production.up.railway.app";
@@ -197,7 +197,7 @@ function BannerCarousel({ banners }: { banners: Banner[] }) {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { c } = useTheme();
+  const { c, isDark } = useTheme();
   const s = useMemo(() => make_s(c), [c]);
 
   const [chefs, setChefs] = useState<Chef[]>([]);
@@ -392,14 +392,14 @@ export default function HomeScreen() {
             <TouchableOpacity
               key={track.id}
               activeOpacity={0.85}
-              style={[s.sectionCard, { borderColor: `${track.color}33` }]}
+              style={[s.sectionCard, { borderColor: `${tone(track, isDark)}55` }]}
               onPress={() => openTrack(track.id)}
             >
-              <View style={[s.sectionIconWrap, { borderColor: `${track.color}44` }]}>
-                <track.Icon size={22} color={track.color} strokeWidth={1.8} />
+              <View style={[s.sectionIconWrap, { borderColor: `${tone(track, isDark)}66` }]}>
+                <track.Icon size={22} color={tone(track, isDark)} strokeWidth={1.8} />
               </View>
               <Text
-                style={[s.sectionLabel, { color: track.color }]}
+                style={[s.sectionLabel, { color: tone(track, isDark) }]}
                 numberOfLines={1}
                 adjustsFontSizeToFit
               >

@@ -97,33 +97,33 @@ export const DARK: Colors = {
 
 // ━━━ النهاري — بيج دافئ يحفظ هوية زعفران ━━━
 export const LIGHT: Colors = {
-  bg: "#FBF7F1",
-  surface: "#FFFFFF",
-  surfaceAlt: "#F0E7DA",
+  bg: "#F4EDE3",          // بيج أعمق قليلًا حتى تبرز البطاقات فوقه
+  surface: "#FFFCF7",     // بطاقة دافئة لا بيضاء ناصعة
+  surfaceAlt: "#EDE3D5",  // حقول وأسطح داخلية أعمق درجة
   overlay: "rgba(46,33,24,0.45)",
 
-  text: "#2E2118",
-  textSoft: "#9C8873",
-  textMuted: "#A79684",
+  text: "#241A12",        // بني شبه أسود — تباين عالٍ للقراءة
+  textSoft: "#6B584A",    // كان #9C8873 وكان باهتًا لا يُقرأ
+  textMuted: "#8F7E6E",   // كان #A79684
 
-  gold: "#A8761A",      // أغمق درجتين ليُقرأ على الفاتح
-  goldSolid: "#F2B233", // الأزرار تبقى بذهبي زعفران
-  onGold: "#2E2118",
-  goldSoft: "rgba(168,118,26,0.08)",
-  goldBorder: "rgba(168,118,26,0.20)",
+  gold: "#8A5E12",        // ذهبي غامق يُقرأ على الفاتح
+  goldSolid: "#F2B233",
+  onGold: "#241A12",
+  goldSoft: "rgba(138,94,18,0.10)",
+  goldBorder: "rgba(138,94,18,0.32)",
 
-  border: "rgba(120,90,50,0.13)",
-  divider: "rgba(120,90,50,0.09)",
+  border: "rgba(90,70,45,0.20)",   // كان 0.13 — الحواف كانت تختفي
+  divider: "rgba(90,70,45,0.13)",
 
-  success: "#2E7D32",
-  successSoft: "rgba(46,125,50,0.10)",
-  danger: "#C62828",
-  dangerSoft: "rgba(198,40,40,0.08)",
-  warning: "#B8860B",
-  info: "#0277BD",
+  success: "#1D6B33",
+  successSoft: "rgba(29,107,51,0.10)",
+  danger: "#A81E1E",
+  dangerSoft: "rgba(168,30,30,0.09)",
+  warning: "#8A5E12",
+  info: "#0B5A96",
 
-  adBg: "rgba(46,33,24,0.06)",
-  adText: "#8A7A68",
+  adBg: "rgba(36,26,18,0.08)",
+  adText: "#6B584A",
 };
 
 // ━━━ السياق ━━━

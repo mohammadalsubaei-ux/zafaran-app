@@ -386,6 +386,8 @@ export default function ChefScreen() {
       </View>
     );
   }, [
+    c,
+    s,
     availableCount,
     chef?.rating_avg,
     chef?.total_orders,

@@ -461,6 +461,8 @@ export default function OrdersScreen() {
       </View>
     );
   }, [
+    c,
+    s,
     activeOrders.length,
     error,
     historyOrders.length,

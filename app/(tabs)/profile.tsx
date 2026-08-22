@@ -271,7 +271,7 @@ export default function ProfileScreen() {
       return {
         label: user?.gender === "female" ? t.chefFemale : t.chef,
         color: c.gold,
-        bg: "rgba(242,178,51,0.12)",
+        bg: c.goldSoft,
         Icon: Store,
       };
     }
@@ -280,7 +280,7 @@ export default function ProfileScreen() {
       return {
         label: t.driver,
         color: c.info,
-        bg: "rgba(3,169,244,0.12)",
+        bg: c.goldSoft,
         Icon: Truck,
       };
     }
@@ -288,7 +288,7 @@ export default function ProfileScreen() {
     return {
       label: t.customer,
       color: c.success,
-      bg: "rgba(76,175,80,0.12)",
+      bg: c.successSoft,
       Icon: UserRound,
     };
   }, [t, user?.gender, user?.role]);

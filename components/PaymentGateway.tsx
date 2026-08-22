@@ -106,7 +106,7 @@ export default function PaymentGateway({
 
           {stage === "success" && (
             <>
-              <View style={[s.iconWrap, { backgroundColor: "rgba(76,175,80,0.12)" }]}>
+              <View style={[s.iconWrap, { backgroundColor: c.successSoft }]}>
                 <CheckCircle2 size={36} color={c.success} strokeWidth={1.8} />
               </View>
               <Text style={[s.title, { color: c.success }]}>تم الدفع بنجاح</Text>
@@ -116,7 +116,7 @@ export default function PaymentGateway({
 
           {stage === "error" && (
             <>
-              <View style={[s.iconWrap, { backgroundColor: "rgba(229,57,53,0.12)" }]}>
+              <View style={[s.iconWrap, { backgroundColor: c.dangerSoft }]}>
                 <XCircle size={36} color={c.danger} strokeWidth={1.8} />
               </View>
               <Text style={[s.title, { color: c.danger }]}>تعذر إتمام الدفع</Text>

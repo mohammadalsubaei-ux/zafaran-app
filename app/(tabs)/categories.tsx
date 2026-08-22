@@ -36,6 +36,7 @@ import {
   findCategory,
   findTrack,
   itemMatchesCategory,
+  tone,
   type TrackId,
 } from "@/constants/categories";
 import { useTheme, type Colors } from "@/context/ThemeContext";
@@ -99,7 +100,7 @@ function chefHasCategory(chef: Chef, categoryId: string) {
 
 export default function CategoriesScreen() {
   const router = useRouter();
-  const { c } = useTheme();
+  const { c, isDark } = useTheme();
   const s = useMemo(() => make_s(c), [c]);
   const params = useLocalSearchParams();
 
@@ -369,15 +370,15 @@ export default function CategoriesScreen() {
               activeOpacity={0.85}
               style={[
                 s.trackChip,
-                on && { backgroundColor: `${t.color}1F`, borderColor: `${t.color}66` },
+                on && { backgroundColor: `${tone(t, isDark)}1F`, borderColor: `${tone(t, isDark)}80` },
               ]}
               onPress={() => {
                 setTrack(t.id);
                 setCategory("all");
               }}
             >
-              <TIcon size={16} color={on ? t.color : c.textSoft} strokeWidth={1.9} />
-              <Text style={[s.trackChipText, on && { color: t.color }]} numberOfLines={1}>
+              <TIcon size={16} color={on ? tone(t, isDark) : c.textSoft} strokeWidth={1.9} />
+              <Text style={[s.trackChipText, on && { color: tone(t, isDark) }]} numberOfLines={1}>
                 {t.label}
               </Text>
             </TouchableOpacity>
@@ -402,21 +403,20 @@ export default function CategoriesScreen() {
               activeOpacity={0.85}
               style={[
                 s.filterChip,
-                active && { backgroundColor: `${cat.color}1F`, borderColor: `${cat.color}66` },
+                active && { backgroundColor: `${tone(cat, isDark)}1F`, borderColor: `${tone(cat, isDark)}80` },
                 isEmpty && !active && s.filterChipEmpty,
               ]}
               onPress={() => setCategory(cat.id)}
             >
               <Icon
                 size={17}
-                color={active ? cat.color : c.textSoft}
+                color={active ? tone(cat, isDark) : c.textSoft}
                 strokeWidth={1.9}
               />
 
               <Text
-                style={[s.filterLabel, active && { color: cat.color }]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
+                style={[s.filterLabel, active && { color: tone(cat, isDark) }]}
+                numberOfLines={2}
               >
                 {cat.label}
               </Text>
@@ -427,7 +427,7 @@ export default function CategoriesScreen() {
 
       <View style={s.resultRow}>
         <Text style={s.resultText}>
-          {selectedMeta.label} · {filteredChefs.length} متجر
+          {selectedMeta.label}{filteredChefs.length > 0 ? ` · ${filteredChefs.length} متجر` : ""}
         </Text>
 
         {category !== "all" || search.trim() ? (
@@ -556,7 +556,7 @@ const make_s = (c: Colors) => StyleSheet.create({
   },
 
   trackChip: {
-    height: 42,
+    height: 44,
     borderRadius: 14,
     paddingHorizontal: 14,
     backgroundColor: c.surface,
@@ -568,8 +568,8 @@ const make_s = (c: Colors) => StyleSheet.create({
   },
 
   trackChipText: {
-    color: c.textSoft,
-    fontSize: 13,
+    color: c.text,
+    fontSize: 13.5,
     fontFamily: "Almarai_700Bold",
   },
 
@@ -582,15 +582,15 @@ const make_s = (c: Colors) => StyleSheet.create({
   },
 
   filterChip: {
-    minWidth: 86,
-    height: 62,
+    minWidth: 104,
+    height: 66,
     borderRadius: 15,
     backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: c.goldSoft,
+    borderColor: c.border,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 3,
+    paddingHorizontal: 10,
     paddingVertical: 8,
     gap: 5,
   },
@@ -600,8 +600,9 @@ const make_s = (c: Colors) => StyleSheet.create({
   },
 
   filterLabel: {
-    color: c.textSoft,
-    fontSize: 10,
+    color: c.text,
+    fontSize: 12,
+    lineHeight: 17,
     textAlign: "center",
     fontFamily: "Almarai_700Bold",
   },
