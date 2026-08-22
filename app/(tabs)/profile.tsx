@@ -29,6 +29,7 @@ import {
   FileText,
   Headphones,
   Languages,
+  Palette,
   LayoutDashboard,
   LogIn,
   LogOut,
@@ -48,6 +49,7 @@ import {
 } from "lucide-react-native";
 
 import { useLang } from "@/context/LanguageContext";
+import { THEME_OPTIONS, useTheme } from "@/context/ThemeContext";
 import { pickCompressedImage, uploadImageToBucket } from "@/utils/images";
 
 const API = "https://zafaran-backend-production.up.railway.app";
@@ -99,6 +101,8 @@ const T: any = {
     privacy: "سياسة الخصوصية",
     terms: "الشروط والأحكام",
     version: "إصدار التطبيق",
+    appearance: "المظهر",
+    appearanceSub: "اختر بين الوضع النهاري والليلي",
     deleteAccount: "حذف الحساب",
     deleteAccountSub: "حذف حسابك وبياناتك من زعفران",
     logout: "تسجيل الخروج",
@@ -155,6 +159,8 @@ const T: any = {
     privacy: "Privacy Policy",
     terms: "Terms & Conditions",
     version: "App Version",
+    appearance: "Appearance",
+    appearanceSub: "Choose between light and dark mode",
     deleteAccount: "Delete Account",
     deleteAccountSub: "Remove your account and data from Zafaran",
     logout: "Logout",
@@ -193,6 +199,7 @@ function getInitials(name: string) {
 export default function ProfileScreen() {
   const router = useRouter();
   const { lang, toggleLang } = useLang();
+  const { c, mode, setMode } = useTheme();
   const t = T[lang] || T.ar;
 
   const [user, setUser] = useState<UserSession | null>(null);
@@ -683,6 +690,36 @@ export default function ProfileScreen() {
             Icon={Languages}
             onPress={toggleLang}
           />
+
+          <View style={s.themeRow}>
+            <View style={s.themeHead}>
+              <View style={s.menuIconBox}>
+                <Palette size={20} color={c.gold} strokeWidth={1.8} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.menuTitle}>{t.appearance}</Text>
+                <Text style={s.menuSub}>{t.appearanceSub}</Text>
+              </View>
+            </View>
+
+            <View style={s.themeOptions}>
+              {THEME_OPTIONS.map((opt) => {
+                const on = mode === opt.id;
+                return (
+                  <TouchableOpacity
+                    key={opt.id}
+                    activeOpacity={0.85}
+                    style={[s.themeChip, on && s.themeChipOn]}
+                    onPress={() => setMode(opt.id)}
+                  >
+                    <Text style={[s.themeChipText, on && s.themeChipTextOn]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
         </Section>
 
         <Section title={t.legal}>
@@ -1034,6 +1071,49 @@ const s = StyleSheet.create({
     paddingBottom: 4,
     textAlign: "right",
     fontFamily: "Almarai_800ExtraBold",
+  },
+
+  themeRow: {
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    gap: 12,
+  },
+
+  themeHead: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 12,
+  },
+
+  themeOptions: {
+    flexDirection: "row-reverse",
+    gap: 8,
+  },
+
+  themeChip: {
+    flex: 1,
+    height: 42,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: "rgba(242,178,51,0.14)",
+    backgroundColor: "#17100B",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  themeChipOn: {
+    backgroundColor: "rgba(242,178,51,0.12)",
+    borderColor: "rgba(242,178,51,0.45)",
+  },
+
+  themeChipText: {
+    color: "#8A6030",
+    fontSize: 13,
+    fontFamily: "Almarai_700Bold",
+  },
+
+  themeChipTextOn: {
+    color: "#F2B233",
   },
 
   menuItem: {

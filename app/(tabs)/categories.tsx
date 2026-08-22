@@ -4,6 +4,7 @@ import {
   FlatList,
   Image,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -18,20 +19,25 @@ import {
   useFonts,
 } from "@expo-google-fonts/almarai";
 import {
-  Cake,
   ChevronLeft,
   CircleOff,
-  Coffee,
-  Croissant,
-  Flame,
   ImageOff,
   MapPin,
   RefreshCw,
   Search,
-  Sparkles,
   Star,
   X,
 } from "lucide-react-native";
+
+import {
+  ALL_CATEGORY,
+  TRACKS,
+  categoriesOfTrack,
+  findCategory,
+  findTrack,
+  itemMatchesCategory,
+  type TrackId,
+} from "@/constants/categories";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 
@@ -55,50 +61,6 @@ type Chef = {
   }> | null;
 };
 
-// المسميات هنا يجب أن تطابق أقسام الشاشة الرئيسية حرفياً
-// aliases: كل قيم menu_items.category المحتملة التي تنتمي لهذا التصنيف
-// أي قيمة غير مذكورة هنا لن تظهر إلا تحت "الكل"
-const CATEGORIES = [
-  {
-    id: "all",
-    label: "الكل",
-    color: "#F2B233",
-    Icon: Sparkles,
-    aliases: ["all"],
-  },
-  {
-    id: "popular",
-    label: "الطبخ",
-    color: "#F2B233",
-    Icon: Flame,
-    aliases: [
-      "popular", "kitchen", "main", "mains", "rice",
-      "appetizers", "appetizer", "starters", "sides", "stew", "soup", "salad",
-      "spices", "sauces",
-    ],
-  },
-  {
-    id: "sweets",
-    label: "الحلا",
-    color: "#E8A0BF",
-    Icon: Cake,
-    aliases: ["sweets", "sweet", "dessert", "desserts", "cake", "cakes"],
-  },
-  {
-    id: "pastries",
-    label: "المعجنات",
-    color: "#A8D8A8",
-    Icon: Croissant,
-    aliases: ["pastries", "pastry", "bakery", "bread", "pies", "pie"],
-  },
-  {
-    id: "drinks",
-    label: "القهوة",
-    color: "#87CEEB",
-    Icon: Coffee,
-    aliases: ["drinks", "drink", "coffee", "beverages", "juice", "juices", "tea"],
-  },
-];
 
 function cleanText(value: unknown, fallback = "غير محدد") {
   if (value === null || value === undefined) return fallback;
@@ -122,13 +84,11 @@ function firstParam(value: unknown, fallback = "all") {
 }
 
 function categoryMeta(id: string) {
-  return CATEGORIES.find((cat) => cat.id === id) || CATEGORIES[0];
+  return findCategory(id) || ALL_CATEGORY;
 }
 
 function itemInCategory(item: { category?: string | null }, categoryId: string) {
-  if (categoryId === "all") return true;
-  const aliases = categoryMeta(categoryId).aliases;
-  return aliases.includes(cleanText(item.category, "").toLowerCase());
+  return itemMatchesCategory(item.category, categoryId);
 }
 
 function chefHasCategory(chef: Chef, categoryId: string) {
@@ -141,9 +101,11 @@ export default function CategoriesScreen() {
   const params = useLocalSearchParams();
 
   const initialCategory = firstParam(params.category, "all");
+  const initialTrack = firstParam(params.track, "now") as TrackId;
 
   const [chefs, setChefs] = useState<Chef[]>([]);
   const [category, setCategory] = useState(initialCategory);
+  const [track, setTrack] = useState<TrackId>(initialTrack);
   const [search, setSearch] = useState("");
 
   const [loading, setLoading] = useState(true);
@@ -200,10 +162,16 @@ export default function CategoriesScreen() {
   }, [loadChefs]);
 
   // عدد المتاجر ضمن كل تصنيف — يستخدم لتخفيت التصنيف الفارغ
+  const trackMeta = findTrack(track) || TRACKS[0];
+  const visibleCategories = useMemo(
+    () => [ALL_CATEGORY, ...categoriesOfTrack(track)],
+    [track]
+  );
+
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
 
-    CATEGORIES.forEach((cat) => {
+    visibleCategories.forEach((cat) => {
       counts[cat.id] =
         cat.id === "all"
           ? chefs.length
@@ -211,7 +179,7 @@ export default function CategoriesScreen() {
     });
 
     return counts;
-  }, [chefs]);
+  }, [chefs, visibleCategories]);
 
   const filteredChefs = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -246,7 +214,7 @@ export default function CategoriesScreen() {
       });
   }, [category, chefs, search]);
 
-  const selectedMeta = categoryMeta(category);
+  const selectedMeta = category === "all" ? { ...ALL_CATEGORY, label: trackMeta.label } : categoryMeta(category);
 
   const openChef = useCallback(
     (chefId: string) => {
@@ -382,8 +350,45 @@ export default function CategoriesScreen() {
         ) : null}
       </View>
 
-      <View style={s.filterRow}>
-        {CATEGORIES.map((cat) => {
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={s.railFixed}
+        contentContainerStyle={s.trackRow}
+      >
+        {TRACKS.map((t) => {
+          const on = track === t.id;
+          const TIcon = t.Icon;
+
+          return (
+            <TouchableOpacity
+              key={t.id}
+              activeOpacity={0.85}
+              style={[
+                s.trackChip,
+                on && { backgroundColor: `${t.color}1F`, borderColor: `${t.color}66` },
+              ]}
+              onPress={() => {
+                setTrack(t.id);
+                setCategory("all");
+              }}
+            >
+              <TIcon size={16} color={on ? t.color : "#8A6030"} strokeWidth={1.9} />
+              <Text style={[s.trackChipText, on && { color: t.color }]} numberOfLines={1}>
+                {t.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={s.railFixed}
+        contentContainerStyle={s.filterRow}
+      >
+        {visibleCategories.map((cat) => {
           const active = category === cat.id;
           const Icon = cat.Icon;
           const isEmpty = (categoryCounts[cat.id] || 0) === 0;
@@ -415,7 +420,7 @@ export default function CategoriesScreen() {
             </TouchableOpacity>
           );
         })}
-      </View>
+      </ScrollView>
 
       <View style={s.resultRow}>
         <Text style={s.resultText}>
@@ -534,16 +539,48 @@ const s = StyleSheet.create({
   },
 
   // صف الفلترة: خمسة تصنيفات على سطر واحد بلا تمرير أفقي
+  railFixed: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+
+  trackRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginTop: 12,
+    gap: 8,
+  },
+
+  trackChip: {
+    height: 42,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    backgroundColor: "#21160D",
+    borderWidth: 1,
+    borderColor: "rgba(242,178,51,0.12)",
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 7,
+  },
+
+  trackChipText: {
+    color: "#8A6030",
+    fontSize: 13,
+    fontFamily: "Almarai_700Bold",
+  },
+
   filterRow: {
     flexDirection: "row-reverse",
+    alignItems: "center",
     paddingHorizontal: 16,
     marginTop: 10,
     gap: 6,
   },
 
   filterChip: {
-    flex: 1,
-    minHeight: 58,
+    minWidth: 86,
+    height: 62,
     borderRadius: 15,
     backgroundColor: "#21160D",
     borderWidth: 1,

@@ -1,4 +1,4 @@
-import { DarkTheme, ThemeProvider } from "@react-navigation/native";
+import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from "@react-navigation/native";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
@@ -7,6 +7,7 @@ import { CartProvider } from "@/context/CartContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { savePushToken, setupNotificationListeners } from "@/utils/notifications";
 import UpdateBanner from "@/components/UpdateBanner";
+import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 
 export default function RootLayout() {
   const router = useRouter();
@@ -36,28 +37,51 @@ export default function RootLayout() {
   }, [router]);
 
   return (
-    <ThemeProvider value={DarkTheme}>
+    <ThemeProvider>
       <LanguageProvider>
         <CartProvider>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="login" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="chef/[id]" />
-            <Stack.Screen name="item/[id]" />
-            <Stack.Screen name="cart" />
-            <Stack.Screen name="addresses/index" />
-            <Stack.Screen name="orders/[id]" />
-            <Stack.Screen name="review/[id]" />
-            <Stack.Screen name="menu/index" />
-            <Stack.Screen name="dashboard/chef/index" />
-            <Stack.Screen name="dashboard/driver/index" />
-          </Stack>
-
+          <ThemedShell />
           <UpdateBanner />
-          <StatusBar style="light" />
         </CartProvider>
       </LanguageProvider>
     </ThemeProvider>
+  );
+}
+
+// يقرأ المظهر من ThemeProvider ويمرره لملاحة expo-router وشريط الحالة
+function ThemedShell() {
+  const { isDark, c } = useTheme();
+
+  const navTheme = {
+    ...(isDark ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(isDark ? DarkTheme : DefaultTheme).colors,
+      background: c.bg,
+      card: c.surface,
+      text: c.text,
+      border: c.border,
+      primary: c.gold,
+    },
+  };
+
+  return (
+    <NavThemeProvider value={navTheme}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg } }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="chef/[id]" />
+        <Stack.Screen name="item/[id]" />
+        <Stack.Screen name="cart" />
+        <Stack.Screen name="addresses/index" />
+        <Stack.Screen name="orders/[id]" />
+        <Stack.Screen name="review/[id]" />
+        <Stack.Screen name="menu/index" />
+        <Stack.Screen name="dashboard/chef/index" />
+        <Stack.Screen name="dashboard/driver/index" />
+      </Stack>
+
+      <StatusBar style={isDark ? "light" : "dark"} />
+    </NavThemeProvider>
   );
 }

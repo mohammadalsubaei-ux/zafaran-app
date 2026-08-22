@@ -20,6 +20,7 @@ import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { pickCompressedImage, uploadImageToBucket } from "@/utils/images";
+import { CATEGORIES, TRACKS, categoriesOfTrack, categoryLabel } from "@/constants/categories";
 import {
   Almarai_400Regular,
   Almarai_700Bold,
@@ -68,17 +69,7 @@ type Chef = { id: string };
 
 // معرّفات التصنيفات يجب أن تطابق aliases في شاشة التصنيفات
 // drinks كان مفقوداً كلياً — لذلك القهوة لم تظهر تحت أي تصنيف
-const CATEGORIES = [
-  { id: "rice",      label: "أرز" },
-  { id: "popular",   label: "شعبيات" },
-  { id: "salad",     label: "سلطات" },
-  { id: "sides",     label: "إيدامات" },
-  { id: "spices",    label: "بهارات" },
-  { id: "sauces",    label: "شطات" },
-  { id: "sweets",    label: "حلويات" },
-  { id: "pastries",  label: "معجنات" },
-  { id: "drinks",    label: "قهوة ومشروبات" },
-];
+// التصنيفات من المصدر الموحّد — لا تُعرّف هنا
 
 const ITEM_STATUS: Array<{
   id: MenuStatus;
@@ -119,9 +110,7 @@ function money(value: unknown) {
   return `${numberValue(value).toFixed(2).replace(".00", "")} ريال`;
 }
 
-function categoryLabel(id?: string | null) {
-  return CATEGORIES.find((c) => c.id === id)?.label || "غير مصنف";
-}
+
 
 function normalizeStatus(status?: string | null): MenuStatus {
   if (status === "preorder")    return "preorder";
@@ -611,15 +600,20 @@ export default function MenuScreen() {
               </View>
 
               <Text style={s.label}>التصنيف</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.catRow}>
-                {CATEGORIES.map(c => (
-                  <TouchableOpacity key={c.id} activeOpacity={0.86}
-                    style={[s.catBtn, category === c.id && s.catBtnActive]}
-                    onPress={() => setCategory(c.id)}>
-                    <Text style={[s.catText, category === c.id && s.catTextActive]}>{c.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+              {TRACKS.map(track => (
+                <View key={track.id}>
+                  <Text style={[s.trackLabel, { color: track.color }]}>{track.label}</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.catRow}>
+                    {categoriesOfTrack(track.id).map(c => (
+                      <TouchableOpacity key={c.id} activeOpacity={0.86}
+                        style={[s.catBtn, category === c.id && s.catBtnActive]}
+                        onPress={() => setCategory(c.id)}>
+                        <Text style={[s.catText, category === c.id && s.catTextActive]}>{c.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              ))}
 
               <Text style={s.label}>حالة المنتج</Text>
               {ITEM_STATUS.map(st => {
@@ -761,6 +755,7 @@ const s = StyleSheet.create({
   removeImgText: { color: "#E53935", fontSize: 12, fontFamily: "Almarai_700Bold" },
   uploadBox:     { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "rgba(242,178,51,0.08)", borderWidth: 1, borderColor: "rgba(242,178,51,0.16)", borderRadius: 14, padding: 11, marginBottom: 16 },
   uploadText:    { color: "#F2B233", fontSize: 12, textAlign: "center", fontFamily: "Almarai_800ExtraBold" },
+  trackLabel: { fontSize: 12, fontFamily: "Almarai_700Bold", textAlign: "right", marginTop: 10, marginBottom: 4 },
   catRow:        { flexDirection: "row-reverse", gap: 8, paddingVertical: 4, paddingBottom: 16 },
   catBtn:        { backgroundColor: "#21160D", borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9, borderWidth: 1, borderColor: "rgba(242,178,51,0.12)" },
   catBtnActive:  { backgroundColor: "rgba(242,178,51,0.12)", borderColor: "rgba(242,178,51,0.45)" },

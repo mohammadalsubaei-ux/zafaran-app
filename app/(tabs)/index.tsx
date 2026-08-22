@@ -18,11 +18,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Award,
-  Cake,
   ChevronLeft,
-  Coffee,
-  Croissant,
-  Flame,
   Heart,
   MapPin,
   Search,
@@ -36,6 +32,8 @@ import {
   Almarai_700Bold,
   Almarai_800ExtraBold,
 } from "@expo-google-fonts/almarai";
+
+import { TRACKS, type TrackId } from "@/constants/categories";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 const SUPPORT_WHATSAPP = "966544633113";
@@ -79,44 +77,7 @@ type Chef = {
 };
 
 // المسميات هنا يجب أن تطابق شاشة التصنيفات حرفياً — أي اختلاف يربك المستخدم
-const SECTIONS = [
-  {
-    id: "kitchen",
-    category: "popular",
-    label: "الطبخ",
-    sub: "أطباق ومقبلات",
-    color: "#F2B233",
-    bg: "#2A1E00",
-    Icon: Flame,
-  },
-  {
-    id: "sweets",
-    category: "sweets",
-    label: "الحلا",
-    sub: "حلويات وكيك",
-    color: "#E8A0BF",
-    bg: "#2A1220",
-    Icon: Cake,
-  },
-  {
-    id: "pastries",
-    category: "pastries",
-    label: "المعجنات",
-    sub: "فطائر ومخبوزات",
-    color: "#A8D8A8",
-    bg: "#0F2A0F",
-    Icon: Croissant,
-  },
-  {
-    id: "drinks",
-    category: "drinks",
-    label: "القهوة",
-    sub: "قهوة ومشروبات",
-    color: "#87CEEB",
-    bg: "#0F1E2A",
-    Icon: Coffee,
-  },
-];
+// المسارات من المصدر الموحّد constants/categories
 
 function safeText(value: unknown, fallback = "غير محدد") {
   if (value === null || value === undefined) return fallback;
@@ -394,11 +355,11 @@ export default function HomeScreen() {
     [router]
   );
 
-  const openSection = useCallback(
-    (categoryId: string) => {
+  const openTrack = useCallback(
+    (trackId: TrackId) => {
       router.push({
         pathname: "/(tabs)/categories",
-        params: { category: categoryId },
+        params: { track: trackId, category: "all" },
       } as any);
     },
     [router]
@@ -424,25 +385,25 @@ export default function HomeScreen() {
         <BannerCarousel banners={banners} />
 
         <View style={s.sectionsRow}>
-          {SECTIONS.map((sec) => (
+          {TRACKS.map((track) => (
             <TouchableOpacity
-              key={sec.id}
+              key={track.id}
               activeOpacity={0.85}
-              style={[s.sectionCard, { backgroundColor: sec.bg }]}
-              onPress={() => openSection(sec.category)}
+              style={[s.sectionCard, { borderColor: `${track.color}33` }]}
+              onPress={() => openTrack(track.id)}
             >
-              <View style={[s.sectionIconWrap, { borderColor: `${sec.color}44` }]}>
-                <sec.Icon size={20} color={sec.color} strokeWidth={1.8} />
+              <View style={[s.sectionIconWrap, { borderColor: `${track.color}44` }]}>
+                <track.Icon size={22} color={track.color} strokeWidth={1.8} />
               </View>
               <Text
-                style={[s.sectionLabel, { color: sec.color }]}
+                style={[s.sectionLabel, { color: track.color }]}
                 numberOfLines={1}
                 adjustsFontSizeToFit
               >
-                {sec.label}
+                {track.label}
               </Text>
               <Text style={s.sectionSub} numberOfLines={1} adjustsFontSizeToFit>
-                {sec.sub}
+                {track.sub}
               </Text>
             </TouchableOpacity>
           ))}
@@ -465,7 +426,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={s.secHeader}>
-          <TouchableOpacity activeOpacity={0.8} onPress={() => openSection("all")}>
+          <TouchableOpacity activeOpacity={0.8} onPress={() => openTrack("now")}>
             <Text style={s.secMore}>عرض الكل</Text>
           </TouchableOpacity>
           <Text style={s.secTitle}>الأكثر طلبًا</Text>
@@ -531,7 +492,7 @@ export default function HomeScreen() {
         ) : null}
       </View>
     );
-  }, [banners, chefs, error, mostOrderedChefs, onRefresh, openChef, openSection, search]);
+  }, [banners, chefs, error, mostOrderedChefs, onRefresh, openChef, openTrack, search]);
 
   const renderChef = useCallback(
     ({ item }: { item: Chef }) => {
@@ -834,9 +795,10 @@ const s = StyleSheet.create({
   sectionCard: {
     flex: 1,
     borderRadius: 18,
-    paddingVertical: 10,
-    paddingHorizontal: 5,
+    paddingVertical: 14,
+    paddingHorizontal: 6,
     alignItems: "center",
+    backgroundColor: "#21160D",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.06)",
   },
