@@ -2,9 +2,11 @@
 import { useRouter, useFocusEffect } from "expo-router";
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   FlatList,
   Image,
+  Linking,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -36,6 +38,7 @@ import {
 } from "@expo-google-fonts/almarai";
 
 const API = "https://zafaran-backend-production.up.railway.app";
+const SUPPORT_WHATSAPP = "966544633113";
 
 const SCREEN_W = Dimensions.get("window").width;
 const BANNER_W = SCREEN_W - 32;          // بانر واحد بعرض الشاشة ناقص الهوامش
@@ -401,7 +404,21 @@ export default function HomeScreen() {
     [router]
   );
 
+  const notifyMeOnLaunch = useCallback(async () => {
+    const message = "مرحباً، أبي تنبيه أول ما تفتح متاجر زعفران في منطقتي.";
+    const waUrl  = `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(message)}`;
+
+    try {
+      await Linking.openURL(waUrl);
+    } catch {
+      Alert.alert("تنبيه", `راسلنا على الرقم:\n0${SUPPORT_WHATSAPP.slice(3)}`);
+    }
+  }, []);
+
   const ListHeader = useMemo(() => {
+    // لا متاجر ولا بحث: نخفي الإحصائيات والشرائط الفارغة ونترك رسالة الافتتاح وحدها
+    if (chefs.length === 0 && !search.trim()) return null;
+
     return (
       <View>
         <BannerCarousel banners={banners} />
@@ -514,7 +531,7 @@ export default function HomeScreen() {
         ) : null}
       </View>
     );
-  }, [banners, chefs, error, mostOrderedChefs, onRefresh, openChef, openSection]);
+  }, [banners, chefs, error, mostOrderedChefs, onRefresh, openChef, openSection, search]);
 
   const renderChef = useCallback(
     ({ item }: { item: Chef }) => {
@@ -647,11 +664,41 @@ export default function HomeScreen() {
             />
           }
           ListEmptyComponent={
-            <View style={s.emptyWrap}>
-              <Store size={54} color="#5A3A18" strokeWidth={1.5} />
-              <Text style={s.emptyTitle}>ما لقينا نتائج</Text>
-              <Text style={s.emptyText}>جرّب تبحث باسم متجر أو منتج مختلف.</Text>
-            </View>
+            search.trim() ? (
+              <View style={s.emptyWrap}>
+                <Store size={54} color="#5A3A18" strokeWidth={1.5} />
+                <Text style={s.emptyTitle}>ما لقينا نتائج</Text>
+                <Text style={s.emptyText}>جرّب تبحث باسم متجر أو منتج مختلف.</Text>
+              </View>
+            ) : (
+              <View style={s.launchWrap}>
+                <View style={s.launchIcon}>
+                  <Store size={44} color="#F2B233" strokeWidth={1.4} />
+                </View>
+
+                <Text style={s.launchTitle}>زعفران يستقبل متاجره الأولى</Text>
+
+                <Text style={s.launchText}>
+                  لديك منتج بيتي — طبخ، حلا، معجنات، قهوة، أو مؤن؟ سجّل متجرك اليوم وكن من الأوائل في القصيم.
+                </Text>
+
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={s.launchPrimaryBtn}
+                  onPress={() => router.push("/login?step=chef_register" as never)}
+                >
+                  <Text style={s.launchPrimaryText}>سجّل متجرك</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={s.launchGhostBtn}
+                  onPress={notifyMeOnLaunch}
+                >
+                  <Text style={s.launchGhostText}>نبّهني عند الافتتاح</Text>
+                </TouchableOpacity>
+              </View>
+            )
           }
         />
       )}
@@ -1095,6 +1142,76 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(242,178,51,0.07)",
+  },
+
+  launchWrap: {
+    alignItems: "center",
+    marginTop: 34,
+    paddingHorizontal: 26,
+  },
+
+  launchIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: 32,
+    backgroundColor: "#21160D",
+    borderWidth: 1,
+    borderColor: "rgba(242,178,51,0.16)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 18,
+  },
+
+  launchTitle: {
+    textAlign: "center",
+    color: "#FDF0DC",
+    fontSize: 18,
+    lineHeight: 30,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  launchText: {
+    textAlign: "center",
+    color: "#A98961",
+    fontSize: 13,
+    lineHeight: 24,
+    marginTop: 10,
+    marginBottom: 22,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  launchPrimaryBtn: {
+    minWidth: 210,
+    minHeight: 50,
+    borderRadius: 17,
+    backgroundColor: "#F2B233",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+
+  launchPrimaryText: {
+    color: "#17100B",
+    fontSize: 14,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  launchGhostBtn: {
+    minWidth: 210,
+    minHeight: 46,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: "rgba(242,178,51,0.28)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+    paddingHorizontal: 24,
+  },
+
+  launchGhostText: {
+    color: "#F2B233",
+    fontSize: 13,
+    fontFamily: "Almarai_700Bold",
   },
 
   emptyWrap: {
