@@ -49,7 +49,7 @@ import {
 } from "lucide-react-native";
 
 import { useLang } from "@/context/LanguageContext";
-import { THEME_OPTIONS, useTheme } from "@/context/ThemeContext";
+import { THEME_OPTIONS, useTheme, type Colors } from "@/context/ThemeContext";
 import { pickCompressedImage, uploadImageToBucket } from "@/utils/images";
 
 const API = "https://zafaran-backend-production.up.railway.app";
@@ -200,6 +200,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { lang, toggleLang } = useLang();
   const { c, mode, setMode } = useTheme();
+  const s = useMemo(() => makeStyles(c), [c]);
   const t = T[lang] || T.ar;
 
   const [user, setUser] = useState<UserSession | null>(null);
@@ -474,7 +475,7 @@ export default function ProfileScreen() {
             ) : null}
           </View>
 
-          {!disabled ? <ChevronLeft size={18} color="#5A3A18" strokeWidth={1.8} /> : null}
+          {!disabled ? <ChevronLeft size={18} color={c.textMuted} strokeWidth={1.8} /> : null}
         </TouchableOpacity>
       );
     },
@@ -497,7 +498,7 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView style={s.safe}>
         <View style={s.loadingWrap}>
-          <ActivityIndicator color="#F2B233" size="large" />
+          <ActivityIndicator color={c.gold} size="large" />
           <Text style={s.loadingText}>جاري تحميل الحساب...</Text>
         </View>
       </SafeAreaView>
@@ -509,14 +510,14 @@ export default function ProfileScreen() {
       <SafeAreaView style={s.safe}>
         <View style={s.guestWrap}>
           <View style={s.guestIcon}>
-            <User size={58} color="#F2B233" strokeWidth={1.5} />
+            <User size={58} color={c.gold} strokeWidth={1.5} />
           </View>
 
           <Text style={s.guestTitle}>{t.guestTitle}</Text>
           <Text style={s.guestSub}>{t.guestSub}</Text>
 
           <TouchableOpacity activeOpacity={0.9} style={s.primaryBtn} onPress={openLogin}>
-            <LogIn size={18} color="#17100B" strokeWidth={2} />
+            <LogIn size={18} color={c.onGold} strokeWidth={2} />
             <Text style={s.primaryBtnText}>{t.login}</Text>
           </TouchableOpacity>
 
@@ -525,7 +526,7 @@ export default function ProfileScreen() {
             style={s.guestOutlineBtn}
             onPress={() => router.push({ pathname: "/login", params: { step: "register" } } as any)}
           >
-            <UserRound size={17} color="#F2B233" strokeWidth={1.8} />
+            <UserRound size={17} color={c.gold} strokeWidth={1.8} />
             <Text style={s.guestOutlineText}>{t.guestRegister}</Text>
           </TouchableOpacity>
 
@@ -536,7 +537,7 @@ export default function ProfileScreen() {
             style={s.guestRoleBtn}
             onPress={() => router.push({ pathname: "/login", params: { step: "chef_register" } } as any)}
           >
-            <Store size={17} color="#F2B233" strokeWidth={1.8} />
+            <Store size={17} color={c.gold} strokeWidth={1.8} />
             <Text style={s.guestRoleText}>{t.guestChef}</Text>
           </TouchableOpacity>
 
@@ -545,7 +546,7 @@ export default function ProfileScreen() {
             style={[s.guestRoleBtn, s.guestRoleBtnDriver]}
             onPress={() => router.push({ pathname: "/login", params: { step: "driver_register" } } as any)}
           >
-            <Truck size={17} color="#2196F3" strokeWidth={1.8} />
+            <Truck size={17} color={c.info} strokeWidth={1.8} />
             <Text style={[s.guestRoleText, { color: "#2196F3" }]}>{t.guestDriver}</Text>
           </TouchableOpacity>
         </View>
@@ -564,7 +565,7 @@ export default function ProfileScreen() {
         <View style={s.header}>
           <Text style={s.headerTitle}>{t.account}</Text>
           <View style={s.headerBadge}>
-            <Sparkles size={13} color="#F2B233" />
+            <Sparkles size={13} color={c.gold} />
             <Text style={s.headerBadgeText}>Zafaran</Text>
           </View>
         </View>
@@ -587,12 +588,12 @@ export default function ProfileScreen() {
 
             {uploadingPhoto ? (
               <View style={s.avatarLoading}>
-                <ActivityIndicator color="#F2B233" />
+                <ActivityIndicator color={c.gold} />
               </View>
             ) : null}
 
             <View style={s.avatarBadge}>
-              <Camera size={13} color="#17100B" strokeWidth={2.2} />
+              <Camera size={13} color={c.onGold} strokeWidth={2.2} />
             </View>
           </TouchableOpacity>
 
@@ -602,7 +603,7 @@ export default function ProfileScreen() {
               {fullName}
             </Text>
             <TouchableOpacity activeOpacity={0.8} onPress={openNameModal} style={s.editNameBtn}>
-              <Pencil size={14} color="#F2B233" strokeWidth={1.9} />
+              <Pencil size={14} color={c.gold} strokeWidth={1.9} />
             </TouchableOpacity>
           </View>
 
@@ -615,7 +616,7 @@ export default function ProfileScreen() {
             </View>
 
             <View style={s.verifiedBadge}>
-              <ShieldCheck size={15} color="#4CAF50" strokeWidth={1.8} />
+              <ShieldCheck size={15} color={c.success} strokeWidth={1.8} />
               <Text style={s.verifiedText}>{t.verified}</Text>
             </View>
           </View>
@@ -628,7 +629,7 @@ export default function ProfileScreen() {
             style={s.quickCard}
             onPress={() => router.push("/(tabs)/orders" as any)}
           >
-            <PackageCheck size={23} color="#F2B233" />
+            <PackageCheck size={23} color={c.gold} />
             <Text style={s.quickTitle}>{t.orders}</Text>
           </TouchableOpacity>
 
@@ -637,7 +638,7 @@ export default function ProfileScreen() {
             style={s.quickCard}
             onPress={() => router.push("/(tabs)/wallet" as any)}
           >
-            <Wallet size={23} color="#F2B233" />
+            <Wallet size={23} color={c.gold} />
             <Text style={s.quickTitle}>{t.wallet}</Text>
           </TouchableOpacity>
         </View>
@@ -750,7 +751,7 @@ export default function ProfileScreen() {
 
           <View style={s.versionRow}>
             <View style={s.menuIconBox}>
-              <Smartphone size={20} color="#F2B233" strokeWidth={1.8} />
+              <Smartphone size={20} color={c.gold} strokeWidth={1.8} />
             </View>
             <View style={s.menuInfo}>
               <Text style={s.menuTitle}>{t.version}</Text>
@@ -760,7 +761,7 @@ export default function ProfileScreen() {
         </Section>
 
         <TouchableOpacity activeOpacity={0.86} style={s.logoutBtn} onPress={logout}>
-          <LogOut size={19} color="#E53935" strokeWidth={1.9} />
+          <LogOut size={19} color={c.danger} strokeWidth={1.9} />
           <Text style={s.logoutText}>{t.logout}</Text>
         </TouchableOpacity>
 
@@ -806,7 +807,7 @@ export default function ProfileScreen() {
               >
                 {savingName ? (
                   <View style={s.saveLoadingRow}>
-                    <ActivityIndicator color="#17100B" size="small" />
+                    <ActivityIndicator color={c.onGold} size="small" />
                     <Text style={s.saveBtnText}>{t.saving}</Text>
                   </View>
                 ) : (
@@ -830,10 +831,10 @@ export default function ProfileScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (c: Colors) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
   },
 
   content: {
@@ -848,7 +849,7 @@ const s = StyleSheet.create({
   },
 
   loadingText: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 14,
     fontFamily: "Almarai_700Bold",
   },
@@ -863,7 +864,7 @@ const s = StyleSheet.create({
   },
 
   headerTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 24,
     textAlign: "right",
     fontFamily: "Almarai_800ExtraBold",
@@ -876,13 +877,13 @@ const s = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: "rgba(242,178,51,0.09)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.18)",
+    borderColor: c.goldBorder,
   },
 
   headerBadgeText: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 11,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -890,12 +891,12 @@ const s = StyleSheet.create({
   profileCard: {
     marginHorizontal: 16,
     marginTop: 4,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderRadius: 30,
     padding: 20,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.13)",
+    borderColor: c.border,
   },
 
   avatarOuter: {
@@ -903,9 +904,9 @@ const s = StyleSheet.create({
     height: 102,
     borderRadius: 36,
     padding: 4,
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.18)",
+    borderColor: c.goldBorder,
     marginBottom: 14,
     position: "relative",
   },
@@ -913,7 +914,7 @@ const s = StyleSheet.create({
   avatarInner: {
     flex: 1,
     borderRadius: 32,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -921,7 +922,7 @@ const s = StyleSheet.create({
   avatarImg: {
     flex: 1,
     borderRadius: 32,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
     resizeMode: "cover",
   },
 
@@ -932,7 +933,7 @@ const s = StyleSheet.create({
     right: 4,
     bottom: 4,
     borderRadius: 32,
-    backgroundColor: "rgba(23,16,11,0.72)",
+    backgroundColor: c.overlay,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -944,15 +945,15 @@ const s = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 12,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
-    borderColor: "#21160D",
+    borderColor: c.surface,
   },
 
   avatarText: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 32,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -966,7 +967,7 @@ const s = StyleSheet.create({
 
   name: {
     flexShrink: 1,
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 22,
     textAlign: "center",
     fontFamily: "Almarai_800ExtraBold",
@@ -978,12 +979,12 @@ const s = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(242,178,51,0.09)",
+    backgroundColor: c.goldSoft,
   },
 
   phone: {
     marginTop: 5,
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 13,
     fontFamily: "Almarai_400Regular",
   },
@@ -1018,11 +1019,11 @@ const s = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: "rgba(76,175,80,0.1)",
+    backgroundColor: c.successSoft,
   },
 
   verifiedText: {
-    color: "#8AF0A5",
+    color: c.success,
     fontSize: 12,
     fontFamily: "Almarai_700Bold",
   },
@@ -1038,16 +1039,16 @@ const s = StyleSheet.create({
     flex: 1,
     minHeight: 86,
     borderRadius: 24,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.1)",
+    borderColor: c.goldSoft,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
 
   quickTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 13,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -1055,15 +1056,15 @@ const s = StyleSheet.create({
   section: {
     marginHorizontal: 16,
     marginTop: 14,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.1)",
+    borderColor: c.goldSoft,
     overflow: "hidden",
   },
 
   sectionTitle: {
-    color: "#6D4E2D",
+    color: c.textMuted,
     fontSize: 11,
     letterSpacing: 1.2,
     paddingHorizontal: 15,
@@ -1095,25 +1096,25 @@ const s = StyleSheet.create({
     height: 42,
     borderRadius: 13,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.14)",
-    backgroundColor: "#17100B",
+    borderColor: c.border,
+    backgroundColor: c.bg,
     alignItems: "center",
     justifyContent: "center",
   },
 
   themeChipOn: {
-    backgroundColor: "rgba(242,178,51,0.12)",
-    borderColor: "rgba(242,178,51,0.45)",
+    backgroundColor: c.border,
+    borderColor: c.goldBorder,
   },
 
   themeChipText: {
-    color: "#8A6030",
+    color: c.textSoft,
     fontSize: 13,
     fontFamily: "Almarai_700Bold",
   },
 
   themeChipTextOn: {
-    color: "#F2B233",
+    color: c.gold,
   },
 
   menuItem: {
@@ -1124,7 +1125,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderTopWidth: 1,
-    borderTopColor: "rgba(242,178,51,0.07)",
+    borderTopColor: c.goldSoft,
   },
 
   menuItemDisabled: {
@@ -1137,18 +1138,18 @@ const s = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.12)",
+    borderColor: c.border,
   },
 
   menuIconDanger: {
-    backgroundColor: "rgba(229,57,53,0.09)",
-    borderColor: "rgba(229,57,53,0.16)",
+    backgroundColor: c.dangerSoft,
+    borderColor: c.dangerSoft,
   },
 
   menuIconDisabled: {
-    backgroundColor: "rgba(242,178,51,0.04)",
+    backgroundColor: c.goldSoft,
   },
 
   menuInfo: {
@@ -1156,22 +1157,22 @@ const s = StyleSheet.create({
   },
 
   menuTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "right",
     fontSize: 14,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   menuTitleDanger: {
-    color: "#E53935",
+    color: c.danger,
   },
 
   menuTitleDisabled: {
-    color: "#8A6030",
+    color: c.textSoft,
   },
 
   menuSub: {
-    color: "#8A6030",
+    color: c.textSoft,
     textAlign: "right",
     marginTop: 3,
     fontSize: 11,
@@ -1179,7 +1180,7 @@ const s = StyleSheet.create({
   },
 
   menuSubDisabled: {
-    color: "#5A3A18",
+    color: c.textMuted,
   },
 
   versionRow: {
@@ -1190,7 +1191,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderTopWidth: 1,
-    borderTopColor: "rgba(242,178,51,0.07)",
+    borderTopColor: c.goldSoft,
   },
 
   logoutBtn: {
@@ -1198,9 +1199,9 @@ const s = StyleSheet.create({
     marginTop: 18,
     minHeight: 56,
     borderRadius: 19,
-    backgroundColor: "rgba(229,57,53,0.09)",
+    backgroundColor: c.dangerSoft,
     borderWidth: 1,
-    borderColor: "rgba(229,57,53,0.18)",
+    borderColor: c.dangerSoft,
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
@@ -1208,13 +1209,13 @@ const s = StyleSheet.create({
   },
 
   logoutText: {
-    color: "#E53935",
+    color: c.danger,
     fontSize: 15,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   footer: {
-    color: "#3B2A18",
+    color: c.surfaceAlt,
     textAlign: "center",
     fontSize: 12,
     marginTop: 18,
@@ -1225,19 +1226,19 @@ const s = StyleSheet.create({
   // ━━ مودال تعديل الاسم ━━
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.74)",
+    backgroundColor: c.overlay,
     justifyContent: "flex-end",
   },
 
   modalBox: {
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 28,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.16)",
+    borderColor: c.goldBorder,
     alignItems: "center",
   },
 
@@ -1245,12 +1246,12 @@ const s = StyleSheet.create({
     width: 48,
     height: 5,
     borderRadius: 999,
-    backgroundColor: "rgba(242,178,51,0.2)",
+    backgroundColor: c.goldBorder,
     marginBottom: 14,
   },
 
   modalTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 19,
     marginBottom: 18,
     fontFamily: "Almarai_800ExtraBold",
@@ -1258,7 +1259,7 @@ const s = StyleSheet.create({
 
   inputLabel: {
     alignSelf: "flex-end",
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 12,
     marginBottom: 7,
     fontFamily: "Almarai_800ExtraBold",
@@ -1266,17 +1267,17 @@ const s = StyleSheet.create({
 
   inputWrap: {
     width: "100%",
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderRadius: 17,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.14)",
+    borderColor: c.border,
     paddingHorizontal: 14,
     marginBottom: 18,
   },
 
   input: {
     height: 50,
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 15,
     fontFamily: "Almarai_400Regular",
   },
@@ -1285,7 +1286,7 @@ const s = StyleSheet.create({
     width: "100%",
     minHeight: 54,
     borderRadius: 18,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1301,7 +1302,7 @@ const s = StyleSheet.create({
   },
 
   saveBtnText: {
-    color: "#17100B",
+    color: c.bg,
     fontSize: 15,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -1313,7 +1314,7 @@ const s = StyleSheet.create({
   },
 
   cancelText: {
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 14,
     fontFamily: "Almarai_700Bold",
   },
@@ -1331,21 +1332,21 @@ const s = StyleSheet.create({
     borderRadius: 40,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.14)",
+    borderColor: c.border,
     marginBottom: 22,
   },
 
   guestTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 22,
     textAlign: "center",
     fontFamily: "Almarai_800ExtraBold",
   },
 
   guestSub: {
-    color: "#A98961",
+    color: c.textSoft,
     textAlign: "center",
     fontSize: 13,
     lineHeight: 24,
@@ -1358,7 +1359,7 @@ const s = StyleSheet.create({
     minHeight: 54,
     minWidth: 190,
     borderRadius: 18,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row-reverse",
@@ -1367,7 +1368,7 @@ const s = StyleSheet.create({
   },
 
   primaryBtnText: {
-    color: "#17100B",
+    color: c.bg,
     fontSize: 14,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -1378,8 +1379,8 @@ const s = StyleSheet.create({
     marginTop: 12,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.35)",
-    backgroundColor: "rgba(242,178,51,0.06)",
+    borderColor: c.goldBorder,
+    backgroundColor: c.goldSoft,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row-reverse",
@@ -1388,7 +1389,7 @@ const s = StyleSheet.create({
   },
 
   guestOutlineText: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 14,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -1396,7 +1397,7 @@ const s = StyleSheet.create({
   guestDivider: {
     width: 190,
     height: 1,
-    backgroundColor: "rgba(242,178,51,0.12)",
+    backgroundColor: c.border,
     marginVertical: 20,
   },
 
@@ -1405,8 +1406,8 @@ const s = StyleSheet.create({
     minWidth: 230,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.25)",
-    backgroundColor: "rgba(242,178,51,0.08)",
+    borderColor: c.goldBorder,
+    backgroundColor: c.goldSoft,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row-reverse",
@@ -1416,12 +1417,12 @@ const s = StyleSheet.create({
 
   guestRoleBtnDriver: {
     marginTop: 10,
-    borderColor: "rgba(33,150,243,0.3)",
-    backgroundColor: "rgba(33,150,243,0.08)",
+    borderColor: c.goldBorder,
+    backgroundColor: c.goldSoft,
   },
 
   guestRoleText: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 13,
     fontFamily: "Almarai_700Bold",
   },
