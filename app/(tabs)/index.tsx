@@ -34,6 +34,7 @@ import {
 } from "@expo-google-fonts/almarai";
 
 import { TRACKS, type TrackId } from "@/constants/categories";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 const SUPPORT_WHATSAPP = "966544633113";
@@ -107,9 +108,9 @@ const CHEF_STATUS_UI: Record<
   "open" | "preorder" | "closed",
   { bg: string; dot: string; text: string; label: string }
 > = {
-  open:     { bg: "#14351F", dot: "#4CAF50", text: "#8AF0A5", label: "متاح" },
-  preorder: { bg: "#3A2A0A", dot: "#F0A500", text: "#FFD27A", label: "حجز مسبق" },
-  closed:   { bg: "#381818", dot: "#E53935", text: "#FF9A9A", label: "مغلق" },
+  open:     { bgKey: "successSoft", dotKey: "success", textKey: "success", label: "متاح" },
+  preorder: { bgKey: "goldSoft",    dotKey: "gold",    textKey: "gold",    label: "حجز مسبق" },
+  closed:   { bgKey: "dangerSoft",  dotKey: "danger",  textKey: "danger",  label: "مغلق" },
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -196,6 +197,8 @@ function BannerCarousel({ banners }: { banners: Banner[] }) {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
 
   const [chefs, setChefs] = useState<Chef[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -377,8 +380,8 @@ export default function HomeScreen() {
   }, []);
 
   const ListHeader = useMemo(() => {
-    // لا متاجر ولا بحث: نخفي الإحصائيات والشرائط الفارغة ونترك رسالة الافتتاح وحدها
-    if (chefs.length === 0 && !search.trim()) return null;
+    // لا متاجر إطلاقًا: نخفي الإحصائيات والشرائط الفارغة (سواء كان هناك بحث أو لا)
+    if (chefs.length === 0) return null;
 
     return (
       <View>
@@ -411,13 +414,13 @@ export default function HomeScreen() {
 
         <View style={s.statsRow}>
           <View style={s.statCard}>
-            <Store size={18} color="#F2B233" />
+            <Store size={18} color={c.gold} />
             <Text style={s.statValue}>{chefs.length}</Text>
             <Text style={s.statLabel}>متجر</Text>
           </View>
 
           <View style={s.statCard}>
-            <Award size={18} color="#F2B233" />
+            <Award size={18} color={c.gold} />
             <Text style={s.statValue}>
               {chefs.filter((chef) => getChefStatus(chef) !== "closed").length}
             </Text>
@@ -425,16 +428,19 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={s.secHeader}>
-          <TouchableOpacity activeOpacity={0.8} onPress={() => openTrack("now")}>
-            <Text style={s.secMore}>عرض الكل</Text>
-          </TouchableOpacity>
-          <Text style={s.secTitle}>الأكثر طلبًا</Text>
-        </View>
+        {mostOrderedChefs.length > 0 ? (
+          <View style={s.secHeader}>
+            <TouchableOpacity activeOpacity={0.8} onPress={() => openTrack("now")}>
+              <Text style={s.secMore}>عرض الكل</Text>
+            </TouchableOpacity>
+            <Text style={s.secTitle}>الأكثر طلبًا</Text>
+          </View>
+        ) : null}
 
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          style={s.railFixed}
           contentContainerStyle={s.topList}
         >
           {mostOrderedChefs.map((chef) => {
@@ -452,12 +458,12 @@ export default function HomeScreen() {
                     <Image source={{ uri: cover }} style={s.topImg} />
                   ) : (
                     <View style={[s.topImg, s.topImgPlaceholder]}>
-                      <Store size={30} color="#5A3A18" strokeWidth={1.5} />
+                      <Store size={30} color={c.textMuted} strokeWidth={1.5} />
                     </View>
                   )}
 
                   <View style={s.topRatingBadge}>
-                    <Star size={10} color="#F2B233" fill="#F2B233" />
+                    <Star size={10} color={c.gold} fill={c.gold} />
                     <Text style={s.topRatingText}>
                       {safeNumber(chef.rating_avg, "0")}
                     </Text>
@@ -476,12 +482,14 @@ export default function HomeScreen() {
           })}
         </ScrollView>
 
-        <View style={s.secHeader}>
-          <TouchableOpacity activeOpacity={0.8}>
-            <Text style={s.secMore}>الأقرب لك</Text>
-          </TouchableOpacity>
-          <Text style={s.secTitle}>متاجر مميزة</Text>
-        </View>
+        {chefs.length > 0 ? (
+          <View style={s.secHeader}>
+            <TouchableOpacity activeOpacity={0.8}>
+              <Text style={s.secMore}>الأقرب لك</Text>
+            </TouchableOpacity>
+            <Text style={s.secTitle}>متاجر مميزة</Text>
+          </View>
+        ) : null}
 
         {error ? (
           <TouchableOpacity activeOpacity={0.85} style={s.errorBox} onPress={onRefresh}>
@@ -492,7 +500,7 @@ export default function HomeScreen() {
         ) : null}
       </View>
     );
-  }, [banners, chefs, error, mostOrderedChefs, onRefresh, openChef, openTrack, search]);
+  }, [c, s, banners, chefs, error, mostOrderedChefs, onRefresh, openChef, openTrack, search]);
 
   const renderChef = useCallback(
     ({ item }: { item: Chef }) => {
@@ -514,7 +522,7 @@ export default function HomeScreen() {
             <Image source={{ uri: cover }} style={s.chefAvatarImg} />
           ) : (
             <View style={s.chefAvatarWrap}>
-              <Store size={24} color="#F2B233" strokeWidth={1.5} />
+              <Store size={24} color={c.gold} strokeWidth={1.5} />
             </View>
           )}
 
@@ -523,23 +531,23 @@ export default function HomeScreen() {
               <Text style={s.chefName} numberOfLines={1}>
                 {fullName}
               </Text>
-              <View style={[s.statusPill, { backgroundColor: statusUi.bg }]}>
-                <View style={[s.statusDot, { backgroundColor: statusUi.dot }]} />
-                <Text style={[s.statusText, { color: statusUi.text }]}>
+              <View style={[s.statusPill, { backgroundColor: c[statusUi.bgKey as keyof typeof c] }]}>
+                <View style={[s.statusDot, { backgroundColor: c[statusUi.dotKey as keyof typeof c] }]} />
+                <Text style={[s.statusText, { color: c[statusUi.textKey as keyof typeof c] }]}>
                   {statusUi.label}
                 </Text>
               </View>
             </View>
 
             <View style={s.chefCityRow}>
-              <MapPin size={12} color="#8A6030" strokeWidth={1.5} />
+              <MapPin size={12} color={c.textSoft} strokeWidth={1.5} />
               <Text style={s.chefCity} numberOfLines={1}>
                 {city} · {neighborhood}
               </Text>
             </View>
 
             <View style={s.chefMeta}>
-              <Star size={12} color="#F2B233" fill="#F2B233" />
+              <Star size={12} color={c.gold} fill={c.gold} />
               <Text style={s.chefRating}>
                 {safeNumber(item.rating_avg, "0")}
               </Text>
@@ -556,23 +564,23 @@ export default function HomeScreen() {
           >
             <Heart
               size={20}
-              color="#F2B233"
-              fill={isFavorite ? "#F2B233" : "transparent"}
+              color={c.gold}
+              fill={isFavorite ? c.gold : "transparent"}
               strokeWidth={1.8}
             />
           </TouchableOpacity>
 
-          <ChevronLeft size={18} color="#5A3A18" strokeWidth={1.8} />
+          <ChevronLeft size={18} color={c.textMuted} strokeWidth={1.8} />
         </TouchableOpacity>
       );
     },
-    [favorites, openChef, toggleFavorite]
+    [c, s, favorites, openChef, toggleFavorite]
   );
 
   if (!fontsLoaded) {
     return (
       <View style={s.safe}>
-        <ActivityIndicator color="#F2B233" style={{ marginTop: 120 }} />
+        <ActivityIndicator color={c.gold} style={{ marginTop: 120 }} />
       </View>
     );
   }
@@ -584,20 +592,20 @@ export default function HomeScreen() {
         <Text style={s.heroTitle}>من بيتنا لبيتك</Text>
 
         <View style={s.searchWrap}>
-          <Search size={18} color="#F2B233" strokeWidth={1.8} />
+          <Search size={18} color={c.gold} strokeWidth={1.8} />
           <TextInput
             style={s.searchInput}
             placeholder="ابحث عن متجر أو منتج..."
-            placeholderTextColor="#7C6145"
+            placeholderTextColor={c.textMuted}
             value={search}
             onChangeText={setSearch}
             textAlign="right"
             returnKeyType="search"
           />
-          {searching ? <ActivityIndicator size="small" color="#F2B233" /> : null}
+          {searching ? <ActivityIndicator size="small" color={c.gold} /> : null}
           {!searching && search.trim() ? (
             <TouchableOpacity activeOpacity={0.85} onPress={() => setSearch("")}>
-              <X size={17} color="#8A6030" strokeWidth={2} />
+              <X size={17} color={c.textSoft} strokeWidth={2} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -605,7 +613,7 @@ export default function HomeScreen() {
 
       {loading ? (
         <View style={s.loadingWrap}>
-          <ActivityIndicator color="#F2B233" size="large" />
+          <ActivityIndicator color={c.gold} size="large" />
           <Text style={s.loadingText}>جاري تجهيز زعفران...</Text>
         </View>
       ) : (
@@ -621,20 +629,20 @@ export default function HomeScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#F2B233"
+              tintColor={c.gold}
             />
           }
           ListEmptyComponent={
             search.trim() ? (
               <View style={s.emptyWrap}>
-                <Store size={54} color="#5A3A18" strokeWidth={1.5} />
+                <Store size={54} color={c.textMuted} strokeWidth={1.5} />
                 <Text style={s.emptyTitle}>ما لقينا نتائج</Text>
                 <Text style={s.emptyText}>جرّب تبحث باسم متجر أو منتج مختلف.</Text>
               </View>
             ) : (
               <View style={s.launchWrap}>
                 <View style={s.launchIcon}>
-                  <Store size={44} color="#F2B233" strokeWidth={1.4} />
+                  <Store size={44} color={c.gold} strokeWidth={1.4} />
                 </View>
 
                 <Text style={s.launchTitle}>زعفران يستقبل متاجره الأولى</Text>
@@ -667,10 +675,10 @@ export default function HomeScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const make_s = (c: Colors) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
   },
 
   listContent: {
@@ -685,7 +693,7 @@ const s = StyleSheet.create({
   },
 
   loadingText: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 14,
     fontFamily: "Almarai_700Bold",
   },
@@ -696,13 +704,13 @@ const s = StyleSheet.create({
     marginBottom: 8,
     borderRadius: 20,
     padding: 12,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.13)",
+    borderColor: c.border,
   },
 
   heroTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 18,
     lineHeight: 24,
     textAlign: "right",
@@ -727,7 +735,7 @@ const s = StyleSheet.create({
     padding: 16,
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.09)",
+    borderColor: c.border,
   },
 
   bannerTitle: {
@@ -757,30 +765,30 @@ const s = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 999,
-    backgroundColor: "rgba(242,178,51,0.25)",
+    backgroundColor: c.goldBorder,
   },
 
   dotActive: {
     width: 18,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
   },
 
   searchWrap: {
     minHeight: 40,
     flexDirection: "row-reverse",
     alignItems: "center",
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
     borderRadius: 16,
     paddingHorizontal: 14,
     gap: 10,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.12)",
+    borderColor: c.border,
   },
 
   searchInput: {
     flex: 1,
     height: 44,
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 14,
     fontFamily: "Almarai_400Regular",
   },
@@ -798,9 +806,9 @@ const s = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 6,
     alignItems: "center",
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: c.border,
   },
 
   sectionIconWrap: {
@@ -822,9 +830,14 @@ const s = StyleSheet.create({
   sectionSub: {
     marginTop: 3,
     fontSize: 9,
-    color: "#8A6030",
+    color: c.textSoft,
     fontFamily: "Almarai_400Regular",
     textAlign: "center",
+  },
+
+  railFixed: {
+    flexGrow: 0,
+    flexShrink: 0,
   },
 
   statsRow: {
@@ -838,22 +851,22 @@ const s = StyleSheet.create({
     flex: 1,
     minHeight: 58,
     borderRadius: 16,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.1)",
+    borderColor: c.goldSoft,
     alignItems: "center",
     justifyContent: "center",
     gap: 2,
   },
 
   statValue: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 16,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   statLabel: {
-    color: "#8A6030",
+    color: c.textSoft,
     fontSize: 11,
     fontFamily: "Almarai_400Regular",
   },
@@ -869,13 +882,13 @@ const s = StyleSheet.create({
 
   secTitle: {
     fontSize: 17,
-    color: "#FDF0DC",
+    color: c.text,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   secMore: {
     fontSize: 12,
-    color: "#F2B233",
+    color: c.gold,
     fontFamily: "Almarai_700Bold",
   },
 
@@ -887,11 +900,11 @@ const s = StyleSheet.create({
 
   topCard: {
     width: 142,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderRadius: 20,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.09)",
+    borderColor: c.goldSoft,
   },
 
   topImgWrap: {
@@ -902,11 +915,11 @@ const s = StyleSheet.create({
     width: 142,
     height: 112,
     resizeMode: "cover",
-    backgroundColor: "#2A1E00",
+    backgroundColor: c.surfaceAlt,
   },
 
   topImgPlaceholder: {
-    backgroundColor: "#2A1E00",
+    backgroundColor: c.surfaceAlt,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -915,7 +928,7 @@ const s = StyleSheet.create({
     position: "absolute",
     top: 8,
     left: 8,
-    backgroundColor: "rgba(23,16,11,0.88)",
+    backgroundColor: c.bg,
     borderRadius: 999,
     paddingHorizontal: 7,
     paddingVertical: 4,
@@ -923,18 +936,18 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 3,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.16)",
+    borderColor: c.goldBorder,
   },
 
   topRatingText: {
     fontSize: 10,
-    color: "#F2B233",
+    color: c.gold,
     fontFamily: "Almarai_700Bold",
   },
 
   topChefName: {
     fontSize: 13,
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "right",
     paddingHorizontal: 10,
     paddingTop: 9,
@@ -943,7 +956,7 @@ const s = StyleSheet.create({
 
   topChefBy: {
     fontSize: 10,
-    color: "#8A6030",
+    color: c.textSoft,
     textAlign: "right",
     paddingHorizontal: 10,
     marginTop: 3,
@@ -952,7 +965,7 @@ const s = StyleSheet.create({
 
   topPrice: {
     fontSize: 13,
-    color: "#F2B233",
+    color: c.gold,
     textAlign: "right",
     paddingHorizontal: 10,
     paddingBottom: 10,
@@ -965,20 +978,20 @@ const s = StyleSheet.create({
     marginBottom: 14,
     borderRadius: 18,
     padding: 14,
-    backgroundColor: "#321717",
+    backgroundColor: c.dangerSoft,
     borderWidth: 1,
-    borderColor: "rgba(229,57,53,0.25)",
+    borderColor: c.dangerSoft,
   },
 
   errorTitle: {
-    color: "#FFB0B0",
+    color: c.danger,
     textAlign: "right",
     fontSize: 14,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   errorText: {
-    color: "#FFCECE",
+    color: c.danger,
     textAlign: "right",
     marginTop: 5,
     fontSize: 12,
@@ -986,7 +999,7 @@ const s = StyleSheet.create({
   },
 
   errorRetry: {
-    color: "#F2B233",
+    color: c.gold,
     textAlign: "right",
     marginTop: 8,
     fontSize: 12,
@@ -998,11 +1011,11 @@ const s = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 16,
     marginBottom: 10,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderRadius: 20,
     padding: 14,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.09)",
+    borderColor: c.goldSoft,
     gap: 11,
   },
 
@@ -1010,18 +1023,18 @@ const s = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 18,
-    backgroundColor: "rgba(242,178,51,0.08)",
+    backgroundColor: c.goldSoft,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.16)",
+    borderColor: c.goldBorder,
   },
 
   chefAvatarImg: {
     width: 56,
     height: 56,
     borderRadius: 18,
-    backgroundColor: "#2A1E00",
+    backgroundColor: c.surfaceAlt,
     resizeMode: "cover",
   },
 
@@ -1039,7 +1052,7 @@ const s = StyleSheet.create({
   chefName: {
     flex: 1,
     fontSize: 14,
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "right",
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -1074,7 +1087,7 @@ const s = StyleSheet.create({
   chefCity: {
     flex: 1,
     fontSize: 11,
-    color: "#8A6030",
+    color: c.textSoft,
     textAlign: "right",
     fontFamily: "Almarai_400Regular",
   },
@@ -1087,13 +1100,13 @@ const s = StyleSheet.create({
 
   chefRating: {
     fontSize: 12,
-    color: "#F2B233",
+    color: c.gold,
     fontFamily: "Almarai_700Bold",
   },
 
   chefOrders: {
     fontSize: 11,
-    color: "#6D4E2D",
+    color: c.textMuted,
     fontFamily: "Almarai_400Regular",
   },
 
@@ -1103,7 +1116,7 @@ const s = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(242,178,51,0.07)",
+    backgroundColor: c.goldSoft,
   },
 
   launchWrap: {
@@ -1116,9 +1129,9 @@ const s = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 32,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.16)",
+    borderColor: c.goldBorder,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 18,
@@ -1126,7 +1139,7 @@ const s = StyleSheet.create({
 
   launchTitle: {
     textAlign: "center",
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 18,
     lineHeight: 30,
     fontFamily: "Almarai_800ExtraBold",
@@ -1134,7 +1147,7 @@ const s = StyleSheet.create({
 
   launchText: {
     textAlign: "center",
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 13,
     lineHeight: 24,
     marginTop: 10,
@@ -1146,14 +1159,14 @@ const s = StyleSheet.create({
     minWidth: 210,
     minHeight: 50,
     borderRadius: 17,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
   },
 
   launchPrimaryText: {
-    color: "#17100B",
+    color: c.bg,
     fontSize: 14,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -1163,7 +1176,7 @@ const s = StyleSheet.create({
     minHeight: 46,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.28)",
+    borderColor: c.goldBorder,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 10,
@@ -1171,7 +1184,7 @@ const s = StyleSheet.create({
   },
 
   launchGhostText: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 13,
     fontFamily: "Almarai_700Bold",
   },
@@ -1185,14 +1198,14 @@ const s = StyleSheet.create({
 
   emptyTitle: {
     textAlign: "center",
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 15,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   emptyText: {
     textAlign: "center",
-    color: "#8A6030",
+    color: c.textSoft,
     fontSize: 12,
     fontFamily: "Almarai_400Regular",
   },

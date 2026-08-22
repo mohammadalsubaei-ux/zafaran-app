@@ -38,6 +38,7 @@ import {
   itemMatchesCategory,
   type TrackId,
 } from "@/constants/categories";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 
@@ -98,6 +99,8 @@ function chefHasCategory(chef: Chef, categoryId: string) {
 
 export default function CategoriesScreen() {
   const router = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
   const params = useLocalSearchParams();
 
   const initialCategory = firstParam(params.category, "all");
@@ -252,7 +255,7 @@ export default function CategoriesScreen() {
             <Image source={{ uri: firstItem.image_url }} style={s.chefImage} />
           ) : (
             <View style={s.chefImagePlaceholder}>
-              <ImageOff size={26} color="#6D4E2D" strokeWidth={1.5} />
+              <ImageOff size={26} color={c.textMuted} strokeWidth={1.5} />
             </View>
           )}
 
@@ -265,20 +268,20 @@ export default function CategoriesScreen() {
               <View
                 style={[
                   s.statusPill,
-                  { backgroundColor: item.is_open ? "#14351F" : "#381818" },
+                  { backgroundColor: item.is_open ? c.successSoft : c.dangerSoft },
                 ]}
               >
                 <View
                   style={[
                     s.statusDot,
-                    { backgroundColor: item.is_open ? "#4CAF50" : "#E53935" },
+                    { backgroundColor: item.is_open ? c.success : c.danger },
                   ]}
                 />
 
                 <Text
                   style={[
                     s.statusText,
-                    { color: item.is_open ? "#8AF0A5" : "#FF9A9A" },
+                    { color: item.is_open ? c.success : c.danger },
                   ]}
                 >
                   {item.is_open ? "متاح" : "مغلق"}
@@ -287,7 +290,7 @@ export default function CategoriesScreen() {
             </View>
 
             <View style={s.cityRow}>
-              <MapPin size={12} color="#8A6030" strokeWidth={1.5} />
+              <MapPin size={12} color={c.textSoft} strokeWidth={1.5} />
               <Text style={s.cityText} numberOfLines={1}>
                 {city} · {neighborhood}
               </Text>
@@ -304,7 +307,7 @@ export default function CategoriesScreen() {
             </View>
 
             <View style={s.metaRow}>
-              <Star size={12} color="#F2B233" fill="#F2B233" />
+              <Star size={12} color={c.gold} fill={c.gold} />
               <Text style={s.ratingText}>
                 {numberValue(item.rating_avg).toFixed(1).replace(".0", "")}
               </Text>
@@ -312,17 +315,17 @@ export default function CategoriesScreen() {
             </View>
           </View>
 
-          <ChevronLeft size={18} color="#5A3A18" strokeWidth={1.8} />
+          <ChevronLeft size={18} color={c.textMuted} strokeWidth={1.8} />
         </TouchableOpacity>
       );
     },
-    [category, openChef]
+    [c, s, category, openChef]
   );
 
   if (!fontsLoaded) {
     return (
       <View style={s.safe}>
-        <ActivityIndicator color="#F2B233" style={{ marginTop: 120 }} />
+        <ActivityIndicator color={c.gold} style={{ marginTop: 120 }} />
       </View>
     );
   }
@@ -331,13 +334,13 @@ export default function CategoriesScreen() {
     <View style={s.safe}>
       {/* البحث والفلترة خارج FlatList — داخله كان الحقل يُعاد بناؤه مع كل حرف فيختفي الكيبورد */}
       <View style={s.searchWrap}>
-        <Search size={18} color="#F2B233" strokeWidth={1.8} />
+        <Search size={18} color={c.gold} strokeWidth={1.8} />
 
         <TextInput
           value={search}
           onChangeText={setSearch}
           placeholder="ابحث عن متجر أو منتج..."
-          placeholderTextColor="#7C6145"
+          placeholderTextColor={c.textMuted}
           style={s.searchInput}
           textAlign="right"
           returnKeyType="search"
@@ -345,7 +348,7 @@ export default function CategoriesScreen() {
 
         {search.trim() ? (
           <TouchableOpacity activeOpacity={0.85} onPress={() => setSearch("")}>
-            <X size={17} color="#8A6030" strokeWidth={2} />
+            <X size={17} color={c.textSoft} strokeWidth={2} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -373,7 +376,7 @@ export default function CategoriesScreen() {
                 setCategory("all");
               }}
             >
-              <TIcon size={16} color={on ? t.color : "#8A6030"} strokeWidth={1.9} />
+              <TIcon size={16} color={on ? t.color : c.textSoft} strokeWidth={1.9} />
               <Text style={[s.trackChipText, on && { color: t.color }]} numberOfLines={1}>
                 {t.label}
               </Text>
@@ -406,7 +409,7 @@ export default function CategoriesScreen() {
             >
               <Icon
                 size={17}
-                color={active ? cat.color : "#8A6030"}
+                color={active ? cat.color : c.textSoft}
                 strokeWidth={1.9}
               />
 
@@ -436,7 +439,7 @@ export default function CategoriesScreen() {
 
       {error ? (
         <TouchableOpacity activeOpacity={0.85} style={s.errorBox} onPress={onRefresh}>
-          <RefreshCw size={17} color="#F2B233" strokeWidth={1.8} />
+          <RefreshCw size={17} color={c.gold} strokeWidth={1.8} />
           <View style={s.errorInfo}>
             <Text style={s.errorTitle}>حدثت مشكلة</Text>
             <Text style={s.errorText}>{error}</Text>
@@ -446,7 +449,7 @@ export default function CategoriesScreen() {
 
       {loading ? (
         <View style={s.loadingWrap}>
-          <ActivityIndicator color="#F2B233" size="large" />
+          <ActivityIndicator color={c.gold} size="large" />
           <Text style={s.loadingText}>جاري تحميل التصنيفات...</Text>
         </View>
       ) : (
@@ -458,15 +461,15 @@ export default function CategoriesScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B233" />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.gold} />
           }
           ListEmptyComponent={
             <View style={s.emptyWrap}>
               <View style={s.emptyIcon}>
                 {error ? (
-                  <RefreshCw size={54} color="#5A3A18" strokeWidth={1.5} />
+                  <RefreshCw size={54} color={c.textMuted} strokeWidth={1.5} />
                 ) : (
-                  <CircleOff size={54} color="#5A3A18" strokeWidth={1.5} />
+                  <CircleOff size={54} color={c.textMuted} strokeWidth={1.5} />
                 )}
               </View>
 
@@ -493,10 +496,10 @@ export default function CategoriesScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const make_s = (c: Colors) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#17100B",
+    backgroundColor: c.bg,
   },
 
   listContent: {
@@ -511,7 +514,7 @@ const s = StyleSheet.create({
   },
 
   loadingText: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 14,
     fontFamily: "Almarai_700Bold",
   },
@@ -522,18 +525,18 @@ const s = StyleSheet.create({
     minHeight: 46,
     flexDirection: "row-reverse",
     alignItems: "center",
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderRadius: 16,
     paddingHorizontal: 14,
     gap: 10,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.12)",
+    borderColor: c.border,
   },
 
   searchInput: {
     flex: 1,
     height: 46,
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 14,
     fontFamily: "Almarai_400Regular",
   },
@@ -556,16 +559,16 @@ const s = StyleSheet.create({
     height: 42,
     borderRadius: 14,
     paddingHorizontal: 14,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.12)",
+    borderColor: c.border,
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 7,
   },
 
   trackChipText: {
-    color: "#8A6030",
+    color: c.textSoft,
     fontSize: 13,
     fontFamily: "Almarai_700Bold",
   },
@@ -582,9 +585,9 @@ const s = StyleSheet.create({
     minWidth: 86,
     height: 62,
     borderRadius: 15,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.09)",
+    borderColor: c.goldSoft,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 3,
@@ -597,7 +600,7 @@ const s = StyleSheet.create({
   },
 
   filterLabel: {
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 10,
     textAlign: "center",
     fontFamily: "Almarai_700Bold",
@@ -613,13 +616,13 @@ const s = StyleSheet.create({
   },
 
   resultText: {
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 12,
     fontFamily: "Almarai_700Bold",
   },
 
   resetText: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 12,
     fontFamily: "Almarai_700Bold",
   },
@@ -629,9 +632,9 @@ const s = StyleSheet.create({
     marginBottom: 8,
     borderRadius: 18,
     padding: 13,
-    backgroundColor: "#321717",
+    backgroundColor: c.dangerSoft,
     borderWidth: 1,
-    borderColor: "rgba(229,57,53,0.22)",
+    borderColor: c.dangerSoft,
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 10,
@@ -642,14 +645,14 @@ const s = StyleSheet.create({
   },
 
   errorTitle: {
-    color: "#FFB0B0",
+    color: c.danger,
     textAlign: "right",
     fontSize: 11,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   errorText: {
-    color: "#FFCECE",
+    color: c.danger,
     textAlign: "right",
     marginTop: 3,
     fontSize: 11,
@@ -662,11 +665,11 @@ const s = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 16,
     marginBottom: 11,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderRadius: 23,
     padding: 13,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.09)",
+    borderColor: c.goldSoft,
     gap: 12,
   },
 
@@ -674,14 +677,14 @@ const s = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 20,
-    backgroundColor: "#2A1E00",
+    backgroundColor: c.surfaceAlt,
   },
 
   chefImagePlaceholder: {
     width: 72,
     height: 72,
     borderRadius: 20,
-    backgroundColor: "#2A1E00",
+    backgroundColor: c.surfaceAlt,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -700,7 +703,7 @@ const s = StyleSheet.create({
   chefName: {
     flex: 1,
     fontSize: 14,
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "right",
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -735,7 +738,7 @@ const s = StyleSheet.create({
   cityText: {
     flex: 1,
     fontSize: 11,
-    color: "#8A6030",
+    color: c.textSoft,
     textAlign: "right",
     fontFamily: "Almarai_400Regular",
   },
@@ -750,14 +753,14 @@ const s = StyleSheet.create({
 
   menuName: {
     flex: 1,
-    color: "#FDF0DC",
+    color: c.text,
     textAlign: "right",
     fontSize: 12,
     fontFamily: "Almarai_700Bold",
   },
 
   menuPrice: {
-    color: "#F2B233",
+    color: c.gold,
     fontSize: 12,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -770,13 +773,13 @@ const s = StyleSheet.create({
 
   ratingText: {
     fontSize: 12,
-    color: "#F2B233",
+    color: c.gold,
     fontFamily: "Almarai_700Bold",
   },
 
   ordersText: {
     fontSize: 11,
-    color: "#6D4E2D",
+    color: c.textMuted,
     fontFamily: "Almarai_400Regular",
   },
 
@@ -790,9 +793,9 @@ const s = StyleSheet.create({
     width: 108,
     height: 108,
     borderRadius: 38,
-    backgroundColor: "#21160D",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(242,178,51,0.08)",
+    borderColor: c.goldSoft,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 18,
@@ -800,14 +803,14 @@ const s = StyleSheet.create({
 
   emptyTitle: {
     textAlign: "center",
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 16,
     fontFamily: "Almarai_800ExtraBold",
   },
 
   emptySub: {
     textAlign: "center",
-    color: "#8A6030",
+    color: c.textSoft,
     fontSize: 12,
     lineHeight: 21,
     marginTop: 8,
@@ -819,14 +822,14 @@ const s = StyleSheet.create({
     minWidth: 160,
     minHeight: 48,
     borderRadius: 16,
-    backgroundColor: "#F2B233",
+    backgroundColor: c.gold,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 22,
   },
 
   primaryBtnText: {
-    color: "#17100B",
+    color: c.bg,
     fontSize: 11,
     fontFamily: "Almarai_800ExtraBold",
   },
