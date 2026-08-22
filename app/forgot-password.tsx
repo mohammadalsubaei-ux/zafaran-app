@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useMemo } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 import {
   Almarai_400Regular,
   Almarai_700Bold,
@@ -26,6 +27,8 @@ const SUPPORT_WHATSAPP = "966544633113";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
   const [phone, setPhone] = useState("");
 
   const [fontsLoaded] = useFonts({
@@ -78,14 +81,14 @@ export default function ForgotPasswordScreen() {
               style={s.backBtn}
               onPress={() => router.back()}
             >
-              <ArrowRight size={20} color="#F0A500" strokeWidth={1.9} />
+              <ArrowRight size={20} color={c.gold} strokeWidth={1.9} />
             </TouchableOpacity>
             <Text style={s.headerTitle}>استرجاع كلمة المرور</Text>
             <View style={{ width: 38 }} />
           </View>
 
           <View style={s.iconWrap}>
-            <KeyRound size={44} color="#F0A500" strokeWidth={1.5} />
+            <KeyRound size={44} color={c.gold} strokeWidth={1.5} />
           </View>
 
           <Text style={s.title}>نسيت كلمة المرور؟</Text>
@@ -99,7 +102,7 @@ export default function ForgotPasswordScreen() {
               <TextInput
                 style={s.input}
                 placeholder="05X XXX XXXX"
-                placeholderTextColor="#5A3A18"
+                placeholderTextColor={c.textMuted}
                 keyboardType="phone-pad"
                 value={phone}
                 onChangeText={setPhone}
@@ -111,12 +114,12 @@ export default function ForgotPasswordScreen() {
             </View>
 
             <TouchableOpacity activeOpacity={0.9} style={s.waBtn} onPress={openWhatsApp}>
-              <MessageCircle size={19} color="#0E0700" strokeWidth={2} />
+              <MessageCircle size={19} color={c.onGold} strokeWidth={2} />
               <Text style={s.waBtnText}>راسلنا على واتساب</Text>
             </TouchableOpacity>
 
             <View style={s.noteBox}>
-              <ShieldCheck size={16} color="#8BC34A" strokeWidth={1.8} />
+              <ShieldCheck size={16} color={c.success} strokeWidth={1.8} />
               <Text style={s.noteText}>
                 نتحقق من هويتك قبل إعادة التعيين حمايةً لحسابك ومحفظتك.
               </Text>
@@ -136,10 +139,10 @@ export default function ForgotPasswordScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const make_s = (c: Colors) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#0E0700",
+    backgroundColor: c.bg,
   },
 
   scroll: {
@@ -160,13 +163,13 @@ const s = StyleSheet.create({
     height: 38,
     borderRadius: 13,
     borderWidth: 1,
-    borderColor: "rgba(240,165,0,0.25)",
+    borderColor: c.goldBorder,
     alignItems: "center",
     justifyContent: "center",
   },
 
   headerTitle: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 16,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -178,21 +181,21 @@ const s = StyleSheet.create({
     alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#1C1000",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(240,165,0,0.18)",
+    borderColor: c.goldBorder,
     marginBottom: 20,
   },
 
   title: {
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 22,
     textAlign: "center",
     fontFamily: "Almarai_800ExtraBold",
   },
 
   sub: {
-    color: "#A98961",
+    color: c.textSoft,
     fontSize: 13,
     lineHeight: 23,
     textAlign: "center",
@@ -203,15 +206,15 @@ const s = StyleSheet.create({
   },
 
   form: {
-    backgroundColor: "#1C1000",
+    backgroundColor: c.surface,
     borderRadius: 24,
     padding: 22,
     borderWidth: 1,
-    borderColor: "rgba(240,165,0,0.15)",
+    borderColor: c.goldBorder,
   },
 
   label: {
-    color: "#C97D20",
+    color: c.gold,
     fontSize: 11,
     textAlign: "right",
     marginBottom: 7,
@@ -219,17 +222,17 @@ const s = StyleSheet.create({
   },
 
   inputWrap: {
-    backgroundColor: "#251400",
+    backgroundColor: c.surfaceAlt,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "rgba(240,165,0,0.2)",
+    borderColor: c.goldBorder,
     paddingHorizontal: 14,
     marginBottom: 18,
   },
 
   input: {
     height: 50,
-    color: "#FDF0DC",
+    color: c.text,
     fontSize: 15,
     fontFamily: "Almarai_400Regular",
   },
@@ -237,7 +240,7 @@ const s = StyleSheet.create({
   waBtn: {
     minHeight: 54,
     borderRadius: 16,
-    backgroundColor: "#25D366",
+    backgroundColor: c.success,
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
@@ -245,7 +248,7 @@ const s = StyleSheet.create({
   },
 
   waBtnText: {
-    color: "#0E0700",
+    color: c.bg,
     fontSize: 15,
     fontFamily: "Almarai_800ExtraBold",
   },
@@ -254,17 +257,17 @@ const s = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "rgba(139,195,74,0.08)",
+    backgroundColor: c.successSoft,
     borderRadius: 14,
     padding: 12,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: "rgba(139,195,74,0.18)",
+    borderColor: c.successSoft,
   },
 
   noteText: {
     flex: 1,
-    color: "#A5D6A7",
+    color: c.success,
     fontSize: 11.5,
     lineHeight: 19,
     textAlign: "right",
@@ -278,7 +281,7 @@ const s = StyleSheet.create({
   },
 
   backLinkText: {
-    color: "#F0A500",
+    color: c.gold,
     fontSize: 13,
     fontFamily: "Almarai_700Bold",
   },

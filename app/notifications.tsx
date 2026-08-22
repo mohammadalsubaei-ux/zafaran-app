@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useMemo } from "react";
 import {
   ActivityIndicator, FlatList, RefreshControl, SafeAreaView,
   StyleSheet, Text, TouchableOpacity, View,
@@ -31,6 +31,8 @@ function timeAgo(dateStr: string) {
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
   const [items, setItems] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -69,23 +71,23 @@ export default function NotificationsScreen() {
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
         <TouchableOpacity activeOpacity={0.8} onPress={() => router.back()} style={s.backBtn}>
-          <ArrowRight size={20} color="#F2B233" />
+          <ArrowRight size={20} color={c.gold} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>الإشعارات</Text>
         <View style={{ width: 38 }} />
       </View>
 
       {loading ? (
-        <ActivityIndicator color="#F2B233" style={{ marginTop: 80 }} />
+        <ActivityIndicator color={c.gold} style={{ marginTop: 80 }} />
       ) : (
         <FlatList
           data={items}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B233" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.gold} />}
           ListEmptyComponent={
             <View style={s.emptyWrap}>
-              <BellOff size={48} color="#5A3A18" strokeWidth={1.5} />
+              <BellOff size={48} color={c.textMuted} strokeWidth={1.5} />
               <Text style={s.emptyTitle}>ما فيه إشعارات بعد</Text>
               <Text style={s.emptyText}>أي تحديث على طلباتك بيظهر هنا</Text>
             </View>
@@ -93,7 +95,7 @@ export default function NotificationsScreen() {
           renderItem={({ item }) => (
             <TouchableOpacity activeOpacity={0.88} style={s.card} onPress={() => openNotif(item)}>
               <View style={s.iconWrap}>
-                <Bell size={16} color="#F2B233" strokeWidth={1.8} />
+                <Bell size={16} color={c.gold} strokeWidth={1.8} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.cardTitle}>{item.title}</Text>
@@ -108,28 +110,28 @@ export default function NotificationsScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#17100B" },
+const make_s = (c: Colors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   header: {
     flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "rgba(242,178,51,0.1)",
+    paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: c.goldSoft,
   },
-  backBtn: { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: "rgba(242,178,51,0.25)", alignItems: "center", justifyContent: "center" },
-  headerTitle: { color: "#FDF0DC", fontSize: 16, fontWeight: "800" },
+  backBtn: { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: c.goldBorder, alignItems: "center", justifyContent: "center" },
+  headerTitle: { color: c.text, fontSize: 16, fontWeight: "800" },
 
   card: {
-    flexDirection: "row-reverse", gap: 12, backgroundColor: "#21160D", borderRadius: 16,
-    padding: 14, marginBottom: 10, borderWidth: 1, borderColor: "rgba(242,178,51,0.09)",
+    flexDirection: "row-reverse", gap: 12, backgroundColor: c.surface, borderRadius: 16,
+    padding: 14, marginBottom: 10, borderWidth: 1, borderColor: c.goldSoft,
   },
   iconWrap: {
-    width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(242,178,51,0.08)",
+    width: 38, height: 38, borderRadius: 12, backgroundColor: c.goldSoft,
     alignItems: "center", justifyContent: "center",
   },
-  cardTitle: { color: "#FDF0DC", fontSize: 14, fontWeight: "800", textAlign: "right", marginBottom: 3 },
-  cardBody: { color: "#A98961", fontSize: 12, textAlign: "right", marginBottom: 5, lineHeight: 18 },
-  cardTime: { color: "#5A3A18", fontSize: 10, textAlign: "right" },
+  cardTitle: { color: c.text, fontSize: 14, fontWeight: "800", textAlign: "right", marginBottom: 3 },
+  cardBody: { color: c.textSoft, fontSize: 12, textAlign: "right", marginBottom: 5, lineHeight: 18 },
+  cardTime: { color: c.textMuted, fontSize: 10, textAlign: "right" },
 
   emptyWrap: { alignItems: "center", marginTop: 100, gap: 10 },
-  emptyTitle: { color: "#FDF0DC", fontSize: 15, fontWeight: "800" },
-  emptyText: { color: "#8A6030", fontSize: 12 },
+  emptyTitle: { color: c.text, fontSize: 15, fontWeight: "800" },
+  emptyText: { color: c.textSoft, fontSize: 12 },
 });

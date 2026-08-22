@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   View, Text, TouchableOpacity, StyleSheet,
   SafeAreaView, ScrollView, Linking, Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 import {
   ArrowRight, ChevronDown, Headphones, MessageCircle, Mail,
 } from "lucide-react-native";
@@ -53,6 +54,8 @@ const FAQS = [
 
 export default function Support() {
   const router = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [fontsLoaded] = useFonts({ Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold });
 
@@ -81,14 +84,14 @@ export default function Support() {
         <View style={{ width: 38 }} />
         <Text style={s.title}>الدعم والمساعدة</Text>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <ArrowRight size={20} color="#F2B233" />
+          <ArrowRight size={20} color={c.gold} />
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={s.scroll}>
         <View style={s.heroCard}>
           <View style={s.heroIcon}>
-            <Headphones size={26} color="#F2B233" strokeWidth={1.7} />
+            <Headphones size={26} color={c.gold} strokeWidth={1.7} />
           </View>
           <Text style={s.heroTitle}>كيف نقدر نساعدك؟</Text>
           <Text style={s.heroSub}>فريق زعفران جاهز لخدمتك — تصفح الأسئلة الشائعة أو تواصل معنا مباشرة</Text>
@@ -98,7 +101,7 @@ export default function Support() {
 
         <TouchableOpacity style={s.waBtn} activeOpacity={0.88} onPress={openWhatsApp}>
           <View style={s.waIcon}>
-            <MessageCircle size={20} color="#0E0700" strokeWidth={2} />
+            <MessageCircle size={20} color={c.onGold} strokeWidth={2} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={s.waTitle}>محادثة واتساب</Text>
@@ -108,7 +111,7 @@ export default function Support() {
 
         <TouchableOpacity style={s.mailRow} activeOpacity={0.86} onPress={openEmail}>
           <View style={s.mailIcon}>
-            <Mail size={18} color="#F2B233" strokeWidth={1.8} />
+            <Mail size={18} color={c.gold} strokeWidth={1.8} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={s.mailTitle}>البريد الإلكتروني</Text>
@@ -130,7 +133,7 @@ export default function Support() {
               <View style={s.faqHeader}>
                 <ChevronDown
                   size={17}
-                  color="#F2B233"
+                  color={c.gold}
                   style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }}
                 />
                 <Text style={s.faqQ}>{faq.q}</Text>
@@ -146,32 +149,32 @@ export default function Support() {
   );
 }
 
-const s = StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: "#0E0700" },
+const make_s = (c: Colors) => StyleSheet.create({
+  safe:    { flex: 1, backgroundColor: c.bg },
   header:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
-  backBtn: { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: "rgba(242,178,51,0.25)", alignItems: "center", justifyContent: "center" },
-  title:   { color: "#FDF0DC", fontSize: 17, fontFamily: "Almarai_800ExtraBold" },
+  backBtn: { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: c.goldBorder, alignItems: "center", justifyContent: "center" },
+  title:   { color: c.text, fontSize: 17, fontFamily: "Almarai_800ExtraBold" },
   scroll:  { paddingHorizontal: 16, paddingBottom: 20 },
 
-  heroCard:  { backgroundColor: "#1C1208", borderRadius: 18, padding: 18, alignItems: "center", borderWidth: 1, borderColor: "rgba(242,178,51,0.18)", marginBottom: 6 },
-  heroIcon:  { width: 54, height: 54, borderRadius: 18, backgroundColor: "rgba(242,178,51,0.1)", alignItems: "center", justifyContent: "center", marginBottom: 10 },
-  heroTitle: { color: "#FDF0DC", fontSize: 16, fontFamily: "Almarai_800ExtraBold" },
-  heroSub:   { color: "#A98961", fontSize: 12, fontFamily: "Almarai_400Regular", textAlign: "center", marginTop: 5, lineHeight: 19 },
+  heroCard:  { backgroundColor: c.surface, borderRadius: 18, padding: 18, alignItems: "center", borderWidth: 1, borderColor: c.goldBorder, marginBottom: 6 },
+  heroIcon:  { width: 54, height: 54, borderRadius: 18, backgroundColor: c.goldSoft, alignItems: "center", justifyContent: "center", marginBottom: 10 },
+  heroTitle: { color: c.text, fontSize: 16, fontFamily: "Almarai_800ExtraBold" },
+  heroSub:   { color: c.textSoft, fontSize: 12, fontFamily: "Almarai_400Regular", textAlign: "center", marginTop: 5, lineHeight: 19 },
 
-  sectionTitle: { color: "#F2B233", fontSize: 14, fontFamily: "Almarai_800ExtraBold", textAlign: "right", marginTop: 18, marginBottom: 10 },
+  sectionTitle: { color: c.gold, fontSize: 14, fontFamily: "Almarai_800ExtraBold", textAlign: "right", marginTop: 18, marginBottom: 10 },
 
-  waBtn:   { flexDirection: "row-reverse", alignItems: "center", gap: 12, backgroundColor: "#F2B233", borderRadius: 16, padding: 14, marginBottom: 10 },
-  waIcon:  { width: 40, height: 40, borderRadius: 13, backgroundColor: "rgba(14,7,0,0.15)", alignItems: "center", justifyContent: "center" },
-  waTitle: { color: "#0E0700", fontSize: 15, fontFamily: "Almarai_800ExtraBold", textAlign: "right" },
-  waSub:   { color: "rgba(14,7,0,0.65)", fontSize: 11, fontFamily: "Almarai_400Regular", textAlign: "right", marginTop: 2 },
+  waBtn:   { flexDirection: "row-reverse", alignItems: "center", gap: 12, backgroundColor: c.gold, borderRadius: 16, padding: 14, marginBottom: 10 },
+  waIcon:  { width: 40, height: 40, borderRadius: 13, backgroundColor: c.bg, alignItems: "center", justifyContent: "center" },
+  waTitle: { color: c.bg, fontSize: 15, fontFamily: "Almarai_800ExtraBold", textAlign: "right" },
+  waSub:   { color: c.bg, fontSize: 11, fontFamily: "Almarai_400Regular", textAlign: "right", marginTop: 2 },
 
-  mailRow:   { flexDirection: "row-reverse", alignItems: "center", gap: 12, backgroundColor: "#1C1208", borderRadius: 16, padding: 14, borderWidth: 1, borderColor: "rgba(242,178,51,0.12)" },
-  mailIcon:  { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(242,178,51,0.08)", alignItems: "center", justifyContent: "center" },
-  mailTitle: { color: "#FDF0DC", fontSize: 14, fontFamily: "Almarai_700Bold", textAlign: "right" },
-  mailSub:   { color: "#A98961", fontSize: 11, fontFamily: "Almarai_400Regular", textAlign: "right", marginTop: 2 },
+  mailRow:   { flexDirection: "row-reverse", alignItems: "center", gap: 12, backgroundColor: c.surface, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: c.border },
+  mailIcon:  { width: 38, height: 38, borderRadius: 12, backgroundColor: c.goldSoft, alignItems: "center", justifyContent: "center" },
+  mailTitle: { color: c.text, fontSize: 14, fontFamily: "Almarai_700Bold", textAlign: "right" },
+  mailSub:   { color: c.textSoft, fontSize: 11, fontFamily: "Almarai_400Regular", textAlign: "right", marginTop: 2 },
 
-  faqCard:   { backgroundColor: "#17100B", borderRadius: 14, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: "rgba(242,178,51,0.08)" },
+  faqCard:   { backgroundColor: c.bg, borderRadius: 14, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: c.goldSoft },
   faqHeader: { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", gap: 10 },
-  faqQ:      { flex: 1, color: "#FDF0DC", fontSize: 13, fontFamily: "Almarai_700Bold", textAlign: "right" },
-  faqA:      { color: "#A98961", fontSize: 12, fontFamily: "Almarai_400Regular", textAlign: "right", lineHeight: 20, marginTop: 10 },
+  faqQ:      { flex: 1, color: c.text, fontSize: 13, fontFamily: "Almarai_700Bold", textAlign: "right" },
+  faqA:      { color: c.textSoft, fontSize: 12, fontFamily: "Almarai_400Regular", textAlign: "right", lineHeight: 20, marginTop: 10 },
 });

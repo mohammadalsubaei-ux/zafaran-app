@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   SafeAreaView, ScrollView, ActivityIndicator, Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ArrowRight, KeyRound } from "lucide-react-native";
 import {
@@ -14,6 +15,8 @@ const API = "https://zafaran-backend-production.up.railway.app";
 
 export default function ChangePassword() {
   const router = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
   const [current, setCurrent]     = useState("");
   const [newPw, setNewPw]         = useState("");
   const [confirmPw, setConfirmPw] = useState("");
@@ -59,13 +62,13 @@ export default function ChangePassword() {
         <View style={{ width: 38 }} />
         <Text style={s.title}>تغيير كلمة المرور</Text>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <ArrowRight size={20} color="#F2B233" />
+          <ArrowRight size={20} color={c.gold} />
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <View style={s.heroIcon}>
-          <KeyRound size={26} color="#F2B233" strokeWidth={1.7} />
+          <KeyRound size={26} color={c.gold} strokeWidth={1.7} />
         </View>
         <Text style={s.hint}>اختر كلمة مرور قوية لا تشاركها مع أحد — 6 أحرف على الأقل</Text>
 
@@ -74,7 +77,7 @@ export default function ChangePassword() {
           <TextInput
             style={s.input}
             placeholder="••••••"
-            placeholderTextColor="#5A3A18"
+            placeholderTextColor={c.textMuted}
             secureTextEntry
             onChangeText={setCurrent}
             textAlign="right"
@@ -86,7 +89,7 @@ export default function ChangePassword() {
           <TextInput
             style={s.input}
             placeholder="6 احرف على الاقل"
-            placeholderTextColor="#5A3A18"
+            placeholderTextColor={c.textMuted}
             secureTextEntry
             onChangeText={setNewPw}
             textAlign="right"
@@ -98,7 +101,7 @@ export default function ChangePassword() {
           <TextInput
             style={s.input}
             placeholder="اعد كتابتها"
-            placeholderTextColor="#5A3A18"
+            placeholderTextColor={c.textMuted}
             secureTextEntry
             onChangeText={setConfirmPw}
             textAlign="right"
@@ -107,7 +110,7 @@ export default function ChangePassword() {
 
         <TouchableOpacity style={[s.btn, loading && { opacity: 0.6 }]} onPress={submit} disabled={loading}>
           {loading
-            ? <ActivityIndicator color="#0E0700" size="small" />
+            ? <ActivityIndicator color={c.onGold} size="small" />
             : <Text style={s.btnText}>حفظ كلمة المرور</Text>}
         </TouchableOpacity>
       </ScrollView>
@@ -115,20 +118,20 @@ export default function ChangePassword() {
   );
 }
 
-const s = StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: "#0E0700" },
+const make_s = (c: Colors) => StyleSheet.create({
+  safe:    { flex: 1, backgroundColor: c.bg },
   header:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
-  backBtn: { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: "rgba(242,178,51,0.25)", alignItems: "center", justifyContent: "center" },
-  title:   { color: "#FDF0DC", fontSize: 17, fontFamily: "Almarai_800ExtraBold" },
+  backBtn: { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: c.goldBorder, alignItems: "center", justifyContent: "center" },
+  title:   { color: c.text, fontSize: 17, fontFamily: "Almarai_800ExtraBold" },
   scroll:  { paddingHorizontal: 20, paddingBottom: 24 },
 
-  heroIcon: { width: 56, height: 56, borderRadius: 18, backgroundColor: "rgba(242,178,51,0.1)", alignItems: "center", justifyContent: "center", alignSelf: "center", marginTop: 8 },
-  hint:     { color: "#A98961", fontSize: 12, fontFamily: "Almarai_400Regular", textAlign: "center", marginTop: 10, marginBottom: 18, lineHeight: 19 },
+  heroIcon: { width: 56, height: 56, borderRadius: 18, backgroundColor: c.goldSoft, alignItems: "center", justifyContent: "center", alignSelf: "center", marginTop: 8 },
+  hint:     { color: c.textSoft, fontSize: 12, fontFamily: "Almarai_400Regular", textAlign: "center", marginTop: 10, marginBottom: 18, lineHeight: 19 },
 
-  label:     { color: "#C9A15E", fontSize: 12, fontFamily: "Almarai_700Bold", textAlign: "right", marginBottom: 7 },
-  inputWrap: { backgroundColor: "#251400", borderRadius: 14, borderWidth: 1, borderColor: "rgba(240,165,0,0.2)", paddingHorizontal: 14, marginBottom: 14 },
-  input:     { height: 50, color: "#FDF0DC", fontSize: 15, fontFamily: "Almarai_400Regular" },
+  label:     { color: c.textSoft, fontSize: 12, fontFamily: "Almarai_700Bold", textAlign: "right", marginBottom: 7 },
+  inputWrap: { backgroundColor: c.surfaceAlt, borderRadius: 14, borderWidth: 1, borderColor: c.goldBorder, paddingHorizontal: 14, marginBottom: 14 },
+  input:     { height: 50, color: c.text, fontSize: 15, fontFamily: "Almarai_400Regular" },
 
-  btn:     { backgroundColor: "#F2B233", borderRadius: 14, paddingVertical: 15, alignItems: "center", marginTop: 6 },
-  btnText: { color: "#0E0700", fontSize: 15, fontFamily: "Almarai_800ExtraBold" },
+  btn:     { backgroundColor: c.gold, borderRadius: 14, paddingVertical: 15, alignItems: "center", marginTop: 6 },
+  btnText: { color: c.bg, fontSize: 15, fontFamily: "Almarai_800ExtraBold" },
 });
