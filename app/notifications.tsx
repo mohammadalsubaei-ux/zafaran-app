@@ -6,6 +6,7 @@ import {
 import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ArrowRight, Bell, BellOff } from "lucide-react-native";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 

@@ -94,7 +94,7 @@ function prepTime(minutesValue: unknown) {
   return `${m} دقيقة`;
 }
 
-function itemStatusMeta(status?: string | null) {
+function itemStatusMeta(c: Colors, status?: string | null) {
   if (status === "preorder") {
     return {
       label: "حجز مسبق",
@@ -402,7 +402,7 @@ export default function ChefScreen() {
   const renderItem = useCallback(
     ({ item }: { item: MenuItem }) => {
       const qty = getItemQty(String(item.id));
-      const status = itemStatusMeta(item.status);
+      const status = itemStatusMeta(c, item.status);
       const StatusIcon = status.Icon;
       const preparation = prepTime(item.prep_minutes);
       const orderable = isOpen && item.status !== "unavailable";

@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import Constants from "expo-constants";
 import { ArrowDownToLine, X } from "lucide-react-native";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 const PLAY_URL = "https://play.google.com/store/apps/details?id=com.zafaran.app";

@@ -72,23 +72,23 @@ type Chef = { id: string };
 // drinks كان مفقوداً كلياً — لذلك القهوة لم تظهر تحت أي تصنيف
 // التصنيفات من المصدر الموحّد — لا تُعرّف هنا
 
-const ITEM_STATUS: Array<{
+const makeItemStatus = (c: Colors): Array<{
   id: MenuStatus;
   label: string;
   desc: string;
   color: string;
   Icon: any;
-}> = [
+}> => [
   { id: "available",   label: "متاح",        desc: "يظهر للعميل ويضاف للسلة مباشرة",       color: c.success, Icon: BadgeCheck  },
   { id: "preorder",    label: "حجز مسبق",    desc: "يظهر للعميل مع وقت التحضير",           color: c.gold, Icon: CalendarDays },
   { id: "unavailable", label: "غير متاح",    desc: "يبقى محفوظًا لكنه غير متاح للطلب",     color: c.danger, Icon: XCircle     },
 ];
 
-const STATUS_COLORS: Record<string, string> = {
+const makeStatusColors = (c: Colors): Record<string, string> => ({
   available:   c.success,
   preorder:    c.gold,
   unavailable: c.danger,
-};
+});
 
 const STATUS_LABELS: Record<string, string> = {
   available:   "متاح",
@@ -123,6 +123,8 @@ export default function MenuScreen() {
   const router = useRouter();
   const { c } = useTheme();
   const s = useMemo(() => make_s(c), [c]);
+  const itemStatusList = useMemo(() => makeItemStatus(c), [c]);
+  const statusColors = useMemo(() => makeStatusColors(c), [c]);
 
   const [chefId,    setChefId]    = useState<string | null>(null);
   const [items,     setItems]     = useState<MenuItem[]>([]);
@@ -353,7 +355,7 @@ export default function MenuScreen() {
 
   const renderItem = useCallback(({ item }: { item: MenuItem }) => {
     const st      = normalizeStatus(item.status);
-    const color   = STATUS_COLORS[st] || c.gold;
+    const color   = statusColors[st] || c.gold;
     const total   = numberValue(item.prep_minutes);
     const hours   = Math.floor(total / 60);
     const minutes = total % 60;
@@ -619,7 +621,7 @@ export default function MenuScreen() {
               ))}
 
               <Text style={s.label}>حالة المنتج</Text>
-              {ITEM_STATUS.map(st => {
+              {itemStatusList.map(st => {
                 const Icon   = st.Icon;
                 const active = status === st.id;
                 return (

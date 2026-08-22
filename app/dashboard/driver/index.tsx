@@ -3,6 +3,7 @@ import {
   View, Text, FlatList, StyleSheet, SafeAreaView,
   ActivityIndicator, TouchableOpacity, Alert, Linking, RefreshControl,
 } from "react-native";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";

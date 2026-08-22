@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { CheckCircle2, CreditCard, Smartphone, Wallet, XCircle } from "lucide-react-native";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 
