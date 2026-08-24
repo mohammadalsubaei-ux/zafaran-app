@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View, Text, FlatList, StyleSheet, SafeAreaView,
   ActivityIndicator, TouchableOpacity, Alert, Modal,
-  ScrollView, RefreshControl, Switch, Share,
+  ScrollView, RefreshControl, Switch, Share, TextInput,
 } from "react-native";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import QRCode from "react-native-qrcode-svg";
@@ -18,7 +18,7 @@ import {
 import {
   RefreshCw, ChevronDown, UtensilsCrossed, Package, ClipboardList,
   Check, X, Flame, Star, LogOut, CalendarDays, Clock3, CheckCircle2, Coffee, MapPin, Wallet,
-  ArrowRight, FileText, Eye, Share2, QrCode
+  ArrowRight, FileText, Eye, Share2, QrCode, Radio
 } from "lucide-react-native";
 import { pickCompressedImage, uploadImageToBucket } from "@/utils/images";
 
@@ -97,6 +97,11 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { c } = useTheme();
   const [showQr, setShowQr] = useState(false);
+  const [showLive, setShowLive] = useState(false);
+  const [liveUrl, setLiveUrl] = useState("");
+  const [liveItemId, setLiveItemId] = useState<string | null>(null);
+  const [liveItemPrice, setLiveItemPrice] = useState("");
+  const [savingLive, setSavingLive] = useState(false);
   const s = useMemo(() => make_s(c), [c]);
   const statusMap = useMemo(() => makeSTATUS(c), [c]);
   const chefStatusList = useMemo(() => makeCHEF_STATUS(c), [c]);
@@ -331,6 +336,75 @@ export default function DashboardScreen() {
     }
   };
 
+  const startLive = async () => {
+    if (!chefId || savingLive) return;
+
+    const url = liveUrl.trim();
+    if (!url) {
+      Alert.alert("رابط البث مطلوب", "الصق رابط بثك من تيك توك أو سناب أو إنستقرام.");
+      return;
+    }
+
+    setSavingLive(true);
+    try {
+      const body: any = { is_live: true, live_url: url };
+
+      if (liveItemId) {
+        const price = Number(liveItemPrice);
+        if (!Number.isFinite(price) || price <= 0) {
+          Alert.alert("سعر غير صحيح", "اكتب سعر البث للمنتج المختار.");
+          return;
+        }
+        body.live_item_id = liveItemId;
+        body.live_item_price = price;
+      }
+
+      const res  = await fetch(`${API}/api/chefs/${chefId}/live`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json().catch(() => null);
+
+      if (!json?.success) {
+        Alert.alert("تعذر بدء البث", json?.message || "حاول مرة ثانية.");
+        return;
+      }
+
+      setChef(json.data);
+      setShowLive(false);
+      Alert.alert("أنت على الهواء", "متجرك صار يظهر بشارة \"يبث الآن\" في الرئيسية. البث يتوقف تلقائياً بعد أربع ساعات.");
+    } catch {
+      Alert.alert("مشكلة اتصال", "تأكد من الإنترنت وحاول مرة ثانية.");
+    } finally {
+      setSavingLive(false);
+    }
+  };
+
+  const stopLive = async () => {
+    if (!chefId || savingLive) return;
+
+    setSavingLive(true);
+    try {
+      const res  = await fetch(`${API}/api/chefs/${chefId}/live`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_live: false }),
+      });
+      const json = await res.json().catch(() => null);
+
+      if (json?.success) {
+        setChef(json.data);
+        setLiveUrl("");
+        setLiveItemId(null);
+        setLiveItemPrice("");
+      }
+    } catch {}
+    finally {
+      setSavingLive(false);
+    }
+  };
+
   const updateStatus = async (orderId: string, status: string) => {
     // إرسال هوية الشيف — الخادم يتحقق من ملكية الطلب قبل أي تغيير
     const stored = await AsyncStorage.getItem("user");
@@ -546,6 +620,31 @@ export default function DashboardScreen() {
               <Text style={s.drinksText}>أقدّم مشروبات (باريستا)</Text>
             </View>
           </View>
+
+          {chef?.is_live ? (
+            <View style={s.liveOnBar}>
+              <TouchableOpacity style={s.liveStopBtn} onPress={stopLive} disabled={savingLive}>
+                {savingLive
+                  ? <ActivityIndicator color={c.danger} />
+                  : <Text style={s.liveStopText}>إيقاف</Text>}
+              </TouchableOpacity>
+
+              <View style={s.liveInfo}>
+                <View style={s.liveDotRow}>
+                  <View style={s.liveDot} />
+                  <Text style={s.liveOnTitle}>أنت على الهواء الآن</Text>
+                </View>
+                <Text style={s.liveOnSub}>يتوقف تلقائياً بعد أربع ساعات من البدء</Text>
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity style={s.liveBtn} onPress={() => setShowLive(true)}>
+              <View style={s.btnInner}>
+                <Radio size={16} color={c.gold} strokeWidth={1.8} />
+                <Text style={s.liveBtnText}>أنا أبث الآن — اربط بثك بمتجرك</Text>
+              </View>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity style={s.locationBtn} onPress={openLocationMap}>
             <View style={s.btnInner}>
@@ -893,6 +992,48 @@ export default function DashboardScreen() {
         </SafeAreaView>
       </Modal>
 
+      {/* البث المباشر — نربط بث المتجر الموجود، لا بث داخل التطبيق */}
+      <Modal visible={showLive} animationType="slide" transparent onRequestClose={() => setShowLive(false)}>
+        <View style={s.qrOverlay}>
+          <View style={s.liveBox}>
+            <TouchableOpacity style={s.qrClose} onPress={() => setShowLive(false)}>
+              <X size={20} color={c.textSoft} />
+            </TouchableOpacity>
+
+            <Text style={s.qrTitle}>اربط بثك بمتجرك</Text>
+            <Text style={s.liveModalSub}>
+              تبث على تيك توك أو سناب؟ الصق رابط بثك، ويظهر متجرك بشارة "يبث الآن" في رئيسية زعفران — فمن يشاهدك يطلب منك مباشرة.
+            </Text>
+
+            <Text style={s.liveLabel}>رابط البث</Text>
+            <TextInput
+              style={s.liveInput}
+              placeholder="https://..."
+              placeholderTextColor={c.textMuted}
+              autoCapitalize="none"
+              keyboardType="url"
+              value={liveUrl}
+              onChangeText={setLiveUrl}
+            />
+
+            <Text style={s.liveNote}>
+              انسخ رابط البث من زر المشاركة في التطبيق الذي تبث منه.
+            </Text>
+
+            <TouchableOpacity style={s.liveGoBtn} onPress={startLive} disabled={savingLive}>
+              {savingLive
+                ? <ActivityIndicator color={c.onGold} />
+                : (
+                  <>
+                    <Radio size={16} color={c.onGold} strokeWidth={2} />
+                    <Text style={s.liveGoText}>ابدأ البث</Text>
+                  </>
+                )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* رمز المتجر — يفتح صفحة المتجر، والصفحة تحوّل لتطبيق زعفران */}
       <Modal visible={showQr} animationType="fade" transparent onRequestClose={() => setShowQr(false)}>
         <View style={s.qrOverlay}>
@@ -979,6 +1120,23 @@ const make_s = (c: Colors) => StyleSheet.create({
   statusVal:         { fontSize: 15, fontWeight: "800", textAlign: "right", fontFamily: "Almarai_700Bold" },
   statusDesc:        { fontSize: 11, color: c.textSoft, textAlign: "right", fontFamily: "Almarai_400Regular", marginTop: 2 },
   statusChange:      { fontSize: 13, fontWeight: "700", fontFamily: "Almarai_700Bold" },
+  liveBtn:           { marginHorizontal: 16, marginBottom: 12, backgroundColor: c.goldSoft, borderRadius: 14, padding: 14, alignItems: "center", borderWidth: 1, borderColor: c.goldBorder },
+  liveBtnText:       { color: c.gold, fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
+  liveOnBar:         { marginHorizontal: 16, marginBottom: 12, backgroundColor: c.dangerSoft, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: c.danger, flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  liveInfo:          { flex: 1 },
+  liveDotRow:        { flexDirection: "row-reverse", alignItems: "center", gap: 7 },
+  liveDot:           { width: 9, height: 9, borderRadius: 5, backgroundColor: c.danger },
+  liveOnTitle:       { color: c.danger, fontSize: 14, textAlign: "right", fontFamily: "Almarai_800ExtraBold" },
+  liveOnSub:         { color: c.textSoft, fontSize: 11, textAlign: "right", marginTop: 4, fontFamily: "Almarai_400Regular" },
+  liveStopBtn:       { minWidth: 76, minHeight: 38, borderRadius: 12, borderWidth: 1, borderColor: c.danger, alignItems: "center", justifyContent: "center" },
+  liveStopText:      { color: c.danger, fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
+  liveBox:           { width: "100%", backgroundColor: c.surface, borderRadius: 26, borderWidth: 1, borderColor: c.border, padding: 22 },
+  liveModalSub:      { color: c.textSoft, fontSize: 12.5, lineHeight: 22, textAlign: "right", marginTop: 8, marginBottom: 18, fontFamily: "Almarai_400Regular" },
+  liveLabel:         { color: c.textSoft, fontSize: 12, textAlign: "right", marginBottom: 7, fontFamily: "Almarai_700Bold" },
+  liveInput:         { minHeight: 50, borderRadius: 14, backgroundColor: c.bg, borderWidth: 1, borderColor: c.border, paddingHorizontal: 14, color: c.text, fontSize: 14, textAlign: "left", fontFamily: "Almarai_400Regular" },
+  liveNote:          { color: c.textMuted, fontSize: 11, textAlign: "right", marginTop: 8, fontFamily: "Almarai_400Regular" },
+  liveGoBtn:         { marginTop: 18, minHeight: 50, borderRadius: 15, backgroundColor: c.goldSolid, alignItems: "center", justifyContent: "center", flexDirection: "row-reverse", gap: 8 },
+  liveGoText:        { color: c.onGold, fontSize: 15, fontFamily: "Almarai_800ExtraBold" },
   qrOverlay:         { flex: 1, backgroundColor: c.overlay, alignItems: "center", justifyContent: "center", paddingHorizontal: 26 },
   qrBox:             { width: "100%", backgroundColor: c.surface, borderRadius: 26, borderWidth: 1, borderColor: c.border, padding: 22, alignItems: "center" },
   qrClose:           { position: "absolute", top: 12, left: 12, padding: 6 },

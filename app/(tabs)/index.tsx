@@ -33,7 +33,7 @@ import {
   Almarai_800ExtraBold,
 } from "@expo-google-fonts/almarai";
 
-import { TRACKS, tone, type TrackId } from "@/constants/categories";
+import { TRACKS, itemMatchesTrack, tone, type TrackId } from "@/constants/categories";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 
 const API = "https://zafaran-backend-production.up.railway.app";
@@ -75,6 +75,8 @@ type Chef = {
     full_name?: string | null;
   } | null;
   menu?: MenuItem[] | null;
+  is_live?: boolean | null;
+  live_url?: string | null;
 };
 
 // المسميات هنا يجب أن تطابق شاشة التصنيفات حرفياً — أي اختلاف يربك المستخدم
@@ -224,11 +226,41 @@ export default function HomeScreen() {
     return userId ? `favorites_${userId}` : null;
   }, [userId]);
 
-  const mostOrderedChefs = useMemo(() => {
-    return [...chefs]
-      .sort((a, b) => Number(b.total_orders || 0) - Number(a.total_orders || 0))
-      .slice(0, 6);
+  // المتاجر التي تبث الآن — الخادم يوقف البث تلقائياً بعد أربع ساعات
+  const liveChefs = useMemo(
+    () => chefs.filter((chef) => Boolean(chef.is_live)),
+    [chefs]
+  );
+
+  // متاجر كل مسار — المتجر ينتمي للمسار إن كان لديه منتج واحد على الأقل من تصنيفاته
+  const chefsByTrack = useMemo(() => {
+    const map: Record<string, Chef[]> = { now: [], occasion: [], pantry: [] };
+
+    chefs.forEach((chef) => {
+      const menu = Array.isArray(chef.menu) ? chef.menu : [];
+
+      TRACKS.forEach((track) => {
+        if (menu.some((it) => itemMatchesTrack(it?.category, track.id))) {
+          map[track.id].push(chef);
+        }
+      });
+    });
+
+    Object.keys(map).forEach((k) => {
+      map[k].sort((a, b) => Number(b.rating_avg || 0) - Number(a.rating_avg || 0));
+    });
+
+    return map;
   }, [chefs]);
+
+  // منتجات البطاقة: المتاح أولًا ثم الحجز المسبق ثم غير المتاح — بحد أقصى ستة
+  const cardItems = useCallback((chef: Chef) => {
+    const menu = Array.isArray(chef.menu) ? chef.menu : [];
+    const rank = (st?: string | null) =>
+      st === "available" ? 0 : st === "preorder" ? 1 : 2;
+
+    return [...menu].sort((a, b) => rank(a?.status) - rank(b?.status)).slice(0, 6);
+  }, [])
 
   const loadSession = useCallback(async () => {
     const storedUser = await AsyncStorage.getItem("user");
@@ -428,66 +460,131 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {mostOrderedChefs.length > 0 ? (
-          <View style={s.secHeader}>
-            <TouchableOpacity activeOpacity={0.8} onPress={() => openTrack("now")}>
-              <Text style={s.secMore}>عرض الكل</Text>
-            </TouchableOpacity>
-            <Text style={s.secTitle}>الأكثر طلبًا</Text>
+        {liveChefs.length > 0 ? (
+          <View>
+            <View style={s.secHeader}>
+              <View />
+              <View style={s.liveTitleRow}>
+                <View style={s.liveDot} />
+                <Text style={s.liveSecTitle}>على الهواء الآن</Text>
+              </View>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={s.railFixed}
+              contentContainerStyle={s.topList}
+            >
+              {liveChefs.map((chef) => {
+                const cover = chefImage(chef);
+
+                return (
+                  <TouchableOpacity
+                    key={`live-${chef.id}`}
+                    activeOpacity={0.88}
+                    style={s.topCard}
+                    onPress={() => openChef(chef.id)}
+                  >
+                    <View style={[s.topImgWrap, s.liveImgWrap]}>
+                      {cover ? (
+                        <Image source={{ uri: cover }} style={s.topImg} />
+                      ) : (
+                        <View style={[s.topImg, s.topImgPlaceholder]}>
+                          <Store size={30} color={c.textMuted} strokeWidth={1.5} />
+                        </View>
+                      )}
+
+                      <View style={s.liveBadge}>
+                        <View style={s.liveBadgeDot} />
+                        <Text style={s.liveBadgeText}>يبث الآن</Text>
+                      </View>
+                    </View>
+
+                    <Text style={s.topChefName} numberOfLines={1}>
+                      {safeText(chef.users?.full_name, "متجر")}
+                    </Text>
+                    <Text style={s.topChefBy} numberOfLines={1}>
+                      {safeText(chef.city, "")}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
         ) : null}
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={s.railFixed}
-          contentContainerStyle={s.topList}
-        >
-          {mostOrderedChefs.map((chef) => {
-            const cover = chefImage(chef);
+        {TRACKS.map((track) => {
+          const list = chefsByTrack[track.id] || [];
+          if (list.length === 0) return null;
 
-            return (
-              <TouchableOpacity
-                key={chef.id}
-                activeOpacity={0.88}
-                style={s.topCard}
-                onPress={() => openChef(chef.id)}
+          return (
+            <View key={`rail-${track.id}`}>
+              <View style={s.secHeader}>
+                <TouchableOpacity activeOpacity={0.8} onPress={() => openTrack(track.id)}>
+                  <Text style={s.secMore}>عرض الكل</Text>
+                </TouchableOpacity>
+                <Text style={[s.secTitle, { color: tone(track, isDark) }]}>
+                  {track.label}
+                </Text>
+              </View>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={s.railFixed}
+                contentContainerStyle={s.topList}
               >
-                <View style={s.topImgWrap}>
-                  {cover ? (
-                    <Image source={{ uri: cover }} style={s.topImg} />
-                  ) : (
-                    <View style={[s.topImg, s.topImgPlaceholder]}>
-                      <Store size={30} color={c.textMuted} strokeWidth={1.5} />
-                    </View>
-                  )}
+                {list.map((chef) => {
+                  const cover = chefImage(chef);
 
-                  <View style={s.topRatingBadge}>
-                    <Star size={10} color={c.gold} fill={c.gold} />
-                    <Text style={s.topRatingText}>
-                      {safeNumber(chef.rating_avg, "0")}
-                    </Text>
-                  </View>
-                </View>
+                  return (
+                    <TouchableOpacity
+                      key={`${track.id}-${chef.id}`}
+                      activeOpacity={0.88}
+                      style={s.topCard}
+                      onPress={() => openChef(chef.id)}
+                    >
+                      <View style={s.topImgWrap}>
+                        {cover ? (
+                          <Image source={{ uri: cover }} style={s.topImg} />
+                        ) : (
+                          <View style={[s.topImg, s.topImgPlaceholder]}>
+                            <Store size={30} color={c.textMuted} strokeWidth={1.5} />
+                          </View>
+                        )}
 
-                <Text style={s.topChefName} numberOfLines={1}>
-                  {safeText(chef.users?.full_name, "متجر")}
-                </Text>
-                <Text style={s.topChefBy} numberOfLines={1}>
-                  {safeText(chef.city, "")}
-                </Text>
-                <Text style={s.topPrice}>{safeNumber(chef.total_orders, "0")} طلب</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+                        <View style={s.topRatingBadge}>
+                          <Star size={10} color={c.gold} fill={c.gold} />
+                          <Text style={s.topRatingText}>
+                            {safeNumber(chef.rating_avg, "0")}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Text style={s.topChefName} numberOfLines={1}>
+                        {safeText(chef.users?.full_name, "متجر")}
+                      </Text>
+                      <Text style={s.topChefBy} numberOfLines={1}>
+                        {safeText(chef.city, "")}
+                      </Text>
+                      <Text style={s.topPrice}>
+                        {safeNumber(chef.total_orders, "0")} طلب
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          );
+        })}
 
         {chefs.length > 0 ? (
           <View style={s.secHeader}>
-            <TouchableOpacity activeOpacity={0.8}>
+            <TouchableOpacity activeOpacity={0.8} onPress={() => openTrack("now")}>
               <Text style={s.secMore}>الأقرب لك</Text>
             </TouchableOpacity>
-            <Text style={s.secTitle}>متاجر مميزة</Text>
+            <Text style={s.secTitle}>كل المتاجر</Text>
           </View>
         ) : null}
 
@@ -500,7 +597,7 @@ export default function HomeScreen() {
         ) : null}
       </View>
     );
-  }, [c, s, banners, chefs, error, mostOrderedChefs, onRefresh, openChef, openTrack, search]);
+  }, [c, s, isDark, banners, chefs, chefsByTrack, liveChefs, error, onRefresh, openChef, openTrack, search]);
 
   const renderChef = useCallback(
     ({ item }: { item: Chef }) => {
@@ -512,7 +609,10 @@ export default function HomeScreen() {
       const statusUi = CHEF_STATUS_UI[statusKey];
       const cover = chefImage(item);
 
+      const items = cardItems(item);
+
       return (
+        <View style={s.chefCardWrap}>
         <TouchableOpacity
           activeOpacity={0.88}
           style={s.chefCard}
@@ -572,9 +672,48 @@ export default function HomeScreen() {
 
           <ChevronLeft size={18} color={c.textMuted} strokeWidth={1.8} />
         </TouchableOpacity>
+
+        {items.length > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={s.railFixed}
+            contentContainerStyle={s.itemStrip}
+          >
+            {items.map((it) => {
+              const off = it?.status === "unavailable";
+
+              return (
+                <TouchableOpacity
+                  key={it.id}
+                  activeOpacity={0.85}
+                  style={[s.itemCard, off && s.itemCardOff]}
+                  onPress={() => openChef(item.id)}
+                >
+                  {it.image_url ? (
+                    <Image source={{ uri: it.image_url }} style={s.itemImg} />
+                  ) : (
+                    <View style={[s.itemImg, s.itemImgPlaceholder]}>
+                      <Store size={18} color={c.textMuted} strokeWidth={1.5} />
+                    </View>
+                  )}
+
+                  <Text style={s.itemName} numberOfLines={1}>
+                    {safeText(it.name, "منتج")}
+                  </Text>
+
+                  <Text style={s.itemPrice}>
+                    {off ? "غير متاح" : `${safeNumber(it.price, "0")} ر.س`}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        ) : null}
+        </View>
       );
     },
-    [c, s, favorites, openChef, toggleFavorite]
+    [c, s, cardItems, favorites, openChef, toggleFavorite]
   );
 
   if (!fontsLoaded) {
@@ -835,6 +974,32 @@ const make_s = (c: Colors) => StyleSheet.create({
     textAlign: "center",
   },
 
+  liveTitleRow: { flexDirection: "row-reverse", alignItems: "center", gap: 7 },
+  liveSecTitle: { color: c.danger, fontSize: 16, fontFamily: "Almarai_800ExtraBold" },
+  liveDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: c.danger },
+  liveImgWrap: { borderWidth: 2, borderColor: c.danger, borderRadius: 18 },
+  liveBadge: { position: "absolute", bottom: 6, right: 6, flexDirection: "row-reverse", alignItems: "center", gap: 5, backgroundColor: c.danger, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  liveBadgeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#FFFFFF" },
+  liveBadgeText: { color: "#FFFFFF", fontSize: 9.5, fontFamily: "Almarai_800ExtraBold" },
+
+  chefCardWrap: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: c.surface,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: c.border,
+    overflow: "hidden",
+  },
+
+  itemStrip: { flexDirection: "row-reverse", alignItems: "flex-start", paddingHorizontal: 12, paddingBottom: 12, gap: 9 },
+  itemCard: { width: 78 },
+  itemCardOff: { opacity: 0.45 },
+  itemImg: { width: 78, height: 62, borderRadius: 12, backgroundColor: c.surfaceAlt },
+  itemImgPlaceholder: { alignItems: "center", justifyContent: "center" },
+  itemName: { color: c.text, fontSize: 10.5, textAlign: "center", marginTop: 5, fontFamily: "Almarai_700Bold" },
+  itemPrice: { color: c.gold, fontSize: 11, textAlign: "center", marginTop: 2, fontFamily: "Almarai_800ExtraBold" },
+
   railFixed: {
     flexGrow: 0,
     flexShrink: 0,
@@ -1009,13 +1174,7 @@ const make_s = (c: Colors) => StyleSheet.create({
   chefCard: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    marginHorizontal: 16,
-    marginBottom: 10,
-    backgroundColor: c.surface,
-    borderRadius: 20,
     padding: 14,
-    borderWidth: 1,
-    borderColor: c.goldSoft,
     gap: 11,
   },
 
