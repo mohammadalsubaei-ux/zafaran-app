@@ -5,6 +5,7 @@ import {
   ScrollView, RefreshControl, Switch, Share,
 } from "react-native";
 import { useTheme, type Colors } from "@/context/ThemeContext";
+import QRCode from "react-native-qrcode-svg";
 import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
@@ -17,7 +18,7 @@ import {
 import {
   RefreshCw, ChevronDown, UtensilsCrossed, Package, ClipboardList,
   Check, X, Flame, Star, LogOut, CalendarDays, Clock3, CheckCircle2, Coffee, MapPin, Wallet,
-  ArrowRight, FileText, Eye, Share2
+  ArrowRight, FileText, Eye, Share2, QrCode
 } from "lucide-react-native";
 import { pickCompressedImage, uploadImageToBucket } from "@/utils/images";
 
@@ -95,6 +96,7 @@ export default function DashboardScreen() {
 
   const router = useRouter();
   const { c } = useTheme();
+  const [showQr, setShowQr] = useState(false);
   const s = useMemo(() => make_s(c), [c]);
   const statusMap = useMemo(() => makeSTATUS(c), [c]);
   const chefStatusList = useMemo(() => makeCHEF_STATUS(c), [c]);
@@ -631,6 +633,19 @@ export default function DashboardScreen() {
             </View>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={s.menuBtn}
+            onPress={() => {
+              if (!chefId) return;
+              setShowQr(true);
+            }}
+          >
+            <View style={s.btnInner}>
+              <QrCode size={16} color={c.gold} />
+              <Text style={s.menuBtnText}>رمز متجري</Text>
+            </View>
+          </TouchableOpacity>
+
           <View style={s.statsRow}>
             <View style={s.statCard}>
               <Text style={s.statNum}>{activeOrders.length}</Text>
@@ -877,6 +892,55 @@ export default function DashboardScreen() {
           </View>
         </SafeAreaView>
       </Modal>
+
+      {/* رمز المتجر — يفتح صفحة المتجر، والصفحة تحوّل لتطبيق زعفران */}
+      <Modal visible={showQr} animationType="fade" transparent onRequestClose={() => setShowQr(false)}>
+        <View style={s.qrOverlay}>
+          <View style={s.qrBox}>
+            <TouchableOpacity style={s.qrClose} onPress={() => setShowQr(false)}>
+              <X size={20} color={c.textSoft} />
+            </TouchableOpacity>
+
+            <Text style={s.qrTitle}>رمز متجري</Text>
+            <Text style={s.qrSub}>امسحه بالكاميرا لتفتح صفحة المتجر</Text>
+
+            <View style={s.qrFrame}>
+              {chefId ? (
+                <QRCode
+                  value={API + "/store/" + chefId}
+                  size={208}
+                  color="#17100B"
+                  backgroundColor="#FFFFFF"
+                  logo={require("@/assets/images/icon.png")}
+                  logoSize={46}
+                  logoBackgroundColor="#FFFFFF"
+                  logoBorderRadius={10}
+                  logoMargin={3}
+                />
+              ) : null}
+            </View>
+
+            <Text style={s.qrHint}>
+              اطبعه على أكياسك أو انشره في حساباتك — خذ لقطة شاشة للرمز لحفظه.
+            </Text>
+
+            <TouchableOpacity
+              style={s.qrShareBtn}
+              onPress={async () => {
+                if (!chefId) return;
+                try {
+                  await Share.share({
+                    message: "تصفح متجري على زعفران واطلب مباشرة:\n" + API + "/store/" + chefId,
+                  });
+                } catch {}
+              }}
+            >
+              <Share2 size={16} color={c.onGold} />
+              <Text style={s.qrShareText}>مشاركة الرابط</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -915,6 +979,15 @@ const make_s = (c: Colors) => StyleSheet.create({
   statusVal:         { fontSize: 15, fontWeight: "800", textAlign: "right", fontFamily: "Almarai_700Bold" },
   statusDesc:        { fontSize: 11, color: c.textSoft, textAlign: "right", fontFamily: "Almarai_400Regular", marginTop: 2 },
   statusChange:      { fontSize: 13, fontWeight: "700", fontFamily: "Almarai_700Bold" },
+  qrOverlay:         { flex: 1, backgroundColor: c.overlay, alignItems: "center", justifyContent: "center", paddingHorizontal: 26 },
+  qrBox:             { width: "100%", backgroundColor: c.surface, borderRadius: 26, borderWidth: 1, borderColor: c.border, padding: 22, alignItems: "center" },
+  qrClose:           { position: "absolute", top: 12, left: 12, padding: 6 },
+  qrTitle:           { color: c.text, fontSize: 18, fontFamily: "Almarai_800ExtraBold" },
+  qrSub:             { color: c.textSoft, fontSize: 12, marginTop: 5, marginBottom: 16, fontFamily: "Almarai_400Regular" },
+  qrFrame:           { backgroundColor: "#FFFFFF", padding: 14, borderRadius: 18 },
+  qrHint:            { color: c.textSoft, fontSize: 12, lineHeight: 21, textAlign: "center", marginTop: 16, fontFamily: "Almarai_400Regular" },
+  qrShareBtn:        { marginTop: 16, minHeight: 46, borderRadius: 15, backgroundColor: c.goldSolid, alignSelf: "stretch", alignItems: "center", justifyContent: "center", flexDirection: "row-reverse", gap: 8 },
+  qrShareText:       { color: c.onGold, fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
   menuBtn:           { marginHorizontal: 16, marginBottom: 12, backgroundColor: c.goldSoft, borderRadius: 14, padding: 14, alignItems: "center", borderWidth: 1, borderColor: c.goldBorder },
   menuBtnText:       { color: c.gold, fontSize: 15, fontWeight: "900", fontFamily: "Almarai_800ExtraBold" },
   statsRow:          { flexDirection: "row-reverse", paddingHorizontal: 16, gap: 8, marginBottom: 12 },

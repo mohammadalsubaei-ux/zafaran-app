@@ -15,11 +15,26 @@ import { useTheme, type Colors } from "@/context/ThemeContext";
 const API = "https://zafaran-backend-production.up.railway.app";
 const PLAY_URL = "https://play.google.com/store/apps/details?id=com.zafaran.app";
 
-// رقم النسخة الحالية من app.json — expo-constants يقرأه وقت التشغيل
-function currentVersionCode(): number {
-  const android = (Constants.expoConfig as any)?.android;
-  const code = Number(android?.versionCode);
-  return Number.isFinite(code) ? code : 0;
+// نقرأ النسخة النصية (1.0.1) لا versionCode — لأن EAS يستخدم appVersionSource:"remote"
+// مع autoIncrement، فرقم versionCode في app.json مجمّد ولا يعكس النسخة الفعلية إطلاقاً.
+function currentVersion(): string {
+  return String((Constants.expoConfig as any)?.version || "").trim();
+}
+
+// مقارنة نسخ صحيحة: 1.0.10 أحدث من 1.0.9 (المقارنة النصية الساذجة تعكسها)
+function isNewer(latest: string, current: string): boolean {
+  const a = latest.split(".").map((n) => parseInt(n, 10) || 0);
+  const b = current.split(".").map((n) => parseInt(n, 10) || 0);
+  const len = Math.max(a.length, b.length);
+
+  for (let i = 0; i < len; i++) {
+    const x = a[i] || 0;
+    const y = b[i] || 0;
+    if (x > y) return true;
+    if (x < y) return false;
+  }
+
+  return false;
 }
 
 export default function UpdateBanner() {
@@ -33,17 +48,16 @@ export default function UpdateBanner() {
     if (Platform.OS !== "android") return;
 
     try {
-      const res = await fetch(`${API}/api/settings/latest_version_code`);
+      const res = await fetch(`${API}/api/settings/latest_version`);
       const json = await res.json().catch(() => null);
 
-      const latest = Number(json?.data?.value);
-      const current = currentVersionCode();
+      const latest = String(json?.data?.value || "").trim();
+      const current = currentVersion();
 
       // أي فشل في القراءة = لا رسالة، لا نزعج المستخدم بلا سبب
-      if (!Number.isFinite(latest) || latest <= 0) return;
-      if (current <= 0) return;
+      if (!latest || !current) return;
 
-      if (latest > current) setVisible(true);
+      if (isNewer(latest, current)) setVisible(true);
     } catch {
       // تجاهل صامت — فحص التحديث ليس وظيفة حرجة
     }
