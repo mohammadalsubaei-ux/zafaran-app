@@ -120,6 +120,8 @@ const CHEF_STATUS_UI: Record<
 //  ملاحظة RTL: القائمة معكوسة بصرياً، لذا نحسب المؤشر من اليمين
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function BannerCarousel({ banners }: { banners: Banner[] }) {
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
   const scrollRef = useRef<ScrollView | null>(null);
   const [index, setIndex] = useState(0);
   // السحب اليدوي يوقف التدوير التلقائي مؤقتاً حتى لا يقاطع المستخدم
@@ -390,6 +392,21 @@ export default function HomeScreen() {
     [router]
   );
 
+  const openLive = useCallback(
+    (chef: Chef) => {
+      const url = String(chef.live_url || "").trim();
+
+      // لا رابط أو تعذّر الفتح: نفتح صفحة المتجر بدل أن نترك الضغطة بلا نتيجة
+      if (!url) {
+        openChef(chef.id);
+        return;
+      }
+
+      Linking.openURL(url).catch(() => openChef(chef.id));
+    },
+    [openChef]
+  );
+
   const openTrack = useCallback(
     (trackId: TrackId) => {
       router.push({
@@ -495,10 +512,14 @@ export default function HomeScreen() {
                         </View>
                       )}
 
-                      <View style={s.liveBadge}>
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        style={s.liveBadge}
+                        onPress={() => openLive(chef)}
+                      >
                         <View style={s.liveBadgeDot} />
-                        <Text style={s.liveBadgeText}>يبث الآن</Text>
-                      </View>
+                        <Text style={s.liveBadgeText}>شاهد البث</Text>
+                      </TouchableOpacity>
                     </View>
 
                     <Text style={s.topChefName} numberOfLines={1}>
@@ -597,7 +618,7 @@ export default function HomeScreen() {
         ) : null}
       </View>
     );
-  }, [c, s, isDark, banners, chefs, chefsByTrack, liveChefs, error, onRefresh, openChef, openTrack, search]);
+  }, [c, s, isDark, banners, chefs, chefsByTrack, liveChefs, error, onRefresh, openChef, openLive, openTrack, search]);
 
   const renderChef = useCallback(
     ({ item }: { item: Chef }) => {

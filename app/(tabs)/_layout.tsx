@@ -66,6 +66,8 @@ function shortAddress(value: unknown) {
 }
 
 function AddrIcon({ label }: { label?: string | null }) {
+  const { c } = useTheme();
+
   if (label === "منزل") {
     return <Home size={18} color={c.gold} strokeWidth={1.8} />;
   }

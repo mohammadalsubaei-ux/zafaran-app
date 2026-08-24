@@ -1,947 +1,1392 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useFocusEffect } from "expo-router";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  Linking,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold, useFonts,
-} from "@expo-google-fonts/almarai";
-import {
-  AlertCircle, ArrowRight, Banknote, CalendarDays, CheckCircle2, Clock3,
-  CreditCard, Flame, Gift, Home, MapPin, Navigation, PackageCheck,
-  ReceiptText, RefreshCw, ShoppingBag, Smartphone, Star, Store, Truck,
-  Wallet, XCircle,
+  Award,
+  ChevronLeft,
+  Heart,
+  MapPin,
+  Search,
+  Star,
+  Store,
+  X,
 } from "lucide-react-native";
+import {
+  useFonts,
+  Almarai_400Regular,
+  Almarai_700Bold,
+  Almarai_800ExtraBold,
+} from "@expo-google-fonts/almarai";
 
-import PaymentGateway, { PaymentMethod as GatewayMethod } from "@/components/PaymentGateway";
-
-const isWeb = require('react-native').Platform.OS === 'web';
-const MapView   = isWeb ? () => null : require('react-native-maps').default;
-const Marker    = isWeb ? () => null : require('react-native-maps').Marker;
-const Polyline  = isWeb ? () => null : require('react-native-maps').Polyline;
+import { TRACKS, itemMatchesTrack, tone, type TrackId } from "@/constants/categories";
+import { useTheme, type Colors } from "@/context/ThemeContext";
 
 const API = "https://zafaran-backend-production.up.railway.app";
-const TRACKING_POLL_INTERVAL = 8000; // 8 ثواني
+const SUPPORT_WHATSAPP = "966544633113";
 
-type OrderStatus = "pending" | "accepted" | "preparing" | "ready" | "delivering" | "delivered" | "cancelled" | "pending_time" | "time_confirmed";
-type PaymentMethod = "cash" | "stc_pay" | "apple_pay" | "card" | string;
-type PaymentStatus = "pending" | "paid" | "failed" | "refunded" | string;
+const SCREEN_W = Dimensions.get("window").width;
+const BANNER_W = SCREEN_W - 32;          // بانر واحد بعرض الشاشة ناقص الهوامش
+const BANNER_GAP = 10;
+const BANNER_SNAP = BANNER_W + BANNER_GAP;
+const BANNER_INTERVAL = 4500;            // مدة بقاء البانر قبل الانتقال التلقائي
 
-type OrderItem = {
+type MenuItem = {
   id?: string;
   name?: string | null;
-  quantity?: number | string | null;
   price?: number | string | null;
-  subtotal?: number | string | null;
-  menu_items?: { name?: string | null; price?: number | string | null } | null;
+  image_url?: string | null;
+  category?: string | null;
+  status?: string | null;
 };
 
-type Order = {
+type Banner = {
   id: string;
-  status?: OrderStatus | string | null;
-  created_at?: string | null;
-  ready_at?: string | null;
-  driver_id?: string | null;
-  delivery_type?: "delivery" | "pickup" | string | null;
-  delivery_address?: string | null;
-  delivery_fee?: number | string | null;
-  delivery_lat?: number | string | null;
-  delivery_lng?: number | string | null;
-  payment_method?: PaymentMethod | null;
-  payment_status?: PaymentStatus | null;
-  subtotal?: number | string | null;
-  total?: number | string | null;
-  total_amount?: number | string | null;
-  cancel_reason?: string | null;
-  notes?: string | null;
-  order_type?: string | null;
-  requested_time?: string | null;
-  proposed_time?: string | null;
-  confirmed_time?: string | null;
-  time_negotiation_status?: "pending" | "chef_countered" | "accepted" | "rejected" | string | null;
-  chefs?: {
-    city?: string | null;
-    neighborhood?: string | null;
-    users?: { full_name?: string | null; gender?: string | null; phone?: string | null } | null;
-  } | null;
-  order_items?: OrderItem[] | null;
-  items?: OrderItem[] | null;
+  title: string;
+  subtitle: string | null;
+  bg_color: string;
+  text_color: string;
+  target: string | null;
 };
 
-type DriverLocation = {
-  lat: number;
-  lng: number;
-  heading?: number | null;
-  speed?: number | null;
-  updated_at?: string | null;
-} | null;
+type Chef = {
+  id: string;
+  city?: string | null;
+  neighborhood?: string | null;
+  is_open?: boolean | null;
+  status?: "open" | "preorder" | "closed" | null;
+  rating_avg?: number | string | null;
+  total_orders?: number | string | null;
+  users?: {
+    full_name?: string | null;
+  } | null;
+  menu?: MenuItem[] | null;
+  is_live?: boolean | null;
+  live_url?: string | null;
+};
 
-const makeStatusMeta = (c: Colors): Record<string, { label: string; color: string; bg: string; Icon: any }> => ({
-  pending:        { label: "بانتظار القبول",       color: c.gold, bg: c.goldSoft,  Icon: Clock3       },
-  pending_time:   { label: "بانتظار تأكيد الوقت",  color: c.gold, bg: c.goldSoft,   Icon: Clock3       },
-  time_confirmed: { label: "تم تأكيد الوقت",       color: c.success, bg: c.successSoft,  Icon: CheckCircle2 },
-  accepted:       { label: "تم القبول",             color: c.info, bg: c.goldSoft,  Icon: CheckCircle2 },
-  preparing:      { label: "قيد التحضير",           color: c.gold, bg: c.goldSoft,   Icon: Flame        },
-  ready:          { label: "جاهز للاستلام",         color: c.info, bg: c.goldSoft,  Icon: Gift         },
-  delivering:     { label: "في الطريق",             color: c.info, bg: c.goldSoft,   Icon: Truck        },
-  delivered:      { label: "تم التسليم",            color: c.success, bg: c.successSoft,   Icon: Home         },
-  cancelled:      { label: "ملغي",                  color: c.danger, bg: c.dangerSoft,   Icon: XCircle      },
-});
+// المسميات هنا يجب أن تطابق شاشة التصنيفات حرفياً — أي اختلاف يربك المستخدم
+// المسارات من المصدر الموحّد constants/categories
 
-const TRACK_STEPS_DELIVERY = [
-  { key: "accepted",   label: "قبول الطلب",    Icon: CheckCircle2 },
-  { key: "preparing",  label: "التحضير",        Icon: Flame        },
-  { key: "ready",      label: "جاهز",           Icon: PackageCheck },
-  { key: "delivering", label: "في الطريق",      Icon: Truck        },
-  { key: "delivered",  label: "تم التسليم",     Icon: Home         },
-];
-
-const TRACK_STEPS_PICKUP = [
-  { key: "accepted",  label: "قبول الطلب",     Icon: CheckCircle2 },
-  { key: "preparing", label: "التحضير",         Icon: Flame        },
-  { key: "ready",     label: "جاهز للاستلام",  Icon: PackageCheck },
-  { key: "delivered", label: "تم الاستلام",    Icon: Home         },
-];
-
-function text(value: unknown, fallback = "غير محدد") {
+function safeText(value: unknown, fallback = "غير محدد") {
   if (value === null || value === undefined) return fallback;
-  const clean = String(value).trim();
-  return clean.length ? clean : fallback;
-}
-function numberValue(value: unknown) {
-  const n = Number(value || 0);
-  return Number.isFinite(n) ? n : 0;
-}
-function money(value: unknown) {
-  return `${numberValue(value).toFixed(2).replace(".00", "")} ريال`;
-}
-function shortId(id: unknown) {
-  const clean = text(id, "");
-  return clean ? clean.slice(0, 8).toUpperCase() : "—";
-}
-function formatDate(value: unknown) {
-  const raw = text(value, "");
-  if (!raw) return "غير محدد";
-  const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return "غير محدد";
-  return date.toLocaleDateString("ar-SA", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-}
-function formatDateTime(value: unknown) {
-  const raw = text(value, "");
-  if (!raw) return "غير محدد";
-  const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return "غير محدد";
-  return date.toLocaleString("ar-SA", { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const text = String(value).trim();
+  return text.length ? text : fallback;
 }
 
-// cash هي الطريقة الافتراضية في السلة — غيابها هنا كان يعرض "غير محدد" لكل طلب
-function paymentLabel(method?: PaymentMethod | null) {
-  if (method === "cash")      return "الدفع عند الاستلام";
-  if (method === "stc_pay")   return "STC Pay";
-  if (method === "apple_pay") return "Apple Pay";
-  if (method === "card")      return "مدى / بطاقة";
-  return "غير محدد";
-}
-function PaymentIcon({ method, color }: { method?: PaymentMethod | null; color: string }) {
-  if (method === "cash")      return <Banknote   size={18} color={color} strokeWidth={1.8} />;
-  if (method === "apple_pay") return <Smartphone size={18} color={color} strokeWidth={1.8} />;
-  if (method === "card")      return <CreditCard size={18} color={color} strokeWidth={1.8} />;
-  return <Wallet size={18} color={color} strokeWidth={1.8} />;
-}
-function paymentStatusLabel(status?: PaymentStatus | null, method?: PaymentMethod | null) {
-  if (status === "paid")     return "مدفوع";
-  if (status === "failed")   return "فشل الدفع";
-  if (status === "refunded") return "مسترجع";
-  // الدفع عند الاستلام: الحالة pending طبيعية ولا تعني تأخر العميل
-  if (method === "cash")     return "يُدفع نقداً أو تحويلاً عند الاستلام";
-  return "بانتظار الدفع";
-}
-function paymentStatusColor(c: Colors, status?: PaymentStatus | null, method?: PaymentMethod | null) {
-  if (status === "paid")     return c.success;
-  if (status === "failed")   return c.danger;
-  if (status === "refunded") return c.info;
-  if (method === "cash")     return c.textSoft;
-  return c.gold;
+function safeNumber(value: unknown, fallback = "0") {
+  if (value === null || value === undefined || value === "") return fallback;
+  return String(value);
 }
 
-// خريطة تتبع المندوب
-function SimpleMap({ driverLat, driverLng, destLat, destLng }: {
-  driverLat: number; driverLng: number;
-  destLat?: number | null; destLng?: number | null;
-}) {
-  const hasDest = destLat != null && destLng != null;
+// أول صورة منتج متاحة — بديل صورة الغلاف غير الموجودة في جدول chefs
+function chefImage(chef: Chef): string | null {
+  const withImage = chef.menu?.find((item) => Boolean(item.image_url));
+  return withImage?.image_url || null;
+}
 
-  // نطاق الخريطة يشمل المندوب والوجهة مع بعض إذا متوفرة، وإلا يتمركز على المندوب بس
-  const midLat = hasDest ? (driverLat + destLat!) / 2 : driverLat;
-  const midLng = hasDest ? (driverLng + destLng!) / 2 : driverLng;
-  const latDelta = hasDest ? Math.max(Math.abs(driverLat - destLat!) * 1.8, 0.01) : 0.01;
-  const lngDelta = hasDest ? Math.max(Math.abs(driverLng - destLng!) * 1.8, 0.01) : 0.01;
+function getChefStatus(chef: Chef): "open" | "preorder" | "closed" {
+  if (chef.status === "open" || chef.status === "preorder" || chef.status === "closed") {
+    return chef.status;
+  }
+  return chef.is_open ? "open" : "closed";
+}
+
+const CHEF_STATUS_UI: Record<
+  "open" | "preorder" | "closed",
+  { bg: string; dot: string; text: string; label: string }
+> = {
+  open:     { bgKey: "successSoft", dotKey: "success", textKey: "success", label: "متاح" },
+  preorder: { bgKey: "goldSoft",    dotKey: "gold",    textKey: "gold",    label: "حجز مسبق" },
+  closed:   { bgKey: "dangerSoft",  dotKey: "danger",  textKey: "danger",  label: "مغلق" },
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  شريط البانرات: تدوير تلقائي + سحب بالإصبع + نقاط مؤشر
+//  ملاحظة RTL: القائمة معكوسة بصرياً، لذا نحسب المؤشر من اليمين
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function BannerCarousel({ banners }: { banners: Banner[] }) {
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
+  const scrollRef = useRef<ScrollView | null>(null);
+  const [index, setIndex] = useState(0);
+  // السحب اليدوي يوقف التدوير التلقائي مؤقتاً حتى لا يقاطع المستخدم
+  const pausedUntil = useRef(0);
+
+  const count = banners.length;
+
+  useEffect(() => {
+    if (count <= 1) return;
+
+    const timer = setInterval(() => {
+      if (Date.now() < pausedUntil.current) return;
+
+      setIndex((prev) => {
+        const next = (prev + 1) % count;
+        scrollRef.current?.scrollTo({ x: next * BANNER_SNAP, animated: true });
+        return next;
+      });
+    }, BANNER_INTERVAL);
+
+    return () => clearInterval(timer);
+  }, [count]);
+
+  const onScrollEnd = useCallback((e: any) => {
+    const x = e?.nativeEvent?.contentOffset?.x || 0;
+    const current = Math.round(x / BANNER_SNAP);
+    setIndex(Math.max(0, Math.min(current, count - 1)));
+    // ثمانية ثوان هدنة بعد كل سحب يدوي
+    pausedUntil.current = Date.now() + 8000;
+  }, [count]);
+
+  if (count === 0) return null;
 
   return (
-    <View style={ms.mapWrap}>
-      <MapView
-        style={ms.map}
-        region={{ latitude: midLat, longitude: midLng, latitudeDelta: latDelta, longitudeDelta: lngDelta }}
+    <View style={s.bannersWrap}>
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={BANNER_SNAP}
+        decelerationRate="fast"
+        disableIntervalMomentum
+        onMomentumScrollEnd={onScrollEnd}
+        onScrollBeginDrag={() => { pausedUntil.current = Date.now() + 8000; }}
+        contentContainerStyle={s.bannersContent}
       >
-        <Marker coordinate={{ latitude: driverLat, longitude: driverLng }} title="المندوب" pinColor={c.info}>
-          <View style={ms.driverPin}>
-            <Truck size={16} color={c.onGold} strokeWidth={2} />
+        {banners.map((b) => (
+          <View
+            key={b.id}
+            style={[s.bannerCard, { backgroundColor: b.bg_color }]}
+          >
+            <Text style={[s.bannerTitle, { color: b.text_color }]} numberOfLines={1}>
+              {b.title}
+            </Text>
+            {b.subtitle ? (
+              <Text style={[s.bannerSub, { color: b.text_color }]} numberOfLines={2}>
+                {b.subtitle}
+              </Text>
+            ) : null}
           </View>
-        </Marker>
+        ))}
+      </ScrollView>
 
-        {hasDest && (
-          <Marker coordinate={{ latitude: destLat!, longitude: destLng! }} title="موقع التسليم" pinColor={c.gold} />
-        )}
-
-        {hasDest && (
-          <Polyline
-            coordinates={[
-              { latitude: driverLat, longitude: driverLng },
-              { latitude: destLat!, longitude: destLng! },
-            ]}
-            strokeColor={c.info}
-            strokeWidth={3}
-          />
-        )}
-      </MapView>
-
-      <TouchableOpacity
-        style={ms.openMapBtn}
-        onPress={() => {
-          const { Linking } = require("react-native");
-          Linking.openURL(`https://www.google.com/maps?q=${driverLat},${driverLng}`);
-        }}
-        activeOpacity={0.9}
-      >
-        <Navigation size={13} color={c.onGold} strokeWidth={2} />
-        <Text style={ms.openMapBtnText}>فتح بخرائط جوجل</Text>
-      </TouchableOpacity>
+      {count > 1 ? (
+        <View style={s.dotsRow}>
+          {banners.map((b, i) => (
+            <View
+              key={b.id}
+              style={[s.dot, i === index && s.dotActive]}
+            />
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
 
-const make_ms = (c: Colors) => StyleSheet.create({
-  mapWrap:        { borderRadius: 18, overflow: "hidden", marginBottom: 4 },
-  map:            { width: "100%", height: 220 },
-  driverPin:      { backgroundColor: c.info, padding: 6, borderRadius: 20, borderWidth: 2, borderColor: c.bg },
-  openMapBtn:     { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: c.info, paddingVertical: 10, },
-  openMapBtnText: { color: c.bg, fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
-});
-
-export default function OrderDetailScreen() {
-  const router  = useRouter();
-  const { c } = useTheme();
+export default function HomeScreen() {
+  const router = useRouter();
+  const { c, isDark } = useTheme();
   const s = useMemo(() => make_s(c), [c]);
-  const ms = useMemo(() => make_ms(c), [c]);
-  const statusMeta = useMemo(() => makeStatusMeta(c), [c]);
-  const { id }  = useLocalSearchParams();
-  const orderId = Array.isArray(id) ? id[0] : id;
 
-  const [order, setOrder]             = useState<Order | null>(null);
-  const [loading, setLoading]         = useState(true);
-  const [refreshing, setRefreshing]   = useState(false);
-  const [error, setError]             = useState<string | null>(null);
-  const [driverLocation, setDriverLocation] = useState<DriverLocation>(null);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [respondLoading, setRespondLoading] = useState(false);
-  const [cancelLoading, setCancelLoading]   = useState(false);
-  const [noDriverLoading, setNoDriverLoading] = useState(false);
-  const [snoozeUntil, setSnoozeUntil]       = useState(0);
-  const [nowTick, setNowTick]               = useState(Date.now());
-  const [showPayment, setShowPayment] = useState(false);
+  const [chefs, setChefs] = useState<Chef[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  const trackingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [banners, setBanners] = useState<Banner[]>([]);
 
-  const [fontsLoaded] = useFonts({ Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold });
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestId = useRef(0);
 
-  const loadOrder = useCallback(async (silent = false) => {
-    if (!orderId) { setOrder(null); setError("رقم الطلب غير موجود."); setLoading(false); return; }
-    if (!silent) setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`${API}/api/orders/${orderId}`);
-      const json     = await response.json().catch(() => null);
-      if (!response.ok || !json?.success || !json?.data) {
-        setOrder(null); setError(json?.message || "الطلب غير موجود."); return;
-      }
-      setOrder(json.data);
-    } catch {
-      setOrder(null); setError("تعذر الاتصال بالخادم.");
-    } finally { setLoading(false); setRefreshing(false); }
-  }, [orderId]);
+  const [fontsLoaded] = useFonts({
+    Almarai_400Regular,
+    Almarai_700Bold,
+    Almarai_800ExtraBold,
+  });
 
-  const fetchDriverLocation = useCallback(async () => {
-    if (!orderId) return;
-    try {
-      const res  = await fetch(`${API}/api/tracking/${orderId}`);
-      const json = await res.json().catch(() => null);
-      if (json?.success && json?.data) {
-        setDriverLocation(json.data);
-        setLastUpdated(json.data.updated_at || new Date().toISOString());
-      }
-    } catch {}
-  }, [orderId]);
+  const favoriteKey = useMemo(() => {
+    return userId ? `favorites_${userId}` : null;
+  }, [userId]);
 
-  useEffect(() => { loadOrder(false); }, [loadOrder]);
+  // المتاجر التي تبث الآن — الخادم يوقف البث تلقائياً بعد أربع ساعات
+  const liveChefs = useMemo(
+    () => chefs.filter((chef) => Boolean(chef.is_live)),
+    [chefs]
+  );
 
-  useEffect(() => {
-    const waiting = order?.status === "ready" && !order?.driver_id && order?.delivery_address !== "استلام شخصي";
-    if (!waiting) return;
-    const t = setInterval(() => { setNowTick(Date.now()); loadOrder(true); }, 20000);
-    return () => clearInterval(t);
-  }, [order?.status, order?.driver_id, order?.delivery_address, loadOrder]);
+  // متاجر كل مسار — المتجر ينتمي للمسار إن كان لديه منتج واحد على الأقل من تصنيفاته
+  const chefsByTrack = useMemo(() => {
+    const map: Record<string, Chef[]> = { now: [], occasion: [], pantry: [] };
 
-  // تتبع لحظي عند حالة delivering
-  useEffect(() => {
-    if (order?.status === "delivering") {
-      fetchDriverLocation();
-      trackingIntervalRef.current = setInterval(fetchDriverLocation, TRACKING_POLL_INTERVAL);
-    } else {
-      if (trackingIntervalRef.current) {
-        clearInterval(trackingIntervalRef.current);
-        trackingIntervalRef.current = null;
-      }
-      if (order?.status !== "delivering") setDriverLocation(null);
-    }
-    return () => {
-      if (trackingIntervalRef.current) clearInterval(trackingIntervalRef.current);
-    };
-  }, [order?.status, fetchDriverLocation]);
+    chefs.forEach((chef) => {
+      const menu = Array.isArray(chef.menu) ? chef.menu : [];
 
-  const cancelOrder = useCallback(() => {
-    Alert.alert("إلغاء الطلب", "متأكد من إلغاء هذا الطلب؟", [
-      { text: "تراجع", style: "cancel" },
-      {
-        text: "نعم، إلغاء",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            setCancelLoading(true);
-            const stored = await AsyncStorage.getItem("user");
-            const userId = stored ? JSON.parse(stored)?.id : null;
-            const res = await fetch(`${API}/api/orders/${orderId}/status`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ status: "cancelled", user_id: userId, cancel_reason: "ألغاه العميل" }),
-            });
-            const json = await res.json();
-            if (json.success) {
-              loadOrder(true);
-            } else {
-              Alert.alert("تنبيه", json.message || "تعذر الإلغاء");
-            }
-          } catch {
-            Alert.alert("خطأ", "تعذر الاتصال بالسيرفر");
-          } finally {
-            setCancelLoading(false);
-          }
-        },
-      },
-    ]);
-  }, [orderId, loadOrder]);
-
-  const renotifyDrivers = useCallback(async () => {
-    try {
-      setNoDriverLoading(true);
-      const stored = await AsyncStorage.getItem("user");
-      const userId = stored ? JSON.parse(stored)?.id : null;
-      const res = await fetch(`${API}/api/orders/${orderId}/renotify-drivers`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId }),
+      TRACKS.forEach((track) => {
+        if (menu.some((it) => itemMatchesTrack(it?.category, track.id))) {
+          map[track.id].push(chef);
+        }
       });
-      const json = await res.json();
-      if (json.success) {
-        setSnoozeUntil(Date.now() + 2 * 60 * 1000);
-        Alert.alert("تم", "أشعرنا المناديب المتاحين مجدداً — سننبهك فور قبول أحدهم");
-      } else {
-        Alert.alert("تنبيه", json.message || "تعذر الإرسال");
+    });
+
+    Object.keys(map).forEach((k) => {
+      map[k].sort((a, b) => Number(b.rating_avg || 0) - Number(a.rating_avg || 0));
+    });
+
+    return map;
+  }, [chefs]);
+
+  // منتجات البطاقة: المتاح أولًا ثم الحجز المسبق ثم غير المتاح — بحد أقصى ستة
+  const cardItems = useCallback((chef: Chef) => {
+    const menu = Array.isArray(chef.menu) ? chef.menu : [];
+    const rank = (st?: string | null) =>
+      st === "available" ? 0 : st === "preorder" ? 1 : 2;
+
+    return [...menu].sort((a, b) => rank(a?.status) - rank(b?.status)).slice(0, 6);
+  }, [])
+
+  const loadSession = useCallback(async () => {
+    const storedUser = await AsyncStorage.getItem("user");
+
+    if (!storedUser) {
+      setUserId(null);
+      setFavorites([]);
+      return;
+    }
+
+    try {
+      const user = JSON.parse(storedUser);
+      const id = user?.id ? String(user.id) : null;
+      setUserId(id);
+
+      if (id) {
+        const savedFavorites = await AsyncStorage.getItem(`favorites_${id}`);
+        setFavorites(savedFavorites ? JSON.parse(savedFavorites) : []);
       }
     } catch {
-      Alert.alert("خطأ", "تعذر الاتصال بالسيرفر");
-    } finally {
-      setNoDriverLoading(false);
+      await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+      setUserId(null);
+      setFavorites([]);
     }
-  }, [orderId]);
+  }, []);
 
-  const switchToPickup = useCallback(() => {
-    Alert.alert(
-      "التحويل لاستلام شخصي",
-      "بيلغى التوصيل وتستلم طلبك بنفسك من موقع المتجر بدون رسوم توصيل — نكمل؟",
-      [
-        { text: "تراجع", style: "cancel" },
-        {
-          text: "نعم، استلام شخصي",
-          onPress: async () => {
-            try {
-              setNoDriverLoading(true);
-              const stored = await AsyncStorage.getItem("user");
-              const userId = stored ? JSON.parse(stored)?.id : null;
-              const res = await fetch(`${API}/api/orders/${orderId}/switch-to-pickup`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: userId }),
-              });
-              const json = await res.json();
-              if (json.success) {
-                loadOrder(true);
-              } else {
-                Alert.alert("تنبيه", json.message || "تعذر التحويل");
-              }
-            } catch {
-              Alert.alert("خطأ", "تعذر الاتصال بالسيرفر");
-            } finally {
-              setNoDriverLoading(false);
-            }
-          },
-        },
-      ]
-    );
-  }, [orderId, loadOrder]);
+  const fetchChefs = useCallback(async (query = "", silent = false) => {
+    const currentRequest = ++requestId.current;
+
+    if (!silent) setLoading(true);
+    if (query.trim()) setSearching(true);
+
+    setError(null);
+
+    try {
+      const endpoint = query.trim()
+        ? `${API}/api/chefs/search?q=${encodeURIComponent(query.trim())}`
+        : `${API}/api/chefs`;
+
+      const response = await fetch(endpoint);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const json = await response.json();
+
+      if (currentRequest !== requestId.current) return;
+
+      if (!json?.success || !Array.isArray(json?.data)) {
+        setChefs([]);
+        setError("تعذر تحميل البيانات من الخادم");
+        return;
+      }
+
+      setChefs(json.data);
+    } catch {
+      if (currentRequest !== requestId.current) return;
+      setError("تعذر الاتصال بالخادم. تأكد من الإنترنت أو شغّل الباكند.");
+    } finally {
+      if (currentRequest === requestId.current) {
+        setLoading(false);
+        setRefreshing(false);
+        setSearching(false);
+      }
+    }
+  }, []);
+
+  const bootstrap = useCallback(async () => {
+    await loadSession();
+    await fetchChefs("", false);
+  }, [fetchChefs, loadSession]);
+
+  useFocusEffect(
+    useCallback(() => {
+      bootstrap();
+    }, [bootstrap])
+  );
+
+  // بانرات العروض من لوحة الأدمن — القسم يختفي كلياً عند غيابها
+  useEffect(() => {
+    fetch(`${API}/api/banners`)
+      .then((r) => r.json())
+      .then((j) => { if (j?.success && Array.isArray(j.data)) setBanners(j.data); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+
+    searchTimer.current = setTimeout(() => {
+      fetchChefs(search, true);
+    }, 450);
+
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, [fetchChefs, search]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadOrder(true);
-    if (order?.status === "delivering") await fetchDriverLocation();
-  }, [loadOrder, order?.status, fetchDriverLocation]);
+    await loadSession();
+    await fetchChefs(search, true);
+  }, [fetchChefs, loadSession, search]);
 
-  const respondToTime = useCallback(async (action: "accept" | "reject") => {
-    if (!orderId) return;
-    setRespondLoading(true);
-    try {
-      const res  = await fetch(`${API}/api/orders/${orderId}/respond-time`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-      const json = await res.json().catch(() => null);
-      if (json?.success) {
-        await loadOrder(true);
+  const toggleFavorite = useCallback(
+    async (chefId: string) => {
+      if (!favoriteKey) {
+        router.push("/login" as never);
+        return;
       }
-    } finally {
-      setRespondLoading(false);
+
+      const nextFavorites = favorites.includes(chefId)
+        ? favorites.filter((id) => id !== chefId)
+        : [...favorites, chefId];
+
+      setFavorites(nextFavorites);
+      await AsyncStorage.setItem(favoriteKey, JSON.stringify(nextFavorites));
+    },
+    [favoriteKey, favorites, router]
+  );
+
+  const openChef = useCallback(
+    (chefId: string) => {
+      router.push(`/chef/${chefId}` as never);
+    },
+    [router]
+  );
+
+  const openLive = useCallback(
+    (chef: Chef) => {
+      const url = String(chef.live_url || "").trim();
+
+      // لا رابط أو تعذّر الفتح: نفتح صفحة المتجر بدل أن نترك الضغطة بلا نتيجة
+      if (!url) {
+        openChef(chef.id);
+        return;
+      }
+
+      Linking.openURL(url).catch(() => openChef(chef.id));
+    },
+    [openChef]
+  );
+
+  const openTrack = useCallback(
+    (trackId: TrackId) => {
+      router.push({
+        pathname: "/(tabs)/categories",
+        params: { track: trackId, category: "all" },
+      } as any);
+    },
+    [router]
+  );
+
+  const notifyMeOnLaunch = useCallback(async () => {
+    const message = "مرحباً، أبي تنبيه أول ما تفتح متاجر زعفران في منطقتي.";
+    const waUrl  = `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(message)}`;
+
+    try {
+      await Linking.openURL(waUrl);
+    } catch {
+      Alert.alert("تنبيه", `راسلنا على الرقم:\n0${SUPPORT_WHATSAPP.slice(3)}`);
     }
-  }, [orderId, loadOrder]);
-
-  const handlePaymentSuccess = useCallback(() => {
-    setShowPayment(false);
-    loadOrder(true);
-  }, [loadOrder]);
-
-  const handlePaymentClose = useCallback(() => {
-    setShowPayment(false);
   }, []);
 
-  const goBack      = useCallback(() => { router.back(); }, [router]);
-  const orderItems  = useMemo(() => order?.order_items || order?.items || [], [order]);
+  const ListHeader = useMemo(() => {
+    // لا متاجر إطلاقًا: نخفي الإحصائيات والشرائط الفارغة (سواء كان هناك بحث أو لا)
+    if (chefs.length === 0) return null;
 
-  if (!fontsLoaded || loading) {
     return (
-      <SafeAreaView style={s.safe}>
-        <View style={s.loadingWrap}>
-          <ActivityIndicator color={c.gold} size="large" />
-          <Text style={s.loadingText}>جاري تحميل تفاصيل الطلب...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+      <View>
+        <BannerCarousel banners={banners} />
 
-  if (!order) {
-    return (
-      <SafeAreaView style={s.safe}>
-        <View style={s.header}>
-          <TouchableOpacity activeOpacity={0.8} style={s.headerBtn} onPress={goBack}>
-            <ArrowRight size={20} color={c.gold} />
-          </TouchableOpacity>
-          <Text style={s.title}>تفاصيل الطلب</Text>
-          <TouchableOpacity activeOpacity={0.8} style={s.headerBtn} onPress={onRefresh}>
-            <RefreshCw size={18} color={c.gold} />
-          </TouchableOpacity>
-        </View>
-        <View style={s.emptyWrap}>
-          <View style={s.emptyIcon}><AlertCircle size={58} color={c.danger} strokeWidth={1.5} /></View>
-          <Text style={s.emptyTitle}>الطلب غير موجود</Text>
-          <Text style={s.emptyText}>{error || "لم نتمكن من العثور على بيانات هذا الطلب."}</Text>
-          <TouchableOpacity activeOpacity={0.9} style={s.primaryBtn} onPress={onRefresh}>
-            <Text style={s.primaryBtnText}>إعادة المحاولة</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const statusKey   = String(order.status || "pending");
-  const status      = statusMeta[statusKey] || statusMeta.pending;
-  const StatusIcon  = status.Icon;
-  const TRACK_STEPS = order?.delivery_address === "استلام شخصي" ? TRACK_STEPS_PICKUP : TRACK_STEPS_DELIVERY;
-  const normalizedKey = statusKey === "time_confirmed" ? "accepted" : statusKey === "pending_time" ? "pending" : statusKey;
-  const currentStep = TRACK_STEPS.findIndex((st) => st.key === normalizedKey);
-  const isCancelled = statusKey === "cancelled";
-  const isDelivered = statusKey === "delivered";
-  const isDelivering = statusKey === "delivering";
-  const canCancel = statusKey === "pending" || statusKey === "pending_time";
-  const waitingDriver = statusKey === "ready" && !order?.driver_id && order?.delivery_address !== "استلام شخصي";
-  const waitedMs = waitingDriver && order?.ready_at ? nowTick - new Date(order.ready_at).getTime() : 0;
-  const showNoDriverCard = waitingDriver && waitedMs > 90 * 1000 && nowTick > snoozeUntil;
-  const isPreorder  = order.order_type === "preorder";
-  const isPickup    = order.delivery_type === "pickup" || text(order.delivery_address, "") === "استلام شخصي";
-  const isCash      = order.payment_method === "cash";
-  const subtotal    = numberValue(order.subtotal);
-  const deliveryFee = isPickup ? 0 : numberValue(order.delivery_fee);
-  const total       = numberValue(order.total_amount || order.total || subtotal + deliveryFee);
-  const chefName    = text(order.chefs?.users?.full_name, "متجر");
-  const chefLocation = [order.chefs?.city, order.chefs?.neighborhood].filter(Boolean).join(" · ");
-  const paymentColor = paymentStatusColor(c, order.payment_status, order.payment_method);
-
-  return (
-    <SafeAreaView style={s.safe}>
-      <View style={s.header}>
-        <TouchableOpacity activeOpacity={0.8} style={s.headerBtn} onPress={goBack}>
-          <ArrowRight size={20} color={c.gold} />
-        </TouchableOpacity>
-        <View style={s.headerTitleWrap}>
-          <Text style={s.title}>تفاصيل الطلب</Text>
-          <Text style={s.headerSub}>#{shortId(order.id)}</Text>
-        </View>
-        <TouchableOpacity activeOpacity={0.8} style={s.headerBtn} onPress={onRefresh}>
-          <RefreshCw size={18} color={c.gold} />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={s.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.gold} />}
-      >
-        {/* Hero */}
-        <View style={s.heroCard}>
-          <View style={s.heroTop}>
-            <View style={[s.statusBadge, { backgroundColor: status.bg }]}>
-              <StatusIcon size={15} color={status.color} strokeWidth={1.8} />
-              <Text style={[s.statusBadgeText, { color: status.color }]}>{status.label}</Text>
-            </View>
-            <Text style={s.orderNumber}>#{shortId(order.id)}</Text>
-          </View>
-          <Text style={s.heroTitle}>
-            {isCancelled ? "تم إلغاء الطلب" : isDelivered ? "تم اكتمال الطلب" : "طلبك قيد المتابعة"}
-          </Text>
-          <Text style={s.heroSub}>{formatDate(order.created_at)}</Text>
-        </View>
-
-        {canCancel ? (
-          <TouchableOpacity style={s.cancelOrderBtn} onPress={cancelOrder} disabled={cancelLoading} activeOpacity={0.85}>
-            {cancelLoading
-              ? <ActivityIndicator size="small" color={c.danger} />
-              : <Text style={s.cancelOrderBtnText}>إلغاء الطلب</Text>}
-          </TouchableOpacity>
-        ) : null}
-
-        {showNoDriverCard ? (
-          <View style={s.noDriverCard}>
-            <Text style={s.noDriverTitle}>لا يوجد مندوب متاح حالياً</Text>
-            <Text style={s.noDriverSub}>طلبك جاهز عند المتجر — اختر ما يناسبك:</Text>
-            <View style={s.noDriverBtns}>
-              <TouchableOpacity style={s.ndWaitBtn} onPress={renotifyDrivers} disabled={noDriverLoading} activeOpacity={0.85}>
-                {noDriverLoading
-                  ? <ActivityIndicator size="small" color={c.gold} />
-                  : <Text style={s.ndWaitText}>إشعار المناديب والانتظار</Text>}
-              </TouchableOpacity>
-              <TouchableOpacity style={s.ndPickupBtn} onPress={switchToPickup} disabled={noDriverLoading} activeOpacity={0.85}>
-                <Text style={s.ndPickupText}>استلام شخصي</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : null}
-
-        {/* تتبع المندوب اللحظي */}
-        {isDelivering && (
-          <View style={s.trackingCard}>
-            <View style={s.cardTitleRow}>
-              <Truck size={17} color={c.info} strokeWidth={1.8} />
-              <Text style={[s.cardTitle, { color: c.info }]}>تتبع المندوب</Text>
-              {driverLocation && (
-                <View style={s.liveBadge}>
-                  <View style={s.liveDot} />
-                  <Text style={s.liveBadgeText}>مباشر</Text>
-                </View>
-              )}
-            </View>
-
-            {driverLocation ? (
-              <>
-                <SimpleMap
-                  driverLat={driverLocation.lat}
-                  driverLng={driverLocation.lng}
-                  destLat={numberValue(order.delivery_lat) || null}
-                  destLng={numberValue(order.delivery_lng) || null}
-                />
-                {lastUpdated && (
-                  <Text style={s.lastUpdatedText}>
-                    آخر تحديث: {new Date(lastUpdated).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                  </Text>
-                )}
-              </>
-            ) : (
-              <View style={s.trackingWaiting}>
-                <ActivityIndicator color={c.info} size="small" />
-                <Text style={s.trackingWaitingText}>في انتظار موقع المندوب...</Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* معلومات الحجز المسبق */}
-        {isPreorder && (order.proposed_time || order.requested_time || order.confirmed_time) && (
-          <View style={s.card}>
-            <View style={s.cardTitleRow}>
-              <CalendarDays size={17} color={c.gold} strokeWidth={1.8} />
-              <Text style={s.cardTitle}>وقت الحجز</Text>
-            </View>
-            {(order.proposed_time || order.requested_time) && (
-              <View style={s.timeRow}>
-                <Text style={s.timeLabel}>الوقت المطلوب</Text>
-                <Text style={s.timeValue}>{formatDateTime(order.proposed_time || order.requested_time || "")}</Text>
-              </View>
-            )}
-            {order.confirmed_time && order.time_negotiation_status === "accepted" && (
-              <View style={[s.timeRow, { marginTop: 8 }]}>
-                <Text style={[s.timeLabel, { color: c.success }]}>الوقت المؤكد</Text>
-                <Text style={[s.timeValue, { color: c.success }]}>{formatDateTime(order.confirmed_time)}</Text>
-              </View>
-            )}
-
-            {/* المتجر اقترح وقتاً بديلاً — بانتظار رد العميل */}
-            {order.time_negotiation_status === "chef_countered" && order.confirmed_time && (
-              <View style={s.counterBox}>
-                <Text style={s.counterTitle}>المتجر اقترح وقتاً بديلاً</Text>
-                <Text style={s.counterTime}>{formatDateTime(order.confirmed_time)}</Text>
-                <Text style={s.counterSub}>وافق على الوقت الجديد أو ألغِ الطلب بدون أي رسوم</Text>
-
-                <View style={s.counterBtns}>
-                  <TouchableOpacity
-                    activeOpacity={0.9}
-                    style={s.acceptBtn}
-                    disabled={respondLoading}
-                    onPress={() => respondToTime("accept")}
-                  >
-                    {respondLoading ? (
-                      <ActivityIndicator color={c.bg} size="small" />
-                    ) : (
-                      <Text style={s.acceptBtnText}>موافق على الوقت الجديد</Text>
-                    )}
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    activeOpacity={0.9}
-                    style={s.rejectBtn}
-                    disabled={respondLoading}
-                    onPress={() => respondToTime("reject")}
-                  >
-                    <Text style={s.rejectBtnText}>إلغاء الطلب</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-
-            {/* بانتظار رد المتجر على الوقت المقترح من العميل */}
-            {order.time_negotiation_status === "pending" && (
-              <View style={s.waitingBox}>
-                <Clock3 size={14} color={c.gold} strokeWidth={1.8} />
-                <Text style={s.waitingText}>بانتظار تأكيد المتجر للوقت</Text>
-              </View>
-            )}
-
-            {/* الوقت اتفق عليه، بس الدفع لسا ما تم */}
-            {order.time_negotiation_status === "accepted" && order.payment_status !== "paid" && !isCash && (
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={s.payNowBtn}
-                onPress={() => setShowPayment(true)}
-              >
-                <CreditCard size={16} color={c.bg} strokeWidth={1.8} />
-                <Text style={s.payNowBtnText}>ادفع الآن لتأكيد الطلب</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-
-        {/* الطلب الفوري غير مدفوع (فشل أو أُلغي أثناء الدفع سابقاً) */}
-        {!isPreorder && order.payment_status !== "paid" && !isCash && !isCancelled && (
-          <View style={s.card}>
+        <View style={s.sectionsRow}>
+          {TRACKS.map((track) => (
             <TouchableOpacity
-              activeOpacity={0.9}
-              style={s.payNowBtn}
-              onPress={() => setShowPayment(true)}
+              key={track.id}
+              activeOpacity={0.85}
+              style={[s.sectionCard, { borderColor: `${tone(track, isDark)}55` }]}
+              onPress={() => openTrack(track.id)}
             >
-              <CreditCard size={16} color={c.bg} strokeWidth={1.8} />
-              <Text style={s.payNowBtnText}>ادفع الآن</Text>
+              <View style={[s.sectionIconWrap, { borderColor: `${tone(track, isDark)}66` }]}>
+                <track.Icon size={22} color={tone(track, isDark)} strokeWidth={1.8} />
+              </View>
+              <Text
+                style={[s.sectionLabel, { color: tone(track, isDark) }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {track.label}
+              </Text>
+              <Text style={s.sectionSub} numberOfLines={1} adjustsFontSizeToFit>
+                {track.sub}
+              </Text>
             </TouchableOpacity>
-          </View>
-        )}
+          ))}
+        </View>
 
-        {/* تتبع الطلب */}
-        {!isCancelled ? (
-          <View style={s.card}>
-            <View style={s.cardTitleRow}>
-              <Navigation size={17} color={c.gold} strokeWidth={1.8} />
-              <Text style={s.cardTitle}>تتبع الطلب</Text>
+        <View style={s.statsRow}>
+          <View style={s.statCard}>
+            <Store size={18} color={c.gold} />
+            <Text style={s.statValue}>{chefs.length}</Text>
+            <Text style={s.statLabel}>متجر</Text>
+          </View>
+
+          <View style={s.statCard}>
+            <Award size={18} color={c.gold} />
+            <Text style={s.statValue}>
+              {chefs.filter((chef) => getChefStatus(chef) !== "closed").length}
+            </Text>
+            <Text style={s.statLabel}>متاح الآن</Text>
+          </View>
+        </View>
+
+        {liveChefs.length > 0 ? (
+          <View>
+            <View style={s.secHeader}>
+              <View />
+              <View style={s.liveTitleRow}>
+                <View style={s.liveDot} />
+                <Text style={s.liveSecTitle}>على الهواء الآن</Text>
+              </View>
             </View>
-            <View style={s.timeline}>
-              {TRACK_STEPS.map((step, index) => {
-                const done   = index <= currentStep;
-                const active = index === currentStep;
-                const StepIcon = step.Icon;
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={s.railFixed}
+              contentContainerStyle={s.topList}
+            >
+              {liveChefs.map((chef) => {
+                const cover = chefImage(chef);
+
                 return (
-                  <View key={step.key} style={s.trackItem}>
-                    <View style={[s.trackIcon, done && s.trackIconDone, active && s.trackIconActive]}>
-                      <StepIcon size={17} color={done ? c.gold : c.textMuted} strokeWidth={1.8} />
+                  <TouchableOpacity
+                    key={`live-${chef.id}`}
+                    activeOpacity={0.88}
+                    style={s.topCard}
+                    onPress={() => openChef(chef.id)}
+                  >
+                    <View style={[s.topImgWrap, s.liveImgWrap]}>
+                      {cover ? (
+                        <Image source={{ uri: cover }} style={s.topImg} />
+                      ) : (
+                        <View style={[s.topImg, s.topImgPlaceholder]}>
+                          <Store size={30} color={c.textMuted} strokeWidth={1.5} />
+                        </View>
+                      )}
+
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        style={s.liveBadge}
+                        onPress={() => openLive(chef)}
+                      >
+                        <View style={s.liveBadgeDot} />
+                        <Text style={s.liveBadgeText}>شاهد البث</Text>
+                      </TouchableOpacity>
                     </View>
-                    <Text style={[s.trackLabel, done && s.trackLabelDone, active && s.trackLabelActive]}>
-                      {step.label}
+
+                    <Text style={s.topChefName} numberOfLines={1}>
+                      {safeText(chef.users?.full_name, "متجر")}
                     </Text>
-                    {index < TRACK_STEPS.length - 1 && (
-                      <View style={[s.trackLine, index < currentStep && s.trackLineDone]} />
-                    )}
-                  </View>
+                    <Text style={s.topChefBy} numberOfLines={1}>
+                      {safeText(chef.city, "")}
+                    </Text>
+                  </TouchableOpacity>
                 );
               })}
-            </View>
+            </ScrollView>
           </View>
-        ) : (
-          <View style={s.cancelCard}>
-            <View style={s.cardTitleRow}>
-              <XCircle size={17} color={c.danger} strokeWidth={1.8} />
-              <Text style={[s.cardTitle, { color: c.danger }]}>سبب الإلغاء</Text>
-            </View>
-            <Text style={s.cancelText}>{text(order.cancel_reason, "تم إلغاء الطلب.")}</Text>
-          </View>
-        )}
+        ) : null}
 
-        {/* المتجر */}
-        <View style={s.card}>
-          <View style={s.cardTitleRow}>
-            <Store size={17} color={c.gold} strokeWidth={1.8} />
-            <Text style={s.cardTitle}>المتجر</Text>
-          </View>
-          <Text style={s.chefName}>{chefName}</Text>
-          <View style={s.inlineRow}>
-            <MapPin size={13} color={c.textSoft} strokeWidth={1.6} />
-            <Text style={s.mutedText}>{text(chefLocation, "الموقع غير محدد")}</Text>
-          </View>
-        </View>
+        {TRACKS.map((track) => {
+          const list = chefsByTrack[track.id] || [];
+          if (list.length === 0) return null;
 
-        {/* المنتجات */}
-        <View style={s.card}>
-          <View style={s.cardTitleRow}>
-            <ShoppingBag size={17} color={c.gold} strokeWidth={1.8} />
-            <Text style={s.cardTitle}>المنتجات</Text>
-          </View>
-          {orderItems.length ? orderItems.map((item, index) => {
-            const name         = text(item.name || item.menu_items?.name, "منتج");
-            const qty          = numberValue(item.quantity || 1);
-            const itemPrice    = numberValue(item.price || item.menu_items?.price);
-            const itemSubtotal = numberValue(item.subtotal || itemPrice * qty);
-            return (
-              <View key={String(item.id || `${name}-${index}`)} style={[s.itemRow, index === orderItems.length - 1 && s.itemRowLast]}>
-                <View style={s.itemInfo}>
-                  <Text style={s.itemName} numberOfLines={2}>{name}</Text>
-                  <Text style={s.itemQty}>الكمية: {qty}</Text>
-                </View>
-                <Text style={s.itemPrice}>{money(itemSubtotal)}</Text>
+          return (
+            <View key={`rail-${track.id}`}>
+              <View style={s.secHeader}>
+                <TouchableOpacity activeOpacity={0.8} onPress={() => openTrack(track.id)}>
+                  <Text style={s.secMore}>عرض الكل</Text>
+                </TouchableOpacity>
+                <Text style={[s.secTitle, { color: tone(track, isDark) }]}>
+                  {track.label}
+                </Text>
               </View>
-            );
-          }) : <Text style={s.emptyMiniText}>لا توجد منتجات مسجلة.</Text>}
-        </View>
 
-        {/* الدفع */}
-        <View style={s.card}>
-          <View style={s.cardTitleRow}>
-            <CreditCard size={17} color={c.gold} strokeWidth={1.8} />
-            <Text style={s.cardTitle}>الدفع</Text>
-          </View>
-          <View style={s.paymentRow}>
-            <View style={s.paymentIconBox}>
-              <PaymentIcon method={order.payment_method} color={c.gold} />
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={s.railFixed}
+                contentContainerStyle={s.topList}
+              >
+                {list.map((chef) => {
+                  const cover = chefImage(chef);
+
+                  return (
+                    <TouchableOpacity
+                      key={`${track.id}-${chef.id}`}
+                      activeOpacity={0.88}
+                      style={s.topCard}
+                      onPress={() => openChef(chef.id)}
+                    >
+                      <View style={s.topImgWrap}>
+                        {cover ? (
+                          <Image source={{ uri: cover }} style={s.topImg} />
+                        ) : (
+                          <View style={[s.topImg, s.topImgPlaceholder]}>
+                            <Store size={30} color={c.textMuted} strokeWidth={1.5} />
+                          </View>
+                        )}
+
+                        <View style={s.topRatingBadge}>
+                          <Star size={10} color={c.gold} fill={c.gold} />
+                          <Text style={s.topRatingText}>
+                            {safeNumber(chef.rating_avg, "0")}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Text style={s.topChefName} numberOfLines={1}>
+                        {safeText(chef.users?.full_name, "متجر")}
+                      </Text>
+                      <Text style={s.topChefBy} numberOfLines={1}>
+                        {safeText(chef.city, "")}
+                      </Text>
+                      <Text style={s.topPrice}>
+                        {safeNumber(chef.total_orders, "0")} طلب
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
             </View>
-            <View style={s.paymentInfo}>
-              <Text style={s.paymentTitle}>{paymentLabel(order.payment_method)}</Text>
-              <Text style={[s.paymentStatus, { color: paymentColor }]}>
-                {paymentStatusLabel(order.payment_status, order.payment_method)}
+          );
+        })}
+
+        {chefs.length > 0 ? (
+          <View style={s.secHeader}>
+            <TouchableOpacity activeOpacity={0.8} onPress={() => openTrack("now")}>
+              <Text style={s.secMore}>الأقرب لك</Text>
+            </TouchableOpacity>
+            <Text style={s.secTitle}>كل المتاجر</Text>
+          </View>
+        ) : null}
+
+        {error ? (
+          <TouchableOpacity activeOpacity={0.85} style={s.errorBox} onPress={onRefresh}>
+            <Text style={s.errorTitle}>حدثت مشكلة</Text>
+            <Text style={s.errorText}>{error}</Text>
+            <Text style={s.errorRetry}>اضغط لإعادة المحاولة</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    );
+  }, [c, s, isDark, banners, chefs, chefsByTrack, liveChefs, error, onRefresh, openChef, openLive, openTrack, search]);
+
+  const renderChef = useCallback(
+    ({ item }: { item: Chef }) => {
+      const isFavorite = favorites.includes(item.id);
+      const city = safeText(item.city, "المدينة");
+      const neighborhood = safeText(item.neighborhood, "الحي");
+      const fullName = safeText(item.users?.full_name, "متجر");
+      const statusKey = getChefStatus(item);
+      const statusUi = CHEF_STATUS_UI[statusKey];
+      const cover = chefImage(item);
+
+      const items = cardItems(item);
+
+      return (
+        <View style={s.chefCardWrap}>
+        <TouchableOpacity
+          activeOpacity={0.88}
+          style={s.chefCard}
+          onPress={() => openChef(item.id)}
+        >
+          {cover ? (
+            <Image source={{ uri: cover }} style={s.chefAvatarImg} />
+          ) : (
+            <View style={s.chefAvatarWrap}>
+              <Store size={24} color={c.gold} strokeWidth={1.5} />
+            </View>
+          )}
+
+          <View style={s.chefInfo}>
+            <View style={s.chefNameRow}>
+              <Text style={s.chefName} numberOfLines={1}>
+                {fullName}
+              </Text>
+              <View style={[s.statusPill, { backgroundColor: c[statusUi.bgKey as keyof typeof c] }]}>
+                <View style={[s.statusDot, { backgroundColor: c[statusUi.dotKey as keyof typeof c] }]} />
+                <Text style={[s.statusText, { color: c[statusUi.textKey as keyof typeof c] }]}>
+                  {statusUi.label}
+                </Text>
+              </View>
+            </View>
+
+            <View style={s.chefCityRow}>
+              <MapPin size={12} color={c.textSoft} strokeWidth={1.5} />
+              <Text style={s.chefCity} numberOfLines={1}>
+                {city} · {neighborhood}
+              </Text>
+            </View>
+
+            <View style={s.chefMeta}>
+              <Star size={12} color={c.gold} fill={c.gold} />
+              <Text style={s.chefRating}>
+                {safeNumber(item.rating_avg, "0")}
+              </Text>
+              <Text style={s.chefOrders}>
+                {safeNumber(item.total_orders, "0")} طلب
               </Text>
             </View>
           </View>
-        </View>
 
-        {/* الملخص */}
-        <View style={s.card}>
-          <View style={s.cardTitleRow}>
-            <ReceiptText size={17} color={c.gold} strokeWidth={1.8} />
-            <Text style={s.cardTitle}>ملخص المبالغ</Text>
-          </View>
-          <View style={s.summaryRow}>
-            <Text style={s.summaryLabel}>المنتجات</Text>
-            <Text style={s.summaryValue}>{money(subtotal)}</Text>
-          </View>
-          <View style={s.summaryRow}>
-            <Text style={s.summaryLabel}>التوصيل</Text>
-            <Text style={s.summaryValue}>{isPickup ? "مجاني" : money(deliveryFee)}</Text>
-          </View>
-          <View style={s.summaryDivider} />
-          <View style={s.summaryRow}>
-            <Text style={s.totalLabel}>الإجمالي</Text>
-            <Text style={s.totalValue}>{money(total)}</Text>
-          </View>
-          {isCash && !isDelivered && !isCancelled ? (
-            <Text style={s.cashHint}>المبلغ يُحصّل عند استلام الطلب</Text>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={s.favBtn}
+            onPress={() => toggleFavorite(item.id)}
+          >
+            <Heart
+              size={20}
+              color={c.gold}
+              fill={isFavorite ? c.gold : "transparent"}
+              strokeWidth={1.8}
+            />
+          </TouchableOpacity>
+
+          <ChevronLeft size={18} color={c.textMuted} strokeWidth={1.8} />
+        </TouchableOpacity>
+
+        {items.length > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={s.railFixed}
+            contentContainerStyle={s.itemStrip}
+          >
+            {items.map((it) => {
+              const off = it?.status === "unavailable";
+
+              return (
+                <TouchableOpacity
+                  key={it.id}
+                  activeOpacity={0.85}
+                  style={[s.itemCard, off && s.itemCardOff]}
+                  onPress={() => openChef(item.id)}
+                >
+                  {it.image_url ? (
+                    <Image source={{ uri: it.image_url }} style={s.itemImg} />
+                  ) : (
+                    <View style={[s.itemImg, s.itemImgPlaceholder]}>
+                      <Store size={18} color={c.textMuted} strokeWidth={1.5} />
+                    </View>
+                  )}
+
+                  <Text style={s.itemName} numberOfLines={1}>
+                    {safeText(it.name, "منتج")}
+                  </Text>
+
+                  <Text style={s.itemPrice}>
+                    {off ? "غير متاح" : `${safeNumber(it.price, "0")} ر.س`}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        ) : null}
+        </View>
+      );
+    },
+    [c, s, cardItems, favorites, openChef, toggleFavorite]
+  );
+
+  if (!fontsLoaded) {
+    return (
+      <View style={s.safe}>
+        <ActivityIndicator color={c.gold} style={{ marginTop: 120 }} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={s.safe}>
+      {/* البحث خارج FlatList — داخله كان يُعاد بناؤه مع كل حرف فيختفي الكيبورد */}
+      <View style={s.hero}>
+        <Text style={s.heroTitle}>من بيتنا لبيتك</Text>
+
+        <View style={s.searchWrap}>
+          <Search size={18} color={c.gold} strokeWidth={1.8} />
+          <TextInput
+            style={s.searchInput}
+            placeholder="ابحث عن متجر أو منتج..."
+            placeholderTextColor={c.textMuted}
+            value={search}
+            onChangeText={setSearch}
+            textAlign="right"
+            returnKeyType="search"
+          />
+          {searching ? <ActivityIndicator size="small" color={c.gold} /> : null}
+          {!searching && search.trim() ? (
+            <TouchableOpacity activeOpacity={0.85} onPress={() => setSearch("")}>
+              <X size={17} color={c.textSoft} strokeWidth={2} />
+            </TouchableOpacity>
           ) : null}
         </View>
+      </View>
 
-        {/* العنوان */}
-        <View style={s.card}>
-          <View style={s.cardTitleRow}>
-            {isPickup ? <Home size={17} color={c.gold} strokeWidth={1.8} /> : <MapPin size={17} color={c.gold} strokeWidth={1.8} />}
-            <Text style={s.cardTitle}>{isPickup ? "طريقة الاستلام" : "عنوان التوصيل"}</Text>
-          </View>
-          <Text style={s.addressText}>
-            {isPickup ? "استلام شخصي من المتجر" : text(order.delivery_address, "العنوان غير محدد")}
-          </Text>
+      {loading ? (
+        <View style={s.loadingWrap}>
+          <ActivityIndicator color={c.gold} size="large" />
+          <Text style={s.loadingText}>جاري تجهيز زعفران...</Text>
         </View>
+      ) : (
+        <FlatList
+          data={chefs}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={s.listContent}
+          ListHeaderComponent={ListHeader}
+          renderItem={renderChef}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={c.gold}
+            />
+          }
+          ListEmptyComponent={
+            search.trim() ? (
+              <View style={s.emptyWrap}>
+                <Store size={54} color={c.textMuted} strokeWidth={1.5} />
+                <Text style={s.emptyTitle}>ما لقينا نتائج</Text>
+                <Text style={s.emptyText}>جرّب تبحث باسم متجر أو منتج مختلف.</Text>
+              </View>
+            ) : (
+              <View style={s.launchWrap}>
+                <View style={s.launchIcon}>
+                  <Store size={44} color={c.gold} strokeWidth={1.4} />
+                </View>
 
-        {/* زر التقييم */}
-        {isDelivered && (
-          <TouchableOpacity activeOpacity={0.92} style={s.reviewBtn}
-            onPress={() => router.push(`/review/${order.id}` as any)}>
-            <Star size={18} color={c.bg} strokeWidth={2} fill={c.bg} />
-            <Text style={s.reviewBtnText}>قيّم طلبك</Text>
-          </TouchableOpacity>
-        )}
-      </ScrollView>
+                <Text style={s.launchTitle}>زعفران يستقبل متاجره الأولى</Text>
 
-      <PaymentGateway
-        visible={showPayment}
-        orderId={order.id}
-        paymentMethod={(order.payment_method as GatewayMethod) || "card"}
-        onSuccess={handlePaymentSuccess}
-        onClose={handlePaymentClose}
-      />
-    </SafeAreaView>
+                <Text style={s.launchText}>
+                  لديك منتج بيتي — طبخ، حلا، معجنات، قهوة، أو مؤن؟ سجّل متجرك اليوم وكن من الأوائل في القصيم.
+                </Text>
+
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={s.launchPrimaryBtn}
+                  onPress={() => router.push("/login?step=chef_register" as never)}
+                >
+                  <Text style={s.launchPrimaryText}>سجّل متجرك</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={s.launchGhostBtn}
+                  onPress={notifyMeOnLaunch}
+                >
+                  <Text style={s.launchGhostText}>نبّهني عند الافتتاح</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          }
+        />
+      )}
+    </View>
   );
 }
 
 const make_s = (c: Colors) => StyleSheet.create({
-  safe:             { flex: 1, backgroundColor: c.bg },
-  loadingWrap:      { flex: 1, alignItems: "center", justifyContent: "center", gap: 14 },
-  loadingText:      { color: c.text, fontSize: 14, fontFamily: "Almarai_700Bold" },
-  header:           { minHeight: 68, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.goldSoft, flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between" },
-  headerBtn:        { width: 42, height: 42, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: c.goldSoft, borderWidth: 1, borderColor: c.border },
-  headerTitleWrap:  { alignItems: "center" },
-  title:            { color: c.text, fontSize: 18, fontFamily: "Almarai_800ExtraBold" },
-  headerSub:        { color: c.textSoft, fontSize: 11, marginTop: 3, fontFamily: "Almarai_400Regular" },
-  content:          { padding: 16, paddingBottom: 36 },
-  heroCard:         { backgroundColor: c.surface, borderRadius: 28, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: c.border },
-  heroTop:          { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
-  statusBadge:      { flexDirection: "row-reverse", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999 },
-  statusBadgeText:  { fontSize: 11, fontFamily: "Almarai_800ExtraBold" },
-  orderNumber:      { color: c.gold, fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
-  heroTitle:        { color: c.text, textAlign: "right", fontSize: 22, lineHeight: 32, fontFamily: "Almarai_800ExtraBold" },
-  heroSub:          { color: c.textSoft, textAlign: "right", marginTop: 6, fontSize: 12, lineHeight: 21, fontFamily: "Almarai_400Regular" },
-  cancelOrderBtn: { borderWidth: 1, borderColor: c.dangerSoft, borderRadius: 14, paddingVertical: 12, alignItems: "center", marginBottom: 14 },
-  cancelOrderBtnText: { color: c.danger, fontSize: 13, fontFamily: "Almarai_700Bold" },
-  noDriverCard:  { backgroundColor: c.goldSoft, borderRadius: 16, padding: 15, borderWidth: 1, borderColor: c.goldBorder, marginBottom: 14 },
-  noDriverTitle: { color: c.gold, fontSize: 14, fontFamily: "Almarai_800ExtraBold", textAlign: "right" },
-  noDriverSub:   { color: c.textSoft, fontSize: 12, fontFamily: "Almarai_400Regular", textAlign: "right", marginTop: 4, marginBottom: 12 },
-  noDriverBtns:  { flexDirection: "row-reverse", gap: 10 },
-  ndWaitBtn:     { flex: 1, borderWidth: 1, borderColor: c.goldBorder, borderRadius: 12, paddingVertical: 11, alignItems: "center" },
-  ndWaitText:    { color: c.gold, fontSize: 12, fontFamily: "Almarai_700Bold" },
-  ndPickupBtn:   { flex: 1, backgroundColor: c.gold, borderRadius: 12, paddingVertical: 11, alignItems: "center" },
-  ndPickupText:  { color: c.bg, fontSize: 12, fontFamily: "Almarai_800ExtraBold" },
-  trackingCard:     { backgroundColor: c.surface, borderRadius: 24, padding: 15, marginBottom: 12, borderWidth: 1, borderColor: c.goldSoft },
-  liveBadge:        { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: c.successSoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginRight: "auto" },
-  liveDot:          { width: 6, height: 6, borderRadius: 3, backgroundColor: c.success },
-  liveBadgeText:    { color: c.success, fontSize: 10, fontFamily: "Almarai_700Bold" },
-  trackingWaiting:  { flexDirection: "row-reverse", alignItems: "center", gap: 8, padding: 12, backgroundColor: c.goldSoft, borderRadius: 14 },
-  trackingWaitingText: { color: c.info, fontSize: 12, fontFamily: "Almarai_700Bold" },
-  lastUpdatedText:  { color: c.textMuted, textAlign: "center", fontSize: 10, marginTop: 6, fontFamily: "Almarai_400Regular" },
-  card:             { backgroundColor: c.surface, borderRadius: 24, padding: 15, marginBottom: 12, borderWidth: 1, borderColor: c.goldSoft },
-  cancelCard:       { backgroundColor: c.dangerSoft, borderRadius: 24, padding: 15, marginBottom: 12, borderWidth: 1, borderColor: c.dangerSoft },
-  cardTitleRow:     { flexDirection: "row-reverse", alignItems: "center", gap: 8, marginBottom: 13 },
-  cardTitle:        { color: c.text, fontSize: 15, textAlign: "right", fontFamily: "Almarai_800ExtraBold" },
-  timeRow:          { flexDirection: "row-reverse", justifyContent: "space-between", alignItems: "center" },
-  timeLabel:        { color: c.textSoft, fontSize: 12, fontFamily: "Almarai_400Regular" },
-  timeValue:        { color: c.text, fontSize: 13, fontFamily: "Almarai_700Bold" },
-
-  counterBox: {
-    marginTop: 12, backgroundColor: c.goldSoft, borderRadius: 16,
-    padding: 14, borderWidth: 1, borderColor: c.goldSoft,
+  safe: {
+    flex: 1,
+    backgroundColor: c.bg,
   },
-  counterTitle: { color: c.gold, fontSize: 13, fontFamily: "Almarai_800ExtraBold", textAlign: "right" },
-  counterTime:  { color: c.text, fontSize: 15, fontFamily: "Almarai_800ExtraBold", textAlign: "right", marginTop: 4 },
-  counterSub:   { color: c.textSoft, fontSize: 11, fontFamily: "Almarai_400Regular", textAlign: "right", marginTop: 4, marginBottom: 10 },
-  counterBtns:  { flexDirection: "row-reverse", gap: 8 },
-  acceptBtn:    { flex: 1, backgroundColor: c.gold, borderRadius: 12, paddingVertical: 11, alignItems: "center" },
-  acceptBtnText:{ color: c.bg, fontSize: 12, fontFamily: "Almarai_800ExtraBold" },
-  rejectBtn:    { flex: 1, backgroundColor: c.dangerSoft, borderRadius: 12, paddingVertical: 11, alignItems: "center", borderWidth: 1, borderColor: c.dangerSoft },
-  rejectBtnText:{ color: c.danger, fontSize: 12, fontFamily: "Almarai_800ExtraBold" },
 
-  waitingBox: {
-    marginTop: 12, flexDirection: "row-reverse", alignItems: "center", gap: 6,
-    backgroundColor: c.goldSoft, borderRadius: 14, padding: 12,
+  listContent: {
+    paddingBottom: 110,
   },
-  waitingText: { color: c.gold, fontSize: 12, fontFamily: "Almarai_700Bold" },
 
-  payNowBtn: {
-    marginTop: 12, flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 8,
-    backgroundColor: c.gold, borderRadius: 14, paddingVertical: 13,
+  loadingWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 14,
   },
-  payNowBtnText: { color: c.bg, fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
-  timeline:         { gap: 0 },
-  trackItem:        { minHeight: 56, flexDirection: "row-reverse", alignItems: "center", position: "relative" },
-  trackIcon:        { width: 40, height: 40, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: c.bg, borderWidth: 1, borderColor: c.goldSoft, zIndex: 2 },
-  trackIconDone:    { backgroundColor: c.goldSoft, borderColor: c.goldBorder },
-  trackIconActive:  { borderColor: c.gold, borderWidth: 2 },
-  trackLabel:       { flex: 1, color: c.textMuted, textAlign: "right", paddingRight: 11, fontSize: 13, fontFamily: "Almarai_700Bold" },
-  trackLabelDone:   { color: c.text },
-  trackLabelActive: { color: c.gold, fontFamily: "Almarai_800ExtraBold" },
-  trackLine:        { position: "absolute", right: 19, top: 40, width: 2, height: 18, backgroundColor: c.goldSoft, zIndex: 1 },
-  trackLineDone:    { backgroundColor: c.gold },
-  chefName:         { color: c.text, textAlign: "right", fontSize: 16, marginBottom: 8, fontFamily: "Almarai_800ExtraBold" },
-  inlineRow:        { flexDirection: "row-reverse", alignItems: "center", gap: 5 },
-  mutedText:        { flex: 1, color: c.textSoft, textAlign: "right", fontSize: 12, fontFamily: "Almarai_400Regular" },
-  itemRow:          { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: c.goldSoft, gap: 12 },
-  itemRowLast:      { borderBottomWidth: 0 },
-  itemInfo:         { flex: 1 },
-  itemName:         { color: c.text, textAlign: "right", fontSize: 14, lineHeight: 22, fontFamily: "Almarai_800ExtraBold" },
-  itemQty:          { color: c.textSoft, textAlign: "right", fontSize: 11, marginTop: 4, fontFamily: "Almarai_400Regular" },
-  itemPrice:        { color: c.gold, fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
-  emptyMiniText:    { color: c.textSoft, textAlign: "right", fontSize: 12, fontFamily: "Almarai_400Regular" },
-  paymentRow:       { flexDirection: "row-reverse", alignItems: "center", gap: 11, backgroundColor: c.bg, borderRadius: 18, padding: 13, borderWidth: 1, borderColor: c.goldSoft },
-  paymentIconBox:   { width: 42, height: 42, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: c.goldSoft },
-  paymentInfo:      { flex: 1 },
-  paymentTitle:     { color: c.text, textAlign: "right", fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
-  paymentStatus:    { textAlign: "right", fontSize: 11, marginTop: 4, fontFamily: "Almarai_700Bold" },
-  summaryRow:       { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  summaryLabel:     { color: c.textSoft, fontSize: 13, fontFamily: "Almarai_400Regular" },
-  summaryValue:     { color: c.text, fontSize: 13, fontFamily: "Almarai_700Bold" },
-  summaryDivider:   { height: 1, backgroundColor: c.border, marginVertical: 4 },
-  totalLabel:       { color: c.text, fontSize: 16, fontFamily: "Almarai_800ExtraBold" },
-  totalValue:       { color: c.gold, fontSize: 20, fontFamily: "Almarai_800ExtraBold" },
-  cashHint:         { color: c.textSoft, textAlign: "right", fontSize: 11, marginTop: 8, fontFamily: "Almarai_400Regular" },
-  addressText:      { color: c.textSoft, textAlign: "right", fontSize: 13, lineHeight: 23, fontFamily: "Almarai_400Regular" },
-  cancelText:       { color: c.danger, textAlign: "right", fontSize: 13, lineHeight: 23, fontFamily: "Almarai_400Regular" },
-  reviewBtn:        { minHeight: 56, borderRadius: 20, backgroundColor: c.gold, flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 4 },
-  reviewBtnText:    { color: c.bg, fontSize: 16, fontFamily: "Almarai_800ExtraBold" },
-  emptyWrap:        { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 30 },
-  emptyIcon:        { width: 116, height: 116, borderRadius: 40, alignItems: "center", justifyContent: "center", backgroundColor: c.surface, borderWidth: 1, borderColor: c.dangerSoft, marginBottom: 22 },
-  emptyTitle:       { color: c.text, fontSize: 20, textAlign: "center", fontFamily: "Almarai_800ExtraBold" },
-  emptyText:        { color: c.textSoft, textAlign: "center", fontSize: 13, lineHeight: 23, marginTop: 8, marginBottom: 20, fontFamily: "Almarai_400Regular" },
-  primaryBtn:       { minWidth: 180, borderRadius: 17, backgroundColor: c.gold, paddingHorizontal: 22, paddingVertical: 13, alignItems: "center" },
-  primaryBtnText:   { color: c.bg, fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
+
+  loadingText: {
+    color: c.text,
+    fontSize: 14,
+    fontFamily: "Almarai_700Bold",
+  },
+
+  hero: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 8,
+    borderRadius: 20,
+    padding: 12,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+
+  heroTitle: {
+    color: c.text,
+    fontSize: 18,
+    lineHeight: 24,
+    textAlign: "right",
+    marginBottom: 8,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  // ━━ شريط البانرات ━━
+  bannersWrap: {
+    marginBottom: 12,
+  },
+
+  bannersContent: {
+    paddingHorizontal: 16,
+    gap: BANNER_GAP,
+  },
+
+  bannerCard: {
+    width: BANNER_W,
+    minHeight: 92,
+    borderRadius: 20,
+    padding: 16,
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+
+  bannerTitle: {
+    fontSize: 17,
+    textAlign: "right",
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  bannerSub: {
+    fontSize: 12,
+    lineHeight: 20,
+    textAlign: "right",
+    marginTop: 6,
+    opacity: 0.92,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  dotsRow: {
+    flexDirection: "row",
+    alignSelf: "center",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 10,
+  },
+
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: c.goldBorder,
+  },
+
+  dotActive: {
+    width: 18,
+    backgroundColor: c.gold,
+  },
+
+  searchWrap: {
+    minHeight: 40,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    backgroundColor: c.bg,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+
+  searchInput: {
+    flex: 1,
+    height: 44,
+    color: c.text,
+    fontSize: 14,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  sectionsRow: {
+    flexDirection: "row-reverse",
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 10,
+  },
+
+  sectionCard: {
+    flex: 1,
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 6,
+    alignItems: "center",
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+
+  sectionIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
+  },
+
+  sectionLabel: {
+    fontSize: 12,
+    fontFamily: "Almarai_800ExtraBold",
+    textAlign: "center",
+  },
+
+  sectionSub: {
+    marginTop: 3,
+    fontSize: 9,
+    color: c.textSoft,
+    fontFamily: "Almarai_400Regular",
+    textAlign: "center",
+  },
+
+  liveTitleRow: { flexDirection: "row-reverse", alignItems: "center", gap: 7 },
+  liveSecTitle: { color: c.danger, fontSize: 16, fontFamily: "Almarai_800ExtraBold" },
+  liveDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: c.danger },
+  liveImgWrap: { borderWidth: 2, borderColor: c.danger, borderRadius: 18 },
+  liveBadge: { position: "absolute", bottom: 6, right: 6, flexDirection: "row-reverse", alignItems: "center", gap: 5, backgroundColor: c.danger, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  liveBadgeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#FFFFFF" },
+  liveBadgeText: { color: "#FFFFFF", fontSize: 9.5, fontFamily: "Almarai_800ExtraBold" },
+
+  chefCardWrap: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: c.surface,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: c.border,
+    overflow: "hidden",
+  },
+
+  itemStrip: { flexDirection: "row-reverse", alignItems: "flex-start", paddingHorizontal: 12, paddingBottom: 12, gap: 9 },
+  itemCard: { width: 78 },
+  itemCardOff: { opacity: 0.45 },
+  itemImg: { width: 78, height: 62, borderRadius: 12, backgroundColor: c.surfaceAlt },
+  itemImgPlaceholder: { alignItems: "center", justifyContent: "center" },
+  itemName: { color: c.text, fontSize: 10.5, textAlign: "center", marginTop: 5, fontFamily: "Almarai_700Bold" },
+  itemPrice: { color: c.gold, fontSize: 11, textAlign: "center", marginTop: 2, fontFamily: "Almarai_800ExtraBold" },
+
+  railFixed: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+
+  statsRow: {
+    flexDirection: "row-reverse",
+    paddingHorizontal: 16,
+    gap: 10,
+    marginBottom: 12,
+  },
+
+  statCard: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 16,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.goldSoft,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
+  },
+
+  statValue: {
+    color: c.text,
+    fontSize: 16,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  statLabel: {
+    color: c.textSoft,
+    fontSize: 11,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  secHeader: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    marginTop: 4,
+  },
+
+  secTitle: {
+    fontSize: 17,
+    color: c.text,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  secMore: {
+    fontSize: 12,
+    color: c.gold,
+    fontFamily: "Almarai_700Bold",
+  },
+
+  topList: {
+    paddingHorizontal: 16,
+    gap: 12,
+    paddingBottom: 6,
+  },
+
+  topCard: {
+    width: 142,
+    backgroundColor: c.surface,
+    borderRadius: 20,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: c.goldSoft,
+  },
+
+  topImgWrap: {
+    position: "relative",
+  },
+
+  topImg: {
+    width: 142,
+    height: 112,
+    resizeMode: "cover",
+    backgroundColor: c.surfaceAlt,
+  },
+
+  topImgPlaceholder: {
+    backgroundColor: c.surfaceAlt,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  topRatingBadge: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    backgroundColor: c.bg,
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    borderWidth: 1,
+    borderColor: c.goldBorder,
+  },
+
+  topRatingText: {
+    fontSize: 10,
+    color: c.gold,
+    fontFamily: "Almarai_700Bold",
+  },
+
+  topChefName: {
+    fontSize: 13,
+    color: c.text,
+    textAlign: "right",
+    paddingHorizontal: 10,
+    paddingTop: 9,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  topChefBy: {
+    fontSize: 10,
+    color: c.textSoft,
+    textAlign: "right",
+    paddingHorizontal: 10,
+    marginTop: 3,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  topPrice: {
+    fontSize: 13,
+    color: c.gold,
+    textAlign: "right",
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    marginTop: 5,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  errorBox: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    borderRadius: 18,
+    padding: 14,
+    backgroundColor: c.dangerSoft,
+    borderWidth: 1,
+    borderColor: c.dangerSoft,
+  },
+
+  errorTitle: {
+    color: c.danger,
+    textAlign: "right",
+    fontSize: 14,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  errorText: {
+    color: c.danger,
+    textAlign: "right",
+    marginTop: 5,
+    fontSize: 12,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  errorRetry: {
+    color: c.gold,
+    textAlign: "right",
+    marginTop: 8,
+    fontSize: 12,
+    fontFamily: "Almarai_700Bold",
+  },
+
+  chefCard: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    padding: 14,
+    gap: 11,
+  },
+
+  chefAvatarWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: c.goldSoft,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: c.goldBorder,
+  },
+
+  chefAvatarImg: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: c.surfaceAlt,
+    resizeMode: "cover",
+  },
+
+  chefInfo: {
+    flex: 1,
+  },
+
+  chefNameRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 5,
+  },
+
+  chefName: {
+    flex: 1,
+    fontSize: 14,
+    color: c.text,
+    textAlign: "right",
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  statusPill: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+
+  statusText: {
+    fontSize: 9,
+    fontFamily: "Almarai_700Bold",
+  },
+
+  chefCityRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 7,
+  },
+
+  chefCity: {
+    flex: 1,
+    fontSize: 11,
+    color: c.textSoft,
+    textAlign: "right",
+    fontFamily: "Almarai_400Regular",
+  },
+
+  chefMeta: {
+    flexDirection: "row-reverse",
+    gap: 6,
+    alignItems: "center",
+  },
+
+  chefRating: {
+    fontSize: 12,
+    color: c.gold,
+    fontFamily: "Almarai_700Bold",
+  },
+
+  chefOrders: {
+    fontSize: 11,
+    color: c.textMuted,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  favBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: c.goldSoft,
+  },
+
+  launchWrap: {
+    alignItems: "center",
+    marginTop: 34,
+    paddingHorizontal: 26,
+  },
+
+  launchIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: 32,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.goldBorder,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 18,
+  },
+
+  launchTitle: {
+    textAlign: "center",
+    color: c.text,
+    fontSize: 18,
+    lineHeight: 30,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  launchText: {
+    textAlign: "center",
+    color: c.textSoft,
+    fontSize: 13,
+    lineHeight: 24,
+    marginTop: 10,
+    marginBottom: 22,
+    fontFamily: "Almarai_400Regular",
+  },
+
+  launchPrimaryBtn: {
+    minWidth: 210,
+    minHeight: 50,
+    borderRadius: 17,
+    backgroundColor: c.gold,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+
+  launchPrimaryText: {
+    color: c.bg,
+    fontSize: 14,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  launchGhostBtn: {
+    minWidth: 210,
+    minHeight: 46,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: c.goldBorder,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+    paddingHorizontal: 24,
+  },
+
+  launchGhostText: {
+    color: c.gold,
+    fontSize: 13,
+    fontFamily: "Almarai_700Bold",
+  },
+
+  emptyWrap: {
+    alignItems: "center",
+    marginTop: 56,
+    gap: 9,
+    paddingHorizontal: 24,
+  },
+
+  emptyTitle: {
+    textAlign: "center",
+    color: c.text,
+    fontSize: 15,
+    fontFamily: "Almarai_800ExtraBold",
+  },
+
+  emptyText: {
+    textAlign: "center",
+    color: c.textSoft,
+    fontSize: 12,
+    fontFamily: "Almarai_400Regular",
+  },
 });
