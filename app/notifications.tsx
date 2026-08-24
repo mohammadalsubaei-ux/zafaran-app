@@ -1,8 +1,14 @@
 import { useCallback, useState, useMemo } from "react";
 import {
-  ActivityIndicator, FlatList, RefreshControl, SafeAreaView,
-  StyleSheet, Text, TouchableOpacity, View,
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ArrowRight, Bell, BellOff } from "lucide-react-native";

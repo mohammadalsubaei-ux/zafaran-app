@@ -4,7 +4,6 @@ import {
   FlatList,
   Image,
   Modal,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -21,6 +20,7 @@ import {
 import { BlurView } from "expo-blur";
 import { useLang } from "@/context/LanguageContext";
 import { useTheme, type Colors } from "@/context/ThemeContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Bell,
   Briefcase,
@@ -243,7 +243,7 @@ function ZafaranHeader() {
         </TouchableOpacity>
 
         <TouchableOpacity activeOpacity={0.86} style={h.brandMark} onPress={goHome}>
-          <Image source={LOGO} style={h.brandLogo} resizeMode="cover" />
+          <Image source={LOGO} style={h.brandLogo} resizeMode="contain" />
         </TouchableOpacity>
       </View>
 
@@ -340,6 +340,9 @@ export default function TabLayout() {
   const { lang } = useLang();
   const { c, isDark } = useTheme();
   const t = useMemo(() => makeTabStyles(c), [c]);
+  // SafeAreaView من react-native مهجور ولا يحسب المساحة الآمنة بثبات على iOS
+  // بعد router.replace — فينزلق الهيدر تحت شريط الحالة. insets يحسبها دائماً.
+  const insets = useSafeAreaInsets();
   const L = TAB_LABELS[lang] || TAB_LABELS.ar;
 
   const [fontsLoaded] = useFonts({
@@ -352,9 +355,9 @@ export default function TabLayout() {
 
   return (
     <View style={t.root}>
-      <SafeAreaView style={t.safeHeader}>
+      <View style={[t.safeHeader, { paddingTop: insets.top }]}>
         <ZafaranHeader />
-      </SafeAreaView>
+      </View>
 
       <Tabs
         initialRouteName="index"
@@ -611,8 +614,8 @@ const makeHeaderStyles = (c: Colors) => StyleSheet.create({
   },
 
   brandMark: {
-    width: 42,
-    height: 42,
+    width: 46,
+    height: 46,
     borderRadius: 16,
     backgroundColor: c.goldSoft,
     borderWidth: 1,
@@ -623,8 +626,8 @@ const makeHeaderStyles = (c: Colors) => StyleSheet.create({
   },
 
   brandLogo: {
-    width: 38,
-    height: 38,
+    width: 42,
+    height: 42,
   },
 
   brandTextWrap: {

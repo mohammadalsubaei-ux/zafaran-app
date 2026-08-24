@@ -1,7 +1,12 @@
 import { useMemo } from "react";
 import {
-  View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import { ArrowRight, ShieldCheck } from "lucide-react-native";

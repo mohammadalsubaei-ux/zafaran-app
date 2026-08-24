@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
 import {
-  View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
-  FlatList, Alert, ActivityIndicator, Modal, TextInput
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  FlatList,
+  Alert,
+  ActivityIndicator,
+  Modal,
+  TextInput,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";

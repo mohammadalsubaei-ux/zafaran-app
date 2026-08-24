@@ -8,7 +8,6 @@ import {
   Modal,
   Platform,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,6 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";

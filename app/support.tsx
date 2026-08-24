@@ -1,8 +1,14 @@
 import { useState, useMemo } from "react";
 import {
-  View, Text, TouchableOpacity, StyleSheet,
-  SafeAreaView, ScrollView, Linking, Alert,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Linking,
+  Alert,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import {

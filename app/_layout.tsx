@@ -8,6 +8,7 @@ import { LanguageProvider } from "@/context/LanguageContext";
 import { savePushToken, setupNotificationListeners } from "@/utils/notifications";
 import UpdateBanner from "@/components/UpdateBanner";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function RootLayout() {
   const router = useRouter();
@@ -37,6 +38,7 @@ export default function RootLayout() {
   }, [router]);
 
   return (
+    <SafeAreaProvider>
     <ThemeProvider>
       <LanguageProvider>
         <CartProvider>
@@ -45,6 +47,7 @@ export default function RootLayout() {
         </CartProvider>
       </LanguageProvider>
     </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 

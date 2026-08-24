@@ -3,10 +3,21 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator,
-  Alert, ScrollView, Modal, FlatList, Image
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  Modal,
+  FlatList,
+  Image,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold } from "@expo-google-fonts/almarai";
 import { savePushToken } from "@/utils/notifications";
 

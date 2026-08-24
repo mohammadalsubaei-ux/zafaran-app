@@ -5,7 +5,6 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +13,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -141,7 +141,7 @@ export default function ReviewScreen() {
   return (
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
-        <TouchableOpacity style={s.headerBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={s.headerBtn} onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/orders" as any))}>
           <ArrowRight size={20} color={c.gold} />
         </TouchableOpacity>
 

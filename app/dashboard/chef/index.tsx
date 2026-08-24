@@ -1,9 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  View, Text, FlatList, StyleSheet, SafeAreaView,
-  ActivityIndicator, TouchableOpacity, Alert, Modal,
-  ScrollView, RefreshControl, Switch, Share, TextInput,
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+  Alert,
+  Modal,
+  ScrollView,
+  RefreshControl,
+  Switch,
+  Share,
+  TextInput,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import QRCode from "react-native-qrcode-svg";
 import { useRouter, useFocusEffect } from "expo-router";
