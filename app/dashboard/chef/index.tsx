@@ -29,7 +29,7 @@ import {
 import {
   RefreshCw, ChevronDown, UtensilsCrossed, Package, ClipboardList,
   Check, X, Flame, Star, LogOut, CalendarDays, Clock3, CheckCircle2, Coffee, MapPin, Wallet,
-  ArrowRight, FileText, Eye, Share2, QrCode, Radio
+  ArrowRight, FileText, Eye, Share2, QrCode, Radio, Percent
 } from "lucide-react-native";
 import { pickCompressedImage, uploadImageToBucket } from "@/utils/images";
 
@@ -703,6 +703,13 @@ export default function DashboardScreen() {
             <View style={s.btnInner}>
               <UtensilsCrossed size={16} color={c.gold} />
               <Text style={s.menuBtnText}>قائمتي</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={s.menuBtn} onPress={() => router.push("/dashboard/chef/offers" as any)}>
+            <View style={s.btnInner}>
+              <Percent size={16} color={c.gold} />
+              <Text style={s.menuBtnText}>العروض والخصومات</Text>
             </View>
           </TouchableOpacity>
 

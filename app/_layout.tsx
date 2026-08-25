@@ -81,6 +81,8 @@ function ThemedShell() {
         <Stack.Screen name="review/[id]" />
         <Stack.Screen name="menu/index" />
         <Stack.Screen name="dashboard/chef/index" />
+        <Stack.Screen name="dashboard/chef/offers" />
+        <Stack.Screen name="dashboard/chef/earnings" />
         <Stack.Screen name="dashboard/driver/index" />
       </Stack>
 
