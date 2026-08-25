@@ -239,7 +239,7 @@ export default function AddressesScreen() {
       </View>
 
       {/* Modal الخريطة */}
-      <Modal visible={showMap} animationType="slide">
+      <Modal visible={showMap} animationType="slide" onRequestClose={() => setShowMap(false)}>
         <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
           <View style={s.mapHeader}>
             <TouchableOpacity onPress={() => setShowMap(false)}>

@@ -854,7 +854,7 @@ export default function DashboardScreen() {
           />
 
       {/* Modal حالة المتجر */}
-      <Modal visible={showStatus} transparent animationType="slide">
+      <Modal visible={showStatus} transparent animationType="slide" onRequestClose={() => setShowStatus(false)}>
         <View style={s.modalOverlay}>
           <View style={s.modalBox}>
             <Text style={s.modalTitle}>اختر حالة متجرك</Text>
@@ -1012,8 +1012,12 @@ export default function DashboardScreen() {
 
       {/* البث المباشر — نربط بث المتجر الموجود، لا بث داخل التطبيق */}
       <Modal visible={showLive} animationType="slide" transparent onRequestClose={() => setShowLive(false)}>
-        <View style={s.qrOverlay}>
-          <View style={s.liveBox}>
+        <TouchableOpacity
+          activeOpacity={1}
+          style={s.qrOverlay}
+          onPress={() => setShowLive(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={s.liveBox} onPress={() => {}}>
             <TouchableOpacity style={s.qrClose} onPress={() => setShowLive(false)}>
               <X size={20} color={c.textSoft} />
             </TouchableOpacity>
@@ -1048,14 +1052,18 @@ export default function DashboardScreen() {
                   </>
                 )}
             </TouchableOpacity>
-          </View>
-        </View>
+
+            <TouchableOpacity style={s.liveCancelBtn} onPress={() => setShowLive(false)}>
+              <Text style={s.liveCancelText}>إلغاء</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       {/* رمز المتجر — يفتح صفحة المتجر، والصفحة تحوّل لتطبيق زعفران */}
       <Modal visible={showQr} animationType="fade" transparent onRequestClose={() => setShowQr(false)}>
-        <View style={s.qrOverlay}>
-          <View style={s.qrBox}>
+        <TouchableOpacity activeOpacity={1} style={s.qrOverlay} onPress={() => setShowQr(false)}>
+          <TouchableOpacity activeOpacity={1} style={s.qrBox} onPress={() => {}}>
             <TouchableOpacity style={s.qrClose} onPress={() => setShowQr(false)}>
               <X size={20} color={c.textSoft} />
             </TouchableOpacity>
@@ -1097,8 +1105,8 @@ export default function DashboardScreen() {
               <Share2 size={16} color={c.onGold} />
               <Text style={s.qrShareText}>مشاركة الرابط</Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );
@@ -1148,7 +1156,9 @@ const make_s = (c: Colors) => StyleSheet.create({
   liveOnSub:         { color: c.textSoft, fontSize: 11, textAlign: "right", marginTop: 4, fontFamily: "Almarai_400Regular" },
   liveStopBtn:       { minWidth: 76, minHeight: 38, borderRadius: 12, borderWidth: 1, borderColor: c.danger, alignItems: "center", justifyContent: "center" },
   liveStopText:      { color: c.danger, fontSize: 13, fontFamily: "Almarai_800ExtraBold" },
-  liveBox:           { width: "100%", backgroundColor: c.surface, borderRadius: 26, borderWidth: 1, borderColor: c.border, padding: 22 },
+  liveBox:           { width: "100%", backgroundColor: c.surface, borderRadius: 26, borderWidth: 1, borderColor: c.border, padding: 22, paddingTop: 44 },
+  liveCancelBtn:     { marginTop: 10, minHeight: 46, borderRadius: 15, borderWidth: 1, borderColor: c.border, alignItems: "center", justifyContent: "center" },
+  liveCancelText:    { color: c.textSoft, fontSize: 14, fontFamily: "Almarai_700Bold" },
   liveModalSub:      { color: c.textSoft, fontSize: 12.5, lineHeight: 22, textAlign: "right", marginTop: 8, marginBottom: 18, fontFamily: "Almarai_400Regular" },
   liveLabel:         { color: c.textSoft, fontSize: 12, textAlign: "right", marginBottom: 7, fontFamily: "Almarai_700Bold" },
   liveInput:         { minHeight: 50, borderRadius: 14, backgroundColor: c.bg, borderWidth: 1, borderColor: c.border, paddingHorizontal: 14, color: c.text, fontSize: 14, textAlign: "left", fontFamily: "Almarai_400Regular" },
@@ -1156,8 +1166,8 @@ const make_s = (c: Colors) => StyleSheet.create({
   liveGoBtn:         { marginTop: 18, minHeight: 50, borderRadius: 15, backgroundColor: c.goldSolid, alignItems: "center", justifyContent: "center", flexDirection: "row-reverse", gap: 8 },
   liveGoText:        { color: c.onGold, fontSize: 15, fontFamily: "Almarai_800ExtraBold" },
   qrOverlay:         { flex: 1, backgroundColor: c.overlay, alignItems: "center", justifyContent: "center", paddingHorizontal: 26 },
-  qrBox:             { width: "100%", backgroundColor: c.surface, borderRadius: 26, borderWidth: 1, borderColor: c.border, padding: 22, alignItems: "center" },
-  qrClose:           { position: "absolute", top: 12, left: 12, padding: 6 },
+  qrBox:             { width: "100%", backgroundColor: c.surface, borderRadius: 26, borderWidth: 1, borderColor: c.border, padding: 22, paddingTop: 44, alignItems: "center" },
+  qrClose:           { position: "absolute", top: 10, left: 10, padding: 10, zIndex: 5 },
   qrTitle:           { color: c.text, fontSize: 18, fontFamily: "Almarai_800ExtraBold" },
   qrSub:             { color: c.textSoft, fontSize: 12, marginTop: 5, marginBottom: 16, fontFamily: "Almarai_400Regular" },
   qrFrame:           { backgroundColor: "#FFFFFF", padding: 14, borderRadius: 18 },
