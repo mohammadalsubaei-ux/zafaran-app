@@ -54,6 +54,15 @@ type MenuItem = {
   status?: string | null;
 };
 
+type Offer = {
+  id: string;
+  menu_item_id?: string | null;
+  title?: string | null;
+  discount_type?: "percent" | "fixed" | null;
+  discount_value?: number | string | null;
+  max_discount_amount?: number | string | null;
+};
+
 type Banner = {
   id: string;
   title: string;
@@ -77,6 +86,7 @@ type Chef = {
   menu?: MenuItem[] | null;
   is_live?: boolean | null;
   live_url?: string | null;
+  offers?: Offer[] | null;
 };
 
 // المسميات هنا يجب أن تطابق شاشة التصنيفات حرفياً — أي اختلاف يربك المستخدم
@@ -94,6 +104,51 @@ function safeNumber(value: unknown, fallback = "0") {
 }
 
 // أول صورة منتج متاحة — بديل صورة الغلاف غير الموجودة في جدول chefs
+// أولوية عرض المنتج على عرض المتجر العام — مطابقة لما يفعله الخادم حرفياً
+function offerFor(chef: Chef, menuItemId?: string | null): Offer | null {
+  const list = Array.isArray(chef.offers) ? chef.offers : [];
+  if (list.length === 0) return null;
+
+  return (
+    list.find((o) => o.menu_item_id && o.menu_item_id === menuItemId) ||
+    list.find((o) => !o.menu_item_id) ||
+    null
+  );
+}
+
+function priceAfterOffer(basePrice: number, offer: Offer | null): number {
+  if (!offer) return basePrice;
+
+  let off =
+    offer.discount_type === "percent"
+      ? basePrice * (Number(offer.discount_value || 0) / 100)
+      : Number(offer.discount_value || 0);
+
+  if (offer.max_discount_amount != null) {
+    off = Math.min(off, Number(offer.max_discount_amount));
+  }
+
+  const final = basePrice - off;
+  return final > 0 ? Math.round(final * 100) / 100 : basePrice;
+}
+
+// شارة الخصم على بطاقة المتجر — أعلى خصم متاح فيه
+function bestDiscountLabel(chef: Chef): string | null {
+  const list = Array.isArray(chef.offers) ? chef.offers : [];
+  if (list.length === 0) return null;
+
+  const percents = list
+    .filter((o) => o.discount_type === "percent")
+    .map((o) => Number(o.discount_value || 0));
+
+  if (percents.length > 0) {
+    return `خصم ${Math.max(...percents)}%`;
+  }
+
+  const fixed = list.map((o) => Number(o.discount_value || 0));
+  return `خصم ${Math.max(...fixed)} ر.س`;
+}
+
 function chefImage(chef: Chef): string | null {
   const withImage = chef.menu?.find((item) => Boolean(item.image_url));
   return withImage?.image_url || null;
@@ -631,6 +686,7 @@ export default function HomeScreen() {
       const cover = chefImage(item);
 
       const items = cardItems(item);
+      const discountLabel = bestDiscountLabel(item);
 
       return (
         <View style={s.chefCardWrap}>
@@ -675,6 +731,12 @@ export default function HomeScreen() {
               <Text style={s.chefOrders}>
                 {safeNumber(item.total_orders, "0")} طلب
               </Text>
+
+              {discountLabel ? (
+                <View style={s.discountBadge}>
+                  <Text style={s.discountBadgeText}>{discountLabel}</Text>
+                </View>
+              ) : null}
             </View>
           </View>
 
@@ -702,7 +764,10 @@ export default function HomeScreen() {
             contentContainerStyle={s.itemStrip}
           >
             {items.map((it) => {
-              const off = it?.status === "unavailable";
+              const off  = it?.status === "unavailable";
+              const base = Number(it?.price || 0);
+              const cut  = priceAfterOffer(base, offerFor(item, it?.id));
+              const hasCut = cut < base;
 
               return (
                 <TouchableOpacity
@@ -723,9 +788,16 @@ export default function HomeScreen() {
                     {safeText(it.name, "منتج")}
                   </Text>
 
-                  <Text style={s.itemPrice}>
-                    {off ? "غير متاح" : `${safeNumber(it.price, "0")} ر.س`}
-                  </Text>
+                  {off ? (
+                    <Text style={s.itemPrice}>غير متاح</Text>
+                  ) : hasCut ? (
+                    <View style={s.priceRow}>
+                      <Text style={s.itemPrice}>{cut} ر.س</Text>
+                      <Text style={s.itemPriceOld}>{base}</Text>
+                    </View>
+                  ) : (
+                    <Text style={s.itemPrice}>{`${safeNumber(it.price, "0")} ر.س`}</Text>
+                  )}
                 </TouchableOpacity>
               );
             })}
@@ -1019,7 +1091,11 @@ const make_s = (c: Colors) => StyleSheet.create({
   itemImg: { width: 78, height: 62, borderRadius: 12, backgroundColor: c.surfaceAlt },
   itemImgPlaceholder: { alignItems: "center", justifyContent: "center" },
   itemName: { color: c.text, fontSize: 10.5, textAlign: "center", marginTop: 5, fontFamily: "Almarai_700Bold" },
-  itemPrice: { color: c.gold, fontSize: 11, textAlign: "center", marginTop: 2, fontFamily: "Almarai_800ExtraBold" },
+  priceRow: { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 2 },
+  itemPriceOld: { color: c.textMuted, fontSize: 9.5, textDecorationLine: "line-through", fontFamily: "Almarai_400Regular" },
+  discountBadge: { backgroundColor: c.dangerSoft, borderWidth: 1, borderColor: c.danger, borderRadius: 7, paddingHorizontal: 7, paddingVertical: 2, marginRight: 4 },
+  discountBadgeText: { color: c.danger, fontSize: 9.5, fontFamily: "Almarai_800ExtraBold" },
+  itemPrice: { color: c.gold, fontSize: 11, textAlign: "center", fontFamily: "Almarai_800ExtraBold" },
 
   railFixed: {
     flexGrow: 0,

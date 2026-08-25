@@ -24,7 +24,10 @@
       "buildNumber": "2",
       "config": {
         "usesNonExemptEncryption": false
-      }
+      },
+      "associatedDomains": [
+        "applinks:zafaran-backend-production.up.railway.app"
+      ]
     },
     "android": {
       "package": "com.zafaran.app",
@@ -48,7 +51,24 @@
           "apiKey": "AIzaSyCVOlsoykrwCTn-95okEQ3XVzbTxmQGz0A"
         }
       },
-      "versionCode": 4
+      "versionCode": 4,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "zafaran-backend-production.up.railway.app",
+              "pathPrefix": "/store"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "output": "static",

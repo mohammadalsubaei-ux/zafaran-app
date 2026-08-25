@@ -65,7 +65,45 @@ type Chef = {
     gender?: string | null;
   } | null;
   menu?: MenuItem[] | null;
+  offers?: Offer[] | null;
 };
+
+type Offer = {
+  id: string;
+  menu_item_id?: string | null;
+  title?: string | null;
+  discount_type?: "percent" | "fixed" | null;
+  discount_value?: number | string | null;
+  max_discount_amount?: number | string | null;
+};
+
+// مطابقة حرفية لمنطق الخادم — السعر المعروض يجب أن يساوي المحسوب عند الطلب
+function offerFor(offers: Offer[] | null | undefined, menuItemId?: string | null): Offer | null {
+  const list = Array.isArray(offers) ? offers : [];
+  if (list.length === 0) return null;
+
+  return (
+    list.find((o) => o.menu_item_id && o.menu_item_id === menuItemId) ||
+    list.find((o) => !o.menu_item_id) ||
+    null
+  );
+}
+
+function priceAfterOffer(basePrice: number, offer: Offer | null): number {
+  if (!offer) return basePrice;
+
+  let off =
+    offer.discount_type === "percent"
+      ? basePrice * (Number(offer.discount_value || 0) / 100)
+      : Number(offer.discount_value || 0);
+
+  if (offer.max_discount_amount != null) {
+    off = Math.min(off, Number(offer.max_discount_amount));
+  }
+
+  const final = basePrice - off;
+  return final > 0 ? Math.round(final * 100) / 100 : basePrice;
+}
 
 function text(value: unknown, fallback = "غير محدد") {
   if (value === null || value === undefined) return fallback;
@@ -446,7 +484,21 @@ export default function ChefScreen() {
                 )}
 
                 <View style={s.itemMeta}>
-                  <Text style={s.itemPrice}>{money(item.price)}</Text>
+                  {(() => {
+                    const base = numberValue(item.price);
+                    const cut  = priceAfterOffer(base, offerFor(chef?.offers, item.id));
+
+                    if (cut >= base) {
+                      return <Text style={s.itemPrice}>{money(item.price)}</Text>;
+                    }
+
+                    return (
+                      <View style={s.priceRow}>
+                        <Text style={s.itemPrice}>{money(cut)}</Text>
+                        <Text style={s.itemPriceOld}>{money(base)}</Text>
+                      </View>
+                    );
+                  })()}
 
                   {preparation ? (
                     <View style={s.timeRow}>
@@ -902,6 +954,19 @@ const make_s = (c: Colors) => StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 8,
+  },
+
+  priceRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 6,
+  },
+
+  itemPriceOld: {
+    color: c.textMuted,
+    fontSize: 11,
+    textDecorationLine: "line-through",
+    fontFamily: "Almarai_400Regular",
   },
 
   itemPrice: {
