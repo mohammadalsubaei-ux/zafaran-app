@@ -9,12 +9,13 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ArrowRight, Wallet } from "lucide-react-native";
+import { ArrowRight, Wallet, X, Landmark } from "lucide-react-native";
 import {
   useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold,
 } from "@expo-google-fonts/almarai";
@@ -38,6 +39,42 @@ export default function ChefEarnings() {
   const { c } = useTheme();
   const s = useMemo(() => make_s(c), [c]);
   const wStatus = useMemo(() => makeWStatus(c), [c]);
+
+  const saveBank = async () => {
+    if (!chefId || savingBank) return;
+
+    const clean = iban.replace(/\s+/g, "").toUpperCase();
+    if (!/^SA\d{22}$/.test(clean)) {
+      Alert.alert("آيبان غير صحيح", "الآيبان السعودي يبدأ بـ SA ويتكوّن من 24 خانة.");
+      return;
+    }
+    if (accName.trim().length < 3) {
+      Alert.alert("الاسم مطلوب", "اكتب اسم صاحب الحساب كما هو في البنك.");
+      return;
+    }
+
+    setSavingBank(true);
+    try {
+      const res = await fetch(`${API}/api/chefs/${chefId}/bank`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ iban: clean, bank_account_name: accName.trim() }),
+      });
+      const json = await res.json().catch(() => null);
+
+      if (json?.success) {
+        setIban(clean);
+        setShowBank(false);
+        Alert.alert("تم الحفظ", "بيانات التحويل محفوظة — أعد إرسال طلب السحب.");
+      } else {
+        Alert.alert("تنبيه", json?.message || "تعذر الحفظ");
+      }
+    } catch {
+      Alert.alert("خطأ", "تعذر الاتصال بالسيرفر");
+    } finally {
+      setSavingBank(false);
+    }
+  };
   const [userId, setUserId]             = useState<string | null>(null);
   const [wallet, setWallet]             = useState<any>(null);
   const [withdrawals, setWithdrawals]   = useState<any[]>([]);
@@ -48,15 +85,30 @@ export default function ChefEarnings() {
   const [amount, setAmount]             = useState("");
   const [inputKey, setInputKey]         = useState(0);
 
+  // بيانات التحويل — تُطلب عند أول سحب لا عند التسجيل
+  const [chefId, setChefId]             = useState<string | null>(null);
+  const [showBank, setShowBank]         = useState(false);
+  const [iban, setIban]                 = useState("");
+  const [accName, setAccName]           = useState("");
+  const [savingBank, setSavingBank]     = useState(false);
+
   const [fontsLoaded] = useFonts({ Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold });
 
   const loadAll = useCallback(async (uid: string) => {
     try {
-      const [wRes, wdRes, txRes] = await Promise.all([
+      const [wRes, wdRes, txRes, chefRes] = await Promise.all([
         fetch(`${API}/api/wallet/${uid}`).then((r) => r.json()),
         fetch(`${API}/api/wallet/${uid}/withdrawals`).then((r) => r.json()),
         fetch(`${API}/api/wallet/${uid}/transactions?limit=20`).then((r) => r.json()),
+        fetch(`${API}/api/chefs?user_id=${uid}`).then((r) => r.json()).catch(() => null),
       ]);
+
+      if (chefRes?.success && Array.isArray(chefRes.data) && chefRes.data.length > 0) {
+        const ch = chefRes.data[0];
+        setChefId(ch.id);
+        setIban(ch.iban || "");
+        setAccName(ch.bank_account_name || "");
+      }
       if (wRes?.success) setWallet(wRes.data);
       if (wdRes?.success) setWithdrawals(wdRes.data || []);
       if (txRes?.success) setTransactions(txRes.data || []);
@@ -99,6 +151,8 @@ export default function ChefEarnings() {
         setAmount("");
         setInputKey((k) => k + 1);
         await loadAll(userId);
+      } else if (json?.code === "BANK_REQUIRED") {
+        setShowBank(true);
       } else {
         Alert.alert("تنبيه", json.message || "تعذر إرسال الطلب");
       }
@@ -220,11 +274,69 @@ export default function ChefEarnings() {
           <View style={{ height: 30 }} />
         </ScrollView>
       )}
+      <Modal visible={showBank} animationType="slide" transparent onRequestClose={() => setShowBank(false)}>
+        <TouchableOpacity activeOpacity={1} style={s.bankOverlay} onPress={() => setShowBank(false)}>
+          <TouchableOpacity activeOpacity={1} style={s.bankSheet} onPress={() => {}}>
+            <TouchableOpacity style={s.bankClose} onPress={() => setShowBank(false)}>
+              <X size={20} color={c.textSoft} />
+            </TouchableOpacity>
+
+            <View style={s.bankIcon}>
+              <Landmark size={26} color={c.gold} strokeWidth={1.7} />
+            </View>
+
+            <Text style={s.bankTitle}>بيانات التحويل</Text>
+            <Text style={s.bankSub}>
+              نحتاجها لتحويل أرباحك. تُحفظ مرة واحدة، ولا تظهر لأحد غير إدارة زعفران.
+            </Text>
+
+            <Text style={s.bankLabel}>رقم الآيبان</Text>
+            <TextInput
+              style={s.bankInput}
+              placeholder="SA0000000000000000000000"
+              placeholderTextColor={c.textMuted}
+              autoCapitalize="characters"
+              value={iban}
+              onChangeText={setIban}
+            />
+
+            <Text style={s.bankLabel}>اسم صاحب الحساب</Text>
+            <TextInput
+              style={[s.bankInput, { textAlign: "right" }]}
+              placeholder="الاسم كما هو في البنك"
+              placeholderTextColor={c.textMuted}
+              value={accName}
+              onChangeText={setAccName}
+            />
+
+            <Text style={s.bankNote}>
+              يجب أن يطابق الاسم صاحب الحساب البنكي، وإلا رفض البنك التحويل.
+            </Text>
+
+            <TouchableOpacity style={s.bankSave} onPress={saveBank} disabled={savingBank}>
+              {savingBank
+                ? <ActivityIndicator color={c.onGold} />
+                : <Text style={s.bankSaveText}>حفظ</Text>}
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const make_s = (c: Colors) => StyleSheet.create({
+  bankOverlay: { flex: 1, backgroundColor: c.overlay, justifyContent: "flex-end" },
+  bankSheet: { backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 22, paddingTop: 44, paddingBottom: 34, borderWidth: 1, borderColor: c.border },
+  bankClose: { position: "absolute", top: 10, left: 10, padding: 10, zIndex: 5 },
+  bankIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: c.goldSoft, borderWidth: 1, borderColor: c.goldBorder, alignItems: "center", justifyContent: "center", alignSelf: "center" },
+  bankTitle: { color: c.text, fontSize: 19, textAlign: "center", marginTop: 14, fontFamily: "Almarai_800ExtraBold" },
+  bankSub: { color: c.textSoft, fontSize: 12.5, lineHeight: 22, textAlign: "center", marginTop: 8, marginBottom: 8, fontFamily: "Almarai_400Regular" },
+  bankLabel: { color: c.textSoft, fontSize: 12, textAlign: "right", marginTop: 14, marginBottom: 7, fontFamily: "Almarai_700Bold" },
+  bankInput: { minHeight: 50, borderRadius: 14, backgroundColor: c.bg, borderWidth: 1, borderColor: c.border, paddingHorizontal: 14, color: c.text, fontSize: 14, textAlign: "left", fontFamily: "Almarai_400Regular" },
+  bankNote: { color: c.textMuted, fontSize: 11, lineHeight: 19, textAlign: "right", marginTop: 10, fontFamily: "Almarai_400Regular" },
+  bankSave: { marginTop: 18, minHeight: 52, borderRadius: 16, backgroundColor: c.goldSolid, alignItems: "center", justifyContent: "center" },
+  bankSaveText: { color: c.onGold, fontSize: 15, fontFamily: "Almarai_800ExtraBold" },
   safe:        { flex: 1, backgroundColor: c.bg },
   header:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
   backBtn:     { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: c.goldBorder, alignItems: "center", justifyContent: "center" },
