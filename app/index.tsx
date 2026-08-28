@@ -119,9 +119,18 @@ export default function SplashScreen() {
           return;
         }
 
+        // جلسة قديمة بلا رمز (من قبل نظام المصادقة): ندخله كضيف بدل أن
+        // يتصفح ثم يصطدم برفض كل عملية حسّاسة بلا تفسير.
+        if (!userData?.token) {
+          await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+          clearToken();
+          router.replace("/(tabs)" as any);
+          return;
+        }
+
         const routes: Record<string, string> = {
-         chef: "/dashboard/chef",
-driver: "/dashboard/driver",
+          chef: "/dashboard/chef",
+          driver: "/dashboard/driver",
           customer: "/(tabs)",
         };
 
