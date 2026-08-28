@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { clearToken } from "@/utils/authFetch";
 import {
   Almarai_400Regular,
   Almarai_700Bold,
@@ -109,6 +110,7 @@ export default function DeleteAccountScreen() {
 
       if (res.ok && json?.success) {
         await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "push_token"]);
+      clearToken();
         Alert.alert("تم حذف حسابك", "نشكرك على استخدامك زعفران", [
           { text: "حسناً", onPress: () => router.replace("/login" as any) },
         ]);

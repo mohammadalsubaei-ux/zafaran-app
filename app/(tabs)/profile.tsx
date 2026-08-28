@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { clearToken } from "@/utils/authFetch";
 import {
   Almarai_400Regular,
   Almarai_700Bold,
@@ -236,6 +237,7 @@ export default function ProfileScreen() {
         parsed = JSON.parse(stored);
       } catch {
         await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+      clearToken();
         setUser(null);
         return;
       }
@@ -408,6 +410,7 @@ export default function ProfileScreen() {
           style: "destructive",
           onPress: async () => {
             await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+      clearToken();
             router.replace("/login" as any);
           },
         },

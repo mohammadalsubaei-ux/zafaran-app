@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { clearToken } from "@/utils/authFetch";
 import {
   useFonts,
   Almarai_800ExtraBold,
@@ -113,6 +114,7 @@ export default function SplashScreen() {
           userData = JSON.parse(user);
         } catch {
           await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+      clearToken();
           router.replace("/(tabs)" as any);
           return;
         }

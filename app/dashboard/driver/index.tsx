@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { clearToken } from "@/utils/authFetch";
 import * as Location from "expo-location";
 import {
   useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold,
@@ -336,6 +337,7 @@ export default function DriverScreen() {
       { text: tr("yes", lang), style: "destructive", onPress: async () => {
         stopTracking();
         await AsyncStorage.multiRemove(["user", "user_id", "driver_id", "chef_id", "role", "push_token"]);
+      clearToken();
         router.replace("/login" as any);
       }},
     ]);

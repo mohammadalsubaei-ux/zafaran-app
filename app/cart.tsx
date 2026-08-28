@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { clearToken } from "@/utils/authFetch";
 import * as Location from "expo-location";
 import {
   Almarai_400Regular,
@@ -333,6 +334,7 @@ export default function CartScreen() {
     try { return JSON.parse(storedUser); }
     catch {
       await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+      clearToken();
       return null;
     }
   }, []);

@@ -9,6 +9,10 @@ import { savePushToken, setupNotificationListeners } from "@/utils/notifications
 import UpdateBanner from "@/components/UpdateBanner";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { setupAuthFetch } from "@/utils/authFetch";
+
+// يُركَّب مرة واحدة قبل أي طلب — كل نداء لخادم زعفران يحمل رمز الجلسة
+setupAuthFetch();
 
 export default function RootLayout() {
   const router = useRouter();

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { setToken } from "@/utils/authFetch";
 import {
   View,
   Text,
@@ -180,6 +181,7 @@ export default function LoginScreen() {
       const json = await res.json();
       if (json.success) {
         await AsyncStorage.setItem("user", JSON.stringify(json.data));
+        setToken(json.data?.token || null);
         savePushToken().catch(() => {});
         const route = ROLE_ROUTES[json.data.role] || "/(tabs)";
         router.replace(route as any);
@@ -211,6 +213,7 @@ export default function LoginScreen() {
       const json = await res.json();
       if (json.success) {
         await AsyncStorage.setItem("user", JSON.stringify(json.data));
+        setToken(json.data?.token || null);
         savePushToken().catch(() => {});
         const route = ROLE_ROUTES[role] || "/(tabs)";
         router.replace(route as any);

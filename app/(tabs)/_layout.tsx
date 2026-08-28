@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { clearToken } from "@/utils/authFetch";
 import {
   Almarai_400Regular,
   Almarai_700Bold,
@@ -128,6 +129,7 @@ function ZafaranHeader() {
       user = JSON.parse(storedUser);
     } catch {
       await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+      clearToken();
       return;
     }
 

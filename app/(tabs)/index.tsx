@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { clearToken } from "@/utils/authFetch";
 import {
   Award,
   ChevronLeft,
@@ -339,6 +340,7 @@ export default function HomeScreen() {
       }
     } catch {
       await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+      clearToken();
       setUserId(null);
       setFavorites([]);
     }

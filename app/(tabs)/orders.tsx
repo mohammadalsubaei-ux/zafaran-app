@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { clearToken } from "@/utils/authFetch";
 import {
   Almarai_400Regular,
   Almarai_700Bold,
@@ -248,6 +249,7 @@ export default function OrdersScreen() {
           userData = JSON.parse(storedUser);
         } catch {
           await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+      clearToken();
           setIsGuest(true);
           setOrders([]);
           return;

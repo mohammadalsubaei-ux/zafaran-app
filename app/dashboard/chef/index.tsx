@@ -19,6 +19,7 @@ import { useTheme, type Colors } from "@/context/ThemeContext";
 import QRCode from "react-native-qrcode-svg";
 import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { clearToken } from "@/utils/authFetch";
 import * as Location from "expo-location";
 const isWeb = require('react-native').Platform.OS === 'web';
 const MapView = isWeb ? () => null : require('react-native-maps').default;
@@ -222,6 +223,7 @@ export default function DashboardScreen() {
       { text: "لا", style: "cancel" },
       { text: "نعم", style: "destructive", onPress: async () => {
         await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+      clearToken();
         router.replace("/login");
       }},
     ]);

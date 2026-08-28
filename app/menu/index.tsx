@@ -20,6 +20,7 @@ import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { clearToken } from "@/utils/authFetch";
 import { pickCompressedImage, uploadImageToBucket } from "@/utils/images";
 import { CATEGORIES, TRACKS, categoriesOfTrack, categoryLabel, tone } from "@/constants/categories";
 import {
@@ -216,6 +217,7 @@ export default function MenuScreen() {
       let user: any = null;
       try { user = JSON.parse(storedUser); } catch {
         await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+      clearToken();
         setError("جلسة غير صالحة."); setLoading(false); return;
       }
       const res  = await fetch(`${API}/api/chefs?user_id=${user.id}`);
