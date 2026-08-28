@@ -3,6 +3,8 @@ import {
   View, Text, FlatList, StyleSheet,
   ActivityIndicator, TouchableOpacity, Alert, Modal,
   ScrollView, RefreshControl, Switch, TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -339,6 +341,10 @@ export default function OffersScreen() {
       </TouchableOpacity>
 
       <Modal visible={showForm} animationType="slide" transparent onRequestClose={() => setShowForm(false)}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ flex: 1 }}
+        >
         <View style={s.overlay}>
           <View style={s.sheet}>
             <TouchableOpacity style={s.sheetClose} onPress={() => setShowForm(false)}>
@@ -421,6 +427,7 @@ export default function OffersScreen() {
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

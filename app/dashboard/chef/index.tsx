@@ -9,6 +9,8 @@ import {
   Alert,
   Modal,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
   RefreshControl,
   Switch,
   Share,
@@ -1014,6 +1016,10 @@ export default function DashboardScreen() {
 
       {/* البث المباشر — نربط بث المتجر الموجود، لا بث داخل التطبيق */}
       <Modal visible={showLive} animationType="slide" transparent onRequestClose={() => setShowLive(false)}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ flex: 1 }}
+        >
         <TouchableOpacity
           activeOpacity={1}
           style={s.qrOverlay}
@@ -1060,6 +1066,7 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* رمز المتجر — يفتح صفحة المتجر، والصفحة تحوّل لتطبيق زعفران */}

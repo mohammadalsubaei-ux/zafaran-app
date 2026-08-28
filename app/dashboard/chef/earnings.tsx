@@ -8,6 +8,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   RefreshControl,
   Modal,
 } from "react-native";
@@ -275,6 +277,10 @@ export default function ChefEarnings() {
         </ScrollView>
       )}
       <Modal visible={showBank} animationType="slide" transparent onRequestClose={() => setShowBank(false)}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ flex: 1 }}
+        >
         <TouchableOpacity activeOpacity={1} style={s.bankOverlay} onPress={() => setShowBank(false)}>
           <TouchableOpacity activeOpacity={1} style={s.bankSheet} onPress={() => {}}>
             <TouchableOpacity style={s.bankClose} onPress={() => setShowBank(false)}>
@@ -320,6 +326,7 @@ export default function ChefEarnings() {
             </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
