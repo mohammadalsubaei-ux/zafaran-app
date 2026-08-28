@@ -356,7 +356,7 @@ export default function DashboardScreen() {
 
     const url = liveUrl.trim();
     if (!url) {
-      Alert.alert("رابط البث مطلوب", "الصق رابط بثك من تيك توك أو سناب أو إنستقرام.");
+      Alert.alert("رابط البث مطلوب", "الصق رابط بثك من تيك توك أو إنستقرام أو يوتيوب.");
       return;
     }
 
@@ -1032,7 +1032,7 @@ export default function DashboardScreen() {
 
             <Text style={s.qrTitle}>اربط بثك بمتجرك</Text>
             <Text style={s.liveModalSub}>
-              تبث على تيك توك أو سناب؟ الصق رابط بثك، ويظهر متجرك بشارة "يبث الآن" في رئيسية زعفران — فمن يشاهدك يطلب منك مباشرة.
+              تبث على تيك توك أو إنستقرام أو يوتيوب؟ الصق رابط بثك، ويظهر متجرك بشارة "يبث الآن" في رئيسية زعفران — فمن يشاهدك يطلب منك مباشرة.
             </Text>
 
             <Text style={s.liveLabel}>رابط البث</Text>
@@ -1047,7 +1047,7 @@ export default function DashboardScreen() {
             />
 
             <Text style={s.liveNote}>
-              انسخ رابط البث من زر المشاركة في التطبيق الذي تبث منه.
+              انسخ رابط البث من زر المشاركة في التطبيق الذي تبث منه — أو الصق رابط حسابك إن كنت تنشر على سناب.
             </Text>
 
             <TouchableOpacity style={s.liveGoBtn} onPress={startLive} disabled={savingLive}>
