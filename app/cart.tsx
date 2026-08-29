@@ -10,6 +10,8 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Platform,
+  Clipboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -36,9 +38,10 @@ import {
   ShoppingBag,
   Smartphone,
   Trash2,
+  Bookmark,
   Truck,
   UtensilsCrossed,
-  Wallet, Banknote,
+  Wallet, Banknote, Landmark,
 } from "lucide-react-native";
 
 import { useCart } from "@/context/CartContext";
@@ -95,7 +98,8 @@ const PAYMENT_METHODS: Array<{
   Icon: any;
   enabled: boolean;
 }> = [
-  { id: "cash",      title: "الدفع عند الاستلام", subtitle: "ادفع كاش أو تحويل عند وصول طلبك", Icon: Banknote,   enabled: true  },
+  { id: "cash",          title: "الدفع عند الاستلام", subtitle: "ادفع كاش أو تحويل عند وصول طلبك",  Icon: Banknote, enabled: true },
+  { id: "bank_transfer", title: "تحويل بنكي",         subtitle: "حوّل على حساب زعفران وأرسل الإيصال", Icon: Landmark, enabled: true },
   { id: "stc_pay",   title: "STC Pay",      subtitle: "قريبًا",            Icon: Wallet,     enabled: false },
   { id: "apple_pay", title: "Apple Pay",     subtitle: "قريبًا",            Icon: Smartphone, enabled: false },
   { id: "card",      title: "مدى / بطاقة",  subtitle: "قريبًا",            Icon: CreditCard, enabled: false },
@@ -144,6 +148,8 @@ export default function CartScreen() {
   const router = useRouter();
   const { c } = useTheme();
   const { lang } = useLang();
+  const [savingList, setSavingList] = useState(false);
+  const [bank, setBank] = useState<{ iban: string; name: string } | null>(null);
   const tr = useMemo(() => dict(lang), [lang]);
   const s = useMemo(() => make_s(c), [c]);
   const { items, updateQty, clearCart, total, totalItems, chef_id } = useCart();
@@ -298,6 +304,78 @@ export default function CartScreen() {
   }, []);
 
   const goBack  = useCallback(() => { router.back(); }, [router]);
+
+  // بيانات التحويل من app_settings — إن غابت لا يظهر الخيار أصلاً
+  useEffect(() => {
+    let alive = true;
+
+    Promise.all([
+      fetch(`${API}/api/settings/bank_transfer_iban`).then(r => r.json()).catch(() => null),
+      fetch(`${API}/api/settings/bank_transfer_name`).then(r => r.json()).catch(() => null),
+    ]).then(([ibanRes, nameRes]) => {
+      if (!alive) return;
+
+      const iban = String(ibanRes?.data?.value || "").trim();
+      const name = String(nameRes?.data?.value || "").trim();
+
+      if (iban) setBank({ iban, name: name || "زعفران" });
+    });
+
+    return () => { alive = false; };
+  }, []);
+
+  // "سفرتي" — يحفظ السلة باسم ليعيدها العميل بضغطة لاحقاً
+  const saveAsList = useCallback(() => {
+    if (!chef_id || items.length === 0) return;
+
+    const send = async (name: string) => {
+      const title = name.trim();
+      if (!title) return;
+
+      setSavingList(true);
+      try {
+        const res = await fetch(`${API}/api/lists`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: title,
+            chef_id,
+            items: items.map((i) => ({ menu_item_id: i.id, quantity: i.quantity })),
+          }),
+        });
+        const json = await res.json().catch(() => null);
+
+        Alert.alert(
+          json?.success ? "تم الحفظ" : "تنبيه",
+          json?.success ? "تلقى سفرتك في الرئيسية" : json?.message || "تعذر الحفظ"
+        );
+      } catch {
+        Alert.alert("خطأ", "تعذر الاتصال بالسيرفر");
+      } finally {
+        setSavingList(false);
+      }
+    };
+
+    // Alert.prompt متاح على iOS فقط — على أندرويد نحفظ باسم المتجر والتاريخ
+    if (Platform.OS === "ios" && Alert.prompt) {
+      Alert.prompt(
+        "احفظ سفرتك",
+        "سمِّ هذي القائمة لتعيدها بضغطة — مثل: عزيمة الجمعة",
+        [
+          { text: "إلغاء", style: "cancel" },
+          { text: "حفظ", onPress: (v?: string) => send(String(v || "")) },
+        ],
+        "plain-text"
+      );
+      return;
+    }
+
+    const fallback = `سفرة ${new Date().toLocaleDateString("ar-SA-u-ca-gregory")}`;
+    Alert.alert("احفظ سفرتك", `سنحفظها باسم "${fallback}"`, [
+      { text: "إلغاء", style: "cancel" },
+      { text: "حفظ", onPress: () => send(fallback) },
+    ]);
+  }, [chef_id, items]);
   const goHome  = useCallback(() => { router.replace("/(tabs)" as any); }, [router]);
 
   const confirmClearCart = useCallback(() => {
@@ -503,9 +581,15 @@ export default function CartScreen() {
           <Text style={s.title}>سلتي</Text>
           <Text style={s.headerSub}>{totalItems} عنصر</Text>
         </View>
-        <TouchableOpacity activeOpacity={0.8} style={s.clearBtn} onPress={confirmClearCart}>
-          <Trash2 size={18} color={c.danger} />
-        </TouchableOpacity>
+        <View style={s.headerActions}>
+          <TouchableOpacity activeOpacity={0.8} style={s.saveListBtn} onPress={saveAsList} disabled={savingList}>
+            <Bookmark size={17} color={c.gold} strokeWidth={1.9} />
+          </TouchableOpacity>
+
+          <TouchableOpacity activeOpacity={0.8} style={s.clearBtn} onPress={confirmClearCart}>
+            <Trash2 size={18} color={c.danger} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <FlatList
@@ -687,7 +771,7 @@ export default function CartScreen() {
                 <Text style={s.sectionTitle}>طريقة الدفع</Text>
               </View>
               <View style={s.paymentGrid}>
-                {VISIBLE_PAYMENT_METHODS.map(method => {
+                {VISIBLE_PAYMENT_METHODS.filter(m => m.id !== "bank_transfer" || bank).map(method => {
                   const active = paymentMethod === method.id;
                   const Icon   = method.Icon;
                   return (
@@ -709,6 +793,32 @@ export default function CartScreen() {
                   );
                 })}
               </View>
+
+              {paymentMethod === "bank_transfer" && bank ? (
+                <View style={s.bankBox}>
+                  <Text style={s.bankBoxTitle}>حوّل المبلغ على هذا الحساب</Text>
+
+                  <View style={s.bankRow}>
+                    <TouchableOpacity
+                      style={s.bankCopy}
+                      onPress={() => {
+                        Clipboard.setString(bank.iban);
+                        Alert.alert("تم النسخ", "نُسخ رقم الآيبان");
+                      }}
+                    >
+                      <Text style={s.bankCopyText}>نسخ</Text>
+                    </TouchableOpacity>
+
+                    <Text style={s.bankIban} selectable numberOfLines={1}>{bank.iban}</Text>
+                  </View>
+
+                  <Text style={s.bankName}>{bank.name}</Text>
+
+                  <Text style={s.bankNote}>
+                    أرسل الطلب أولاً، ثم حوّل المبلغ وأرسل صورة الإيصال على واتساب الدعم مع رقم طلبك.
+                  </Text>
+                </View>
+              ) : null}
             </View>
 
             {/* ملخص الطلب */}
@@ -848,6 +958,16 @@ const make_s = (c: Colors) => StyleSheet.create({
   header:            { minHeight: 66, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.goldSoft, flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", backgroundColor: c.bg },
   headerBtn:         { width: 42, height: 42, borderRadius: 15, backgroundColor: c.goldSoft, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: c.border },
   headerBtnGhost:    { width: 42, height: 42 },
+  headerActions:     { flexDirection: "row-reverse", alignItems: "center", gap: 8 },
+  saveListBtn:       { width: 42, height: 42, borderRadius: 15, borderWidth: 1, borderColor: c.goldBorder, alignItems: "center", justifyContent: "center" },
+  bankBox:           { marginTop: 12, padding: 14, borderRadius: 16, backgroundColor: c.goldSoft, borderWidth: 1, borderColor: c.goldBorder },
+  bankBoxTitle:      { color: c.text, fontSize: 13, textAlign: "right", fontFamily: "Almarai_800ExtraBold" },
+  bankRow:           { flexDirection: "row-reverse", alignItems: "center", gap: 10, marginTop: 10 },
+  bankIban:          { flex: 1, color: c.gold, fontSize: 13.5, textAlign: "left", letterSpacing: 0.5, fontFamily: "Almarai_700Bold" },
+  bankCopy:          { minHeight: 32, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: c.goldBorder, alignItems: "center", justifyContent: "center" },
+  bankCopyText:      { color: c.gold, fontSize: 12, fontFamily: "Almarai_700Bold" },
+  bankName:          { color: c.textSoft, fontSize: 12, textAlign: "right", marginTop: 8, fontFamily: "Almarai_400Regular" },
+  bankNote:          { color: c.textSoft, fontSize: 11.5, lineHeight: 20, textAlign: "right", marginTop: 10, fontFamily: "Almarai_400Regular" },
   clearBtn:          { width: 42, height: 42, borderRadius: 15, backgroundColor: c.dangerSoft, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: c.dangerSoft },
   headerTitleWrap:   { alignItems: "center" },
   title:             { color: c.text, fontSize: 20, fontFamily: "Almarai_800ExtraBold" },
