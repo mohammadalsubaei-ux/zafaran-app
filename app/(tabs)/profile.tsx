@@ -92,8 +92,6 @@ const T: any = {
     settings: "الإعدادات",
     language: "اللغة",
     languageSub: "التبديل بين العربية والإنجليزية",
-    changePw: "تغيير كلمة المرور",
-    changePwSub: "حدّث كلمة مرور حسابك",
     notifications: "الإشعارات",
     notificationsSub: "إشعارات الطلبات والتحديثات",
     support: "الدعم والمساعدة",
@@ -150,8 +148,6 @@ const T: any = {
     settings: "Settings",
     language: "Language",
     languageSub: "Switch between Arabic and English",
-    changePw: "Change Password",
-    changePwSub: "Update your account password",
     notifications: "Notifications",
     notificationsSub: "Order and update alerts",
     support: "Support",
@@ -679,13 +675,6 @@ export default function ProfileScreen() {
             subtitle={t.notificationsSub}
             Icon={Bell}
             onPress={() => router.push("/notifications" as any)}
-          />
-
-          <MenuItem
-            title={t.changePw}
-            subtitle={t.changePwSub}
-            Icon={KeyRound}
-            onPress={() => router.push("/change-password" as any)}
           />
 
           <MenuItem

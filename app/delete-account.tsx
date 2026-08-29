@@ -37,7 +37,7 @@ export default function DeleteAccountScreen() {
   const [checking, setChecking] = useState(true);
   const [blockers, setBlockers] = useState<Blocker[]>([]);
   const [canDelete, setCanDelete] = useState(false);
-  const [password, setPassword] = useState("");
+  const [confirmPhone, setConfirmPhone] = useState("");
   const [deleting, setDeleting] = useState(false);
 
   const [fontsLoaded] = useFonts({
@@ -92,8 +92,8 @@ export default function DeleteAccountScreen() {
   const doDelete = useCallback(async () => {
     if (!userId || deleting) return;
 
-    if (!password.trim()) {
-      Alert.alert("تنبيه", "اكتب كلمة المرور لتأكيد الحذف");
+    if (!confirmPhone.trim()) {
+      Alert.alert("تنبيه", "اكتب رقم جوالك لتأكيد الحذف");
       return;
     }
 
@@ -103,7 +103,7 @@ export default function DeleteAccountScreen() {
       const res = await fetch(`${API}/api/users/${userId}/delete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: password.trim() }),
+        body: JSON.stringify({ confirm_phone: confirmPhone.trim() }),
       });
 
       const json = await res.json().catch(() => null);
@@ -125,7 +125,7 @@ export default function DeleteAccountScreen() {
     } finally {
       setDeleting(false);
     }
-  }, [deleting, password, router, runCheck, userId]);
+  }, [deleting, confirmPhone, router, runCheck, userId]);
 
   const confirmDelete = useCallback(() => {
     Alert.alert(
@@ -205,16 +205,17 @@ export default function DeleteAccountScreen() {
 
               {canDelete ? (
                 <View style={s.confirmCard}>
-                  <Text style={s.label}>اكتب كلمة المرور للتأكيد</Text>
+                  <Text style={s.label}>اكتب رقم جوالك للتأكيد</Text>
                   <View style={s.inputWrap}>
                     <TextInput
                       style={s.input}
-                      placeholder="••••••"
+                      placeholder="05xxxxxxxx"
                       placeholderTextColor={c.textMuted}
-                      secureTextEntry
-                      value={password}
-                      onChangeText={setPassword}
+                      keyboardType="phone-pad"
+                      value={confirmPhone}
+                      onChangeText={setConfirmPhone}
                       textAlign="right"
+                      maxLength={12}
                     />
                   </View>
 

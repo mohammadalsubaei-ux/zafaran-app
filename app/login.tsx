@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setToken } from "@/utils/authFetch";
+import auth from "@react-native-firebase/auth";
 import {
   View,
   Text,
@@ -134,13 +135,26 @@ function CityPickerModal({ visible, onClose, cities, city, setCity }: {
 }
 
 export default function LoginScreen() {
-  const [step, setStep]                 = useState<"login" | "register" | "chef_register" | "driver_register">("login");
-  const [phone, setPhone]               = useState("");
-  const [name, setName]                 = useState("");
-  const [gender, setGender]             = useState<"male" | "female">("male");
-  const [city, setCity]                 = useState("");
-  const [cities, setCities]             = useState<{ id: number; name_ar: string; region?: string | null }[]>([]);
+  // خطوات الدخول: الرقم ← الرمز ← الاسم (للجديد فقط)
+  const [stage, setStage] = useState<"phone" | "code" | "profile">("phone");
+  const [role, setRole]   = useState<"customer" | "chef" | "driver">("customer");
+
+  const [phone, setPhone]   = useState("");
+  const [code, setCode]     = useState("");
+  const [name, setName]     = useState("");
+  const [gender, setGender] = useState<"male" | "female">("male");
+  const [city, setCity]     = useState("");
+  const [cities, setCities] = useState<{ id: number; name_ar: string; region?: string | null }[]>([]);
   const [showCityPicker, setShowCityPicker] = useState(false);
+
+  const [confirmation, setConfirmation] = useState<any>(null);
+  const [loading, setLoading]           = useState(false);
+  const [seconds, setSeconds]           = useState(0);
+
+  const router = useRouter();
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
+  const params = useLocalSearchParams<{ step?: string }>();
 
   useEffect(() => {
     fetch(`${API}/api/cities`)
@@ -148,294 +162,284 @@ export default function LoginScreen() {
       .then((json) => { if (json?.success) setCities(json.data || []); })
       .catch(() => {});
   }, []);
-  const [neighborhood, setNeighborhood] = useState("");
-  const [password, setPassword]         = useState("");
-  const [password2, setPassword2]       = useState("");
-  const [loading, setLoading]           = useState(false);
-  const router = useRouter();
-  const { c } = useTheme();
-  const s = useMemo(() => make_s(c), [c]);
-  const params = useLocalSearchParams<{ step?: string }>();
 
-  // القدوم من شاشة "حسابي" للضيف بخطوة محددة (تسجيل عميل/متجر/مندوب)
+  // القدوم من "حسابي" بدور محدد
   useEffect(() => {
     const target = String(params?.step || "");
-    if (["register", "chef_register", "driver_register"].includes(target)) {
-      setStep(target as "register" | "chef_register" | "driver_register");
-    }
+    if (target === "chef_register")   setRole("chef");
+    if (target === "driver_register") setRole("driver");
   }, [params?.step]);
+
+  // عدّاد إعادة الإرسال
+  useEffect(() => {
+    if (seconds <= 0) return;
+    const t = setTimeout(() => setSeconds((v) => v - 1), 1000);
+    return () => clearTimeout(t);
+  }, [seconds]);
 
   const [fontsLoaded] = useFonts({ Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold });
   if (!fontsLoaded) return null;
 
-  const handleLogin = async () => {
-    const cleanPhone = phone.trim();
-    if (cleanPhone.length < 10) { Alert.alert("تنبيه", "ادخل رقم جوال صحيح"); return; }
-    if (password.length < 6) { Alert.alert("تنبيه", "ادخل كلمة المرور (6 احرف على الاقل)"); return; }
+  // 05xxxxxxxx → +9665xxxxxxxx (الصيغة التي تفهمها Firebase)
+  const toE164 = (raw: string) => {
+    let n = raw.replace(/[^0-9]/g, "");
+    if (n.startsWith("966")) return "+" + n;
+    if (n.startsWith("0"))   n = n.slice(1);
+    return "+966" + n;
+  };
+
+  const sendCode = async () => {
+    const clean = phone.replace(/[^0-9]/g, "");
+
+    if (!/^(05\d{8}|9665\d{8})$/.test(clean)) {
+      Alert.alert("رقم غير صحيح", "اكتب رقم جوالك هكذا: 05xxxxxxxx");
+      return;
+    }
+
     setLoading(true);
     try {
-      const res  = await fetch(`${API}/api/users/login`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: cleanPhone, password }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        await AsyncStorage.setItem("user", JSON.stringify(json.data));
-        setToken(json.data?.token || null);
-        savePushToken().catch(() => {});
-        const route = ROLE_ROUTES[json.data.role] || "/(tabs)";
-        router.replace(route as any);
-      } else {
-        // عرض رسالة الخادم الحقيقية (موقوف / غير مسجل) بدل نص ثابت يخفيها
-        Alert.alert("تنبيه", json.message || "رقم الجوال غير مسجل — ما عندك حساب؟ سجّل الآن");
+      const conf = await auth().signInWithPhoneNumber(toE164(clean));
+      setConfirmation(conf);
+      setStage("code");
+      setSeconds(45);
+    } catch (e: any) {
+      const code = String(e?.code || "");
+      const msg =
+        code.includes("too-many-requests") ? "محاولات كثيرة — انتظر قليلاً وحاول مرة ثانية." :
+        code.includes("invalid-phone")     ? "رقم الجوال غير صحيح." :
+        "تعذر إرسال الرمز — تأكد من الرقم والاتصال.";
+      Alert.alert("تنبيه", msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // يرسل رمز Firebase لخادمنا فيصدر جلسة زعفران
+  const finish = async (idToken: string, withName?: string) => {
+    const res = await fetch(`${API}/api/users/phone-auth`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        idToken,
+        full_name: withName,
+        role,
+        city: city.trim() || undefined,
+      }),
+    });
+
+    const json = await res.json().catch(() => null);
+
+    if (!json?.success) {
+      Alert.alert("تنبيه", json?.message || "تعذر إتمام الدخول");
+      return;
+    }
+
+    // حساب جديد بلا اسم — ننتقل لخطوة الاسم
+    if (json.needs_profile) {
+      setStage("profile");
+      return;
+    }
+
+    await AsyncStorage.setItem("user", JSON.stringify(json.data));
+    setToken(json.data?.token || null);
+    savePushToken(json.data.id).catch(() => {});
+
+    router.replace((ROLE_ROUTES[json.data.role] || "/(tabs)") as any);
+  };
+
+  const verifyCode = async () => {
+    if (code.trim().length < 6) {
+      Alert.alert("تنبيه", "اكتب الرمز المكوّن من 6 أرقام");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const cred = await confirmation.confirm(code.trim());
+      const idToken = await cred.user.getIdToken();
+      await finish(idToken);
+    } catch (e: any) {
+      const code2 = String(e?.code || "");
+      Alert.alert(
+        "تنبيه",
+        code2.includes("invalid-verification-code")
+          ? "الرمز غير صحيح — تأكد منه أو أعد الإرسال."
+          : "تعذر التحقق — حاول مرة ثانية."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveProfile = async () => {
+    if (name.trim().length < 3) {
+      Alert.alert("تنبيه", "اكتب اسمك الكامل");
+      return;
+    }
+    if ((role === "chef" || role === "driver") && !city.trim()) {
+      Alert.alert("تنبيه", "اختر مدينتك");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const current = auth().currentUser;
+      if (!current) {
+        Alert.alert("انتهت الجلسة", "أعد إدخال رقمك من جديد.");
+        setStage("phone");
+        return;
       }
-    } catch { Alert.alert("خطأ", "تعذر الاتصال بالسيرفر"); }
-    finally { setLoading(false); }
+
+      const idToken = await current.getIdToken(true);
+      await finish(idToken, name.trim());
+    } catch {
+      Alert.alert("خطأ", "تعذر إكمال التسجيل");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleRegister = async (role: string) => {
-    const cleanPhone = phone.trim();
-    if (cleanPhone.length < 10) { Alert.alert("تنبيه", "ادخل رقم جوال صحيح"); return; }
-    if (!name.trim()) { Alert.alert("تنبيه", "ادخل اسمك"); return; }
-    if (password.length < 6) { Alert.alert("تنبيه", "ادخل كلمة مرور (6 احرف على الاقل)"); return; }
-    if (password !== password2) { Alert.alert("تنبيه", "كلمتا المرور غير متطابقتين"); return; }
-    if ((role === "chef" || role === "driver") && !city.trim()) { Alert.alert("تنبيه", "اختر مدينتك"); return; }
-    setLoading(true);
-    try {
-      const res  = await fetch(`${API}/api/users/register`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: cleanPhone, full_name: name.trim(), password,
-          role, gender,
-          city: city.trim(), neighborhood: neighborhood.trim()
-        }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        await AsyncStorage.setItem("user", JSON.stringify(json.data));
-        setToken(json.data?.token || null);
-        savePushToken().catch(() => {});
-        const route = ROLE_ROUTES[role] || "/(tabs)";
-        router.replace(route as any);
-      } else { Alert.alert("خطأ", json.message || "حدث خطأ"); }
-    } catch { Alert.alert("خطأ", "تعذر الاتصال بالسيرفر"); }
-    finally { setLoading(false); }
-  };
+  const roleLabel =
+    role === "chef" ? "تسجيل متجر" : role === "driver" ? "تسجيل مندوب" : "";
 
-  // شاشة الدخول
-  if (step === "login") {
-    return (
-      <SafeAreaView key="step-login" style={s.safe}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-            <View style={s.logoWrap}>
-              <Image source={require("../assets/images/logo-mark.png")} style={s.logoMark} />
-            </View>
+  return (
+    <SafeAreaView style={s.safe}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+          <View style={s.logoWrap}>
+            <Image source={require("@/assets/images/logo.png")} style={s.logoMark} />
+            {roleLabel ? <Text style={s.roleTag}>{roleLabel}</Text> : null}
+          </View>
+
+          {stage === "phone" ? (
             <View style={s.form}>
-              <Text style={s.formTitle}>اهلاً بك</Text>
-              <Text style={s.formHint}>ادخل رقم جوالك وكلمة المرور</Text>
+              <Text style={s.formTitle}>أهلاً بك</Text>
+              <Text style={s.formHint}>اكتب رقم جوالك ونرسل لك رمز تحقق</Text>
+
               <Text style={s.label}>رقم الجوال</Text>
               <View style={s.inputWrap}>
                 <TextInput
                   style={s.input}
-                  placeholder="05X XXX XXXX"
+                  placeholder="05xxxxxxxx"
                   placeholderTextColor={c.textMuted}
                   keyboardType="phone-pad"
                   value={phone}
                   onChangeText={setPhone}
-                  textAlign="right"
-                  maxLength={10}
+                  maxLength={12}
                 />
               </View>
-              <Text style={s.label}>كلمة المرور</Text>
+
+              <TouchableOpacity style={s.btn} onPress={sendCode} disabled={loading}>
+                {loading
+                  ? <ActivityIndicator color={c.onGold} />
+                  : <Text style={s.btnText}>أرسل الرمز</Text>}
+              </TouchableOpacity>
+
+              {role === "customer" ? (
+                <>
+                  <View style={s.divider}>
+                    <View style={s.dividerLine} />
+                    <Text style={s.dividerText}>أو</Text>
+                    <View style={s.dividerLine} />
+                  </View>
+
+                  <TouchableOpacity style={s.chefBtn} onPress={() => setRole("chef")}>
+                    <Text style={s.chefBtnText}>سجّل متجرك</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={s.switchBtn} onPress={() => setRole("driver")}>
+                    <Text style={s.switchText}>أو انضم كمندوب توصيل</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity style={s.switchBtn} onPress={() => setRole("customer")}>
+                  <Text style={s.switchText}>رجوع لتسجيل عميل</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : null}
+
+          {stage === "code" ? (
+            <View style={s.form}>
+              <Text style={s.formTitle}>رمز التحقق</Text>
+              <Text style={s.formHint}>أرسلنا رمزاً من 6 أرقام إلى {phone}</Text>
+
+              <View style={s.inputWrap}>
+                <TextInput
+                  style={[s.input, { textAlign: "center", letterSpacing: 8, fontSize: 22 }]}
+                  placeholder="------"
+                  placeholderTextColor={c.textMuted}
+                  keyboardType="number-pad"
+                  value={code}
+                  onChangeText={setCode}
+                  maxLength={6}
+                  autoFocus
+                />
+              </View>
+
+              <TouchableOpacity style={s.btn} onPress={verifyCode} disabled={loading}>
+                {loading
+                  ? <ActivityIndicator color={c.onGold} />
+                  : <Text style={s.btnText}>تحقق ودخول</Text>}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={s.switchBtn}
+                disabled={seconds > 0}
+                onPress={sendCode}
+              >
+                <Text style={[s.switchText, seconds > 0 && { color: c.textMuted }]}>
+                  {seconds > 0 ? `إعادة الإرسال بعد ${seconds} ثانية` : "إعادة إرسال الرمز"}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={s.switchBtn} onPress={() => { setStage("phone"); setCode(""); }}>
+                <Text style={s.switchText}>تغيير الرقم</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {stage === "profile" ? (
+            <View style={s.form}>
+              <Text style={s.formTitle}>أكمل بياناتك</Text>
+              <Text style={s.formHint}>تحققنا من رقمك — بقي اسمك فقط</Text>
+
+              <Text style={s.label}>الاسم الكامل</Text>
               <View style={s.inputWrap}>
                 <TextInput
                   style={s.input}
-                  placeholder="••••••"
+                  placeholder="الاسم"
                   placeholderTextColor={c.textMuted}
-                  secureTextEntry
-                  onChangeText={setPassword}
-                  textAlign="right"
+                  value={name}
+                  onChangeText={setName}
                 />
               </View>
-              <TouchableOpacity style={s.btn} onPress={handleLogin} disabled={loading}>
-                {loading ? <ActivityIndicator color={c.onGold} /> : <Text style={s.btnText}>دخول</Text>}
-              </TouchableOpacity>
-              <TouchableOpacity style={s.switchBtn} onPress={() => setStep("register")}>
-                <Text style={s.switchText}>ما عندك حساب؟ سجّل الآن</Text>
-              </TouchableOpacity>
-                            <TouchableOpacity style={s.switchBtn} onPress={() => router.push("/forgot-password" as any)}>
-                <Text style={s.switchText}>نسيت كلمة المرور؟</Text>
-              </TouchableOpacity>
-              <View style={s.divider}>
-                <View style={s.dividerLine}/>
-                <Text style={s.dividerText}>او</Text>
-                <View style={s.dividerLine}/>
-              </View>
-              <TouchableOpacity style={s.chefBtn} onPress={() => setStep("chef_register")}>
-                <Text style={s.chefBtnText}>سجّل متجرك المنزلي</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.chefBtn, { marginTop: 10, borderColor: c.goldBorder, backgroundColor: c.goldSoft }]}
-                onPress={() => setStep("driver_register")}
-              >
-                <Text style={[s.chefBtnText, { color: c.info }]}>انضم كمندوب توصيل</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.switchBtn} onPress={() => router.replace("/(tabs)" as any)}>
-                <Text style={s.switchText}>تصفح كضيف بدون تسجيل</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    );
-  }
 
-  // شاشة تسجيل عميل
-  if (step === "register") {
-    return (
-      <SafeAreaView key="step-register" style={s.safe}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-            <View style={s.logoWrap}>
-              <Image source={require("../assets/images/logo-mark.png")} style={s.logoMark} />
-            </View>
-            <View style={s.form}>
-              <Text style={s.formTitle}>حساب جديد</Text>
-              <Text style={s.formHint}>سجّل حسابك مجاناً</Text>
-              <Text style={s.label}>الاسم</Text>
-              <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor={c.textMuted} onChangeText={setName} textAlign="right"/>
-              </View>
-              <Text style={s.label}>كلمة المرور</Text>
-              <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="6 احرف على الاقل" placeholderTextColor={c.textMuted} secureTextEntry onChangeText={setPassword} textAlign="right"/>
-              </View>
-              <Text style={s.label}>تاكيد كلمة المرور</Text>
-              <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="اعد كتابتها" placeholderTextColor={c.textMuted} secureTextEntry onChangeText={setPassword2} textAlign="right"/>
-              </View>
-              <Text style={s.label}>رقم الجوال</Text>
-              <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="05X XXX XXXX" placeholderTextColor={c.textMuted} keyboardType="phone-pad" value={phone} onChangeText={setPhone} textAlign="right" maxLength={10}/>
-              </View>
-              <GenderPicker gender={gender} setGender={setGender} />
-              <TouchableOpacity style={s.btn} onPress={() => handleRegister("customer")} disabled={loading}>
-                {loading ? <ActivityIndicator color={c.onGold} /> : <Text style={s.btnText}>تسجيل</Text>}
-              </TouchableOpacity>
-              <TouchableOpacity style={s.switchBtn} onPress={() => setStep("login")}>
-                <Text style={s.switchText}>رجوع</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    );
-  }
+              {role === "customer" ? (
+                <GenderPicker gender={gender} setGender={setGender} />
+              ) : null}
 
-  // شاشة تسجيل متجر منزلي
-  if (step === "chef_register") {
-    return (
-      <SafeAreaView key="step-chef" style={s.safe}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-            <View style={s.logoWrap}>
-              <Image source={require("../assets/images/logo-mark.png")} style={s.logoMark} />
-            </View>
-            <View style={s.form}>
-              <Text style={s.formTitle}>سجّل متجرك</Text>
-              <Text style={s.formHint}>طبخ، حلا، قهوة، مخبوزات — كل التخصصات المنزلية</Text>
-              <Text style={s.label}>الاسم</Text>
-              <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor={c.textMuted} onChangeText={setName} textAlign="right"/>
-              </View>
-              <Text style={s.label}>كلمة المرور</Text>
-              <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="6 احرف على الاقل" placeholderTextColor={c.textMuted} secureTextEntry onChangeText={setPassword} textAlign="right"/>
-              </View>
-              <Text style={s.label}>تاكيد كلمة المرور</Text>
-              <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="اعد كتابتها" placeholderTextColor={c.textMuted} secureTextEntry onChangeText={setPassword2} textAlign="right"/>
-              </View>
-              <Text style={s.label}>رقم الجوال</Text>
-              <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="05X XXX XXXX" placeholderTextColor={c.textMuted} keyboardType="phone-pad" value={phone} onChangeText={setPhone} textAlign="right" maxLength={10}/>
-              </View>
-              <GenderPicker gender={gender} setGender={setGender} />
-              <Text style={s.label}>المدينة</Text>
-              <TouchableOpacity style={s.inputWrap} onPress={() => setShowCityPicker(true)} activeOpacity={0.8}>
-                <Text style={[s.input, { color: city ? c.text : c.textMuted, paddingVertical: 14 }]}>
-                  {city || "اختر مدينتك"}
-                </Text>
-              </TouchableOpacity>
-              <Text style={s.label}>الحي</Text>
-              <View style={s.inputWrap}>
-                <TextInput style={s.input} placeholder="حي النرجس، ..." placeholderTextColor={c.textMuted} onChangeText={setNeighborhood} textAlign="right"/>
-              </View>
-              <Text style={s.certHint}>شهادة العمل الحر غير إلزامية للتسجيل — يمكنك رفعها لاحقًا من لوحتك خلال المهلة المحددة</Text>
-              <TouchableOpacity style={s.btn} onPress={() => handleRegister("chef")} disabled={loading}>
-                {loading ? <ActivityIndicator color={c.onGold} /> : <Text style={s.btnText}>سجّل متجري</Text>}
-              </TouchableOpacity>
-              <TouchableOpacity style={s.switchBtn} onPress={() => setStep("login")}>
-                <Text style={s.switchText}>رجوع</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+              {role === "chef" || role === "driver" ? (
+                <>
+                  <Text style={s.label}>المدينة</Text>
+                  <TouchableOpacity style={s.inputWrap} onPress={() => setShowCityPicker(true)}>
+                    <Text style={[s.input, { paddingVertical: 15, color: city ? c.text : c.textMuted }]}>
+                      {city || "اختر مدينتك"}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : null}
 
-        <CityPickerModal
-          visible={showCityPicker}
-          onClose={() => setShowCityPicker(false)}
-          cities={cities}
-          city={city}
-          setCity={setCity}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  // شاشة تسجيل مندوب
-  return (
-    <SafeAreaView key="step-driver" style={s.safe}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-          <View style={s.logoWrap}>
-            <Image source={require("../assets/images/logo-mark.png")} style={s.logoMark} />
-            <Text style={[s.roleTag, { color: c.info }]}>تسجيل مندوب توصيل</Text>
-          </View>
-          <View style={s.form}>
-            <Text style={s.formTitle}>انضم كمندوب</Text>
-            <Text style={s.formHint}>وصّل الطلبات واكسب اكثر</Text>
-            <Text style={s.label}>الاسم</Text>
-            <View style={s.inputWrap}>
-              <TextInput style={s.input} placeholder="اسمك الكامل" placeholderTextColor={c.textMuted} onChangeText={setName} textAlign="right"/>
+              <TouchableOpacity style={s.btn} onPress={saveProfile} disabled={loading}>
+                {loading
+                  ? <ActivityIndicator color={c.onGold} />
+                  : <Text style={s.btnText}>إنشاء الحساب</Text>}
+              </TouchableOpacity>
             </View>
-            <Text style={s.label}>كلمة المرور</Text>
-            <View style={s.inputWrap}>
-              <TextInput style={s.input} placeholder="6 احرف على الاقل" placeholderTextColor={c.textMuted} secureTextEntry onChangeText={setPassword} textAlign="right"/>
-            </View>
-            <Text style={s.label}>تاكيد كلمة المرور</Text>
-            <View style={s.inputWrap}>
-              <TextInput style={s.input} placeholder="اعد كتابتها" placeholderTextColor={c.textMuted} secureTextEntry onChangeText={setPassword2} textAlign="right"/>
-            </View>
-            <Text style={s.label}>رقم الجوال</Text>
-            <View style={s.inputWrap}>
-              <TextInput style={s.input} placeholder="05X XXX XXXX" placeholderTextColor={c.textMuted} keyboardType="phone-pad" value={phone} onChangeText={setPhone} textAlign="right" maxLength={10}/>
-            </View>
-            <GenderPicker gender={gender} setGender={setGender} />
-            <Text style={s.label}>المدينة</Text>
-            <TouchableOpacity style={s.inputWrap} onPress={() => setShowCityPicker(true)} activeOpacity={0.8}>
-              <Text style={[s.input, { color: city ? c.text : c.textMuted, paddingVertical: 14 }]}>
-                {city || "اختر مدينتك"}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[s.btn, { backgroundColor: c.info }]} onPress={() => handleRegister("driver")} disabled={loading}>
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>تسجيل كمندوب</Text>}
-            </TouchableOpacity>
-            <TouchableOpacity style={s.switchBtn} onPress={() => setStep("login")}>
-              <Text style={s.switchText}>رجوع</Text>
-            </TouchableOpacity>
-          </View>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
 

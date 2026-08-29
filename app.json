@@ -27,7 +27,8 @@
       },
       "associatedDomains": [
         "applinks:zafaran-backend-production.up.railway.app"
-      ]
+      ],
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.zafaran.app",
@@ -106,7 +107,17 @@
           "color": "#F2B233"
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
