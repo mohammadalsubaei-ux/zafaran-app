@@ -49,20 +49,16 @@ export async function savePushToken(): Promise<void> {
     const token = await registerForPushNotifications();
     if (!token) return;
 
+    // لا نرسل الرمز قبل الدخول — الخادم يرفضه بلا جلسة
     const stored = await AsyncStorage.getItem("user");
     if (!stored) return;
 
-    const user = JSON.parse(stored);
-
-   await fetch(`${API}/api/users/push-token`, {
-  method:  "POST",
-  headers: { "Content-Type": "application/json" },
-  body:    JSON.stringify({ 
-    user_id:  user.id,
-    token,
-    platform: Platform.OS,
-  }),
-});
+    // الخادم يأخذ الهوية من رمز الجلسة — لا نرسل user_id
+    await fetch(`${API}/api/users/push-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, platform: Platform.OS }),
+    });
 
     await AsyncStorage.setItem("push_token", token);
   } catch {

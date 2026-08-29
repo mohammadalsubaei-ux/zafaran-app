@@ -242,7 +242,7 @@ export default function LoginScreen() {
 
     await AsyncStorage.setItem("user", JSON.stringify(json.data));
     setToken(json.data?.token || null);
-    savePushToken(json.data.id).catch(() => {});
+    savePushToken().catch(() => {});
 
     router.replace((ROLE_ROUTES[json.data.role] || "/(tabs)") as any);
   };
