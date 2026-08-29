@@ -791,6 +791,38 @@ export default function DashboardScreen() {
             </View>
           </View>
 
+          {chef?.tier ? (
+            <View style={[s.tierCard, { borderColor: chef.tier.color }]}>
+              <View style={s.tierHead}>
+                <View style={[s.tierChip, { backgroundColor: chef.tier.color + "22", borderColor: chef.tier.color }]}>
+                  <Text style={[s.tierChipText, { color: chef.tier.color }]}>{chef.tier.label}</Text>
+                </View>
+                <Text style={s.tierTitle}>مستوى متجرك</Text>
+              </View>
+
+              {chef.tier.progress ? (
+                <>
+                  <View style={s.tierBarBg}>
+                    <View
+                      style={[
+                        s.tierBarFill,
+                        { width: `${chef.tier.progress.percent}%`, backgroundColor: chef.tier.color },
+                      ]}
+                    />
+                  </View>
+
+                  <Text style={s.tierHint}>
+                    {chef.tier.progress.orders_left > 0
+                      ? `باقٍ ${chef.tier.progress.orders_left} طلباً للمستوى ${chef.tier.progress.next_label}`
+                      : `أكملت الطلبات — يلزمك تقييم ${chef.tier.progress.rating_needed} للمستوى ${chef.tier.progress.next_label}`}
+                  </Text>
+                </>
+              ) : (
+                <Text style={s.tierHint}>وصلت أعلى مستوى — أحسنت.</Text>
+              )}
+            </View>
+          ) : null}
+
           <View style={s.tabRow}>
             <TouchableOpacity style={[s.tabBtn, tab === "active" && s.tabBtnActive]} onPress={() => setTab("active")}>
               <Text style={[s.tabText, tab === "active" && s.tabTextActive]}>النشطة ({activeOrders.length})</Text>
@@ -1185,6 +1217,14 @@ const make_s = (c: Colors) => StyleSheet.create({
   qrHint:            { color: c.textSoft, fontSize: 12, lineHeight: 21, textAlign: "center", marginTop: 16, fontFamily: "Almarai_400Regular" },
   qrShareBtn:        { marginTop: 16, minHeight: 46, borderRadius: 15, backgroundColor: c.goldSolid, alignSelf: "stretch", alignItems: "center", justifyContent: "center", flexDirection: "row-reverse", gap: 8 },
   qrShareText:       { color: c.onGold, fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
+  tierCard:          { marginHorizontal: 16, marginBottom: 12, padding: 14, borderRadius: 18, borderWidth: 1, backgroundColor: c.surface },
+  tierHead:          { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  tierTitle:         { color: c.textSoft, fontSize: 12, fontFamily: "Almarai_700Bold" },
+  tierChip:          { borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 3 },
+  tierChipText:      { fontSize: 12.5, fontFamily: "Almarai_800ExtraBold" },
+  tierBarBg:         { height: 8, borderRadius: 4, backgroundColor: c.surfaceAlt, overflow: "hidden" },
+  tierBarFill:       { height: 8, borderRadius: 4 },
+  tierHint:          { color: c.textSoft, fontSize: 11.5, textAlign: "right", marginTop: 9, fontFamily: "Almarai_400Regular" },
   menuBtn:           { marginHorizontal: 16, marginBottom: 12, backgroundColor: c.goldSoft, borderRadius: 14, padding: 14, alignItems: "center", borderWidth: 1, borderColor: c.goldBorder },
   menuBtnText:       { color: c.gold, fontSize: 15, fontWeight: "900", fontFamily: "Almarai_800ExtraBold" },
   statsRow:          { flexDirection: "row-reverse", paddingHorizontal: 16, gap: 8, marginBottom: 12 },

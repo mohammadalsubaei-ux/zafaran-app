@@ -89,6 +89,7 @@ type Chef = {
   menu?: MenuItem[] | null;
   is_live?: boolean | null;
   live_url?: string | null;
+  tier?: { id: string; label: string; color: string; show_badge: boolean } | null;
   offers?: Offer[] | null;
 };
 
@@ -746,6 +747,14 @@ export default function HomeScreen() {
                 {safeNumber(item.total_orders, "0")} طلب
               </Text>
 
+              {item.tier?.show_badge ? (
+                <View style={[s.tierBadge, { borderColor: item.tier.color }]}>
+                  <Text style={[s.tierBadgeText, { color: item.tier.color }]}>
+                    {item.tier.label}
+                  </Text>
+                </View>
+              ) : null}
+
               {discountLabel ? (
                 <View style={s.discountBadge}>
                   <Text style={s.discountBadgeText}>{discountLabel}</Text>
@@ -1107,6 +1116,8 @@ const make_s = (c: Colors) => StyleSheet.create({
   itemName: { color: c.text, fontSize: 10.5, textAlign: "center", marginTop: 5, fontFamily: "Almarai_700Bold" },
   priceRow: { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 2 },
   itemPriceOld: { color: c.textMuted, fontSize: 9.5, textDecorationLine: "line-through", fontFamily: "Almarai_400Regular" },
+  tierBadge: { borderWidth: 1, borderRadius: 7, paddingHorizontal: 7, paddingVertical: 2, marginRight: 4 },
+  tierBadgeText: { fontSize: 9.5, fontFamily: "Almarai_800ExtraBold" },
   discountBadge: { backgroundColor: c.dangerSoft, borderWidth: 1, borderColor: c.danger, borderRadius: 7, paddingHorizontal: 7, paddingVertical: 2, marginRight: 4 },
   discountBadgeText: { color: c.danger, fontSize: 9.5, fontFamily: "Almarai_800ExtraBold" },
   itemPrice: { color: c.gold, fontSize: 11, textAlign: "center", fontFamily: "Almarai_800ExtraBold" },
