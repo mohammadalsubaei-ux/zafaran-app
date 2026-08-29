@@ -11,6 +11,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
+import { useLang } from "@/context/LanguageContext";
+import { t as dict } from "@/constants/i18n";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { clearToken } from "@/utils/authFetch";
 import {
@@ -71,6 +73,8 @@ function normalizeIds(value: unknown): string[] {
 export default function FavoritesScreen() {
   const router = useRouter();
   const { c } = useTheme();
+  const { lang } = useLang();
+  const tr = useMemo(() => dict(lang), [lang]);
   const s = useMemo(() => make_s(c), [c]);
 
   const [chefs, setChefs] = useState<Chef[]>([]);
@@ -435,13 +439,13 @@ export default function FavoritesScreen() {
               <Heart size={54} color={c.textMuted} strokeWidth={1.5} />
             </View>
 
-            <Text style={s.emptyTitle}>ما عندك مفضلة بعد</Text>
+            <Text style={s.emptyTitle}>{tr.favoritesEmpty}</Text>
             <Text style={s.emptySub}>
               اضغط على القلب عند أي متجر، وراح يظهر هنا مباشرة.
             </Text>
 
             <TouchableOpacity activeOpacity={0.9} style={s.primaryBtn} onPress={openHome}>
-              <Text style={s.primaryBtnText}>تصفح المتاجر</Text>
+              <Text style={s.primaryBtnText}>{tr.browseStores}</Text>
             </TouchableOpacity>
           </View>
         }

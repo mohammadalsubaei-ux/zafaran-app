@@ -41,6 +41,8 @@ import {
   type TrackId,
 } from "@/constants/categories";
 import { useTheme, type Colors } from "@/context/ThemeContext";
+import { useLang } from "@/context/LanguageContext";
+import { t as dict } from "@/constants/i18n";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 
@@ -102,6 +104,8 @@ function chefHasCategory(chef: Chef, categoryId: string) {
 export default function CategoriesScreen() {
   const router = useRouter();
   const { c, isDark } = useTheme();
+  const { lang } = useLang();
+  const tr = useMemo(() => dict(lang), [lang]);
   const s = useMemo(() => make_s(c), [c]);
   const params = useLocalSearchParams();
 
@@ -327,7 +331,7 @@ export default function CategoriesScreen() {
         </TouchableOpacity>
       );
     },
-    [c, s, category, openChef]
+    [c, s, tr, category, openChef]
   );
 
   if (!fontsLoaded) {
@@ -347,7 +351,7 @@ export default function CategoriesScreen() {
         <TextInput
           value={search}
           onChangeText={setSearch}
-          placeholder="ابحث عن متجر أو منتج..."
+          placeholder={tr.searchPlaceholder}
           placeholderTextColor={c.textMuted}
           style={s.searchInput}
           textAlign="right"
@@ -386,7 +390,7 @@ export default function CategoriesScreen() {
             >
               <TIcon size={16} color={on ? tone(t, isDark) : c.textSoft} strokeWidth={1.9} />
               <Text style={[s.trackChipText, on && { color: tone(t, isDark) }]} numberOfLines={1}>
-                {t.label}
+                {t.id === "now" ? tr.trackNow : t.id === "occasion" ? tr.trackOccasion : tr.trackPantry}
               </Text>
             </TouchableOpacity>
           );

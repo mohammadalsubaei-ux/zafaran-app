@@ -36,6 +36,8 @@ import {
 
 import { TRACKS, itemMatchesTrack, tone, type TrackId } from "@/constants/categories";
 import { useTheme, type Colors } from "@/context/ThemeContext";
+import { useLang } from "@/context/LanguageContext";
+import { t as dict } from "@/constants/i18n";
 
 const API = "https://zafaran-backend-production.up.railway.app";
 const SUPPORT_WHATSAPP = "966544633113";
@@ -258,6 +260,8 @@ function BannerCarousel({ banners }: { banners: Banner[] }) {
 export default function HomeScreen() {
   const router = useRouter();
   const { c, isDark } = useTheme();
+  const { lang } = useLang();
+  const tr = useMemo(() => dict(lang), [lang]);
   const s = useMemo(() => make_s(c), [c]);
 
   const [chefs, setChefs] = useState<Chef[]>([]);
@@ -517,10 +521,10 @@ export default function HomeScreen() {
                 numberOfLines={1}
                 adjustsFontSizeToFit
               >
-                {track.label}
+                {track.id === "now" ? tr.trackNow : track.id === "occasion" ? tr.trackOccasion : tr.trackPantry}
               </Text>
               <Text style={s.sectionSub} numberOfLines={1} adjustsFontSizeToFit>
-                {track.sub}
+                {track.id === "now" ? tr.trackNowSub : track.id === "occasion" ? tr.trackOccasionSub : tr.trackPantrySub}
               </Text>
             </TouchableOpacity>
           ))}
@@ -548,7 +552,7 @@ export default function HomeScreen() {
               <View />
               <View style={s.liveTitleRow}>
                 <View style={s.liveDot} />
-                <Text style={s.liveSecTitle}>على الهواء الآن</Text>
+                <Text style={s.liveSecTitle}>{tr.liveNow}</Text>
               </View>
             </View>
 
@@ -583,7 +587,7 @@ export default function HomeScreen() {
                         onPress={() => openLive(chef)}
                       >
                         <View style={s.liveBadgeDot} />
-                        <Text style={s.liveBadgeText}>شاهد البث</Text>
+                        <Text style={s.liveBadgeText}>{tr.watchLive}</Text>
                       </TouchableOpacity>
                     </View>
 
@@ -608,10 +612,10 @@ export default function HomeScreen() {
             <View key={`rail-${track.id}`}>
               <View style={s.secHeader}>
                 <TouchableOpacity activeOpacity={0.8} onPress={() => openTrack(track.id)}>
-                  <Text style={s.secMore}>عرض الكل</Text>
+                  <Text style={s.secMore}>{tr.seeAll}</Text>
                 </TouchableOpacity>
                 <Text style={[s.secTitle, { color: tone(track, isDark) }]}>
-                  {track.label}
+                  {track.id === "now" ? tr.trackNow : track.id === "occasion" ? tr.trackOccasion : tr.trackPantry}
                 </Text>
               </View>
 
@@ -668,9 +672,9 @@ export default function HomeScreen() {
         {chefs.length > 0 ? (
           <View style={s.secHeader}>
             <TouchableOpacity activeOpacity={0.8} onPress={() => openTrack("now")}>
-              <Text style={s.secMore}>الأقرب لك</Text>
+              <Text style={s.secMore}>{tr.nearYou}</Text>
             </TouchableOpacity>
-            <Text style={s.secTitle}>كل المتاجر</Text>
+            <Text style={s.secTitle}>{tr.allStores}</Text>
           </View>
         ) : null}
 
@@ -683,7 +687,7 @@ export default function HomeScreen() {
         ) : null}
       </View>
     );
-  }, [c, s, isDark, banners, chefs, chefsByTrack, liveChefs, error, onRefresh, openChef, openLive, openTrack, search]);
+  }, [c, s, tr, isDark, banners, chefs, chefsByTrack, liveChefs, error, onRefresh, openChef, openLive, openTrack, search]);
 
   const renderChef = useCallback(
     ({ item }: { item: Chef }) => {
@@ -799,7 +803,7 @@ export default function HomeScreen() {
                   </Text>
 
                   {off ? (
-                    <Text style={s.itemPrice}>غير متاح</Text>
+                    <Text style={s.itemPrice}>{tr.unavailable}</Text>
                   ) : hasCut ? (
                     <View style={s.priceRow}>
                       <Text style={s.itemPrice}>{cut} ر.س</Text>
@@ -816,7 +820,7 @@ export default function HomeScreen() {
         </View>
       );
     },
-    [c, s, cardItems, favorites, openChef, toggleFavorite]
+    [c, s, tr, cardItems, favorites, openChef, toggleFavorite]
   );
 
   if (!fontsLoaded) {
@@ -837,7 +841,7 @@ export default function HomeScreen() {
           <Search size={18} color={c.gold} strokeWidth={1.8} />
           <TextInput
             style={s.searchInput}
-            placeholder="ابحث عن متجر أو منتج..."
+            placeholder={tr.searchPlaceholder}
             placeholderTextColor={c.textMuted}
             value={search}
             onChangeText={setSearch}
@@ -878,8 +882,8 @@ export default function HomeScreen() {
             search.trim() ? (
               <View style={s.emptyWrap}>
                 <Store size={54} color={c.textMuted} strokeWidth={1.5} />
-                <Text style={s.emptyTitle}>ما لقينا نتائج</Text>
-                <Text style={s.emptyText}>جرّب تبحث باسم متجر أو منتج مختلف.</Text>
+                <Text style={s.emptyTitle}>{tr.noResults}</Text>
+                <Text style={s.emptyText}>{tr.noResultsSub}</Text>
               </View>
             ) : (
               <View style={s.launchWrap}>

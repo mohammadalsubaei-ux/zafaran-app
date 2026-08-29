@@ -43,6 +43,8 @@ import {
 
 import { useCart } from "@/context/CartContext";
 import { useTheme, type Colors } from "@/context/ThemeContext";
+import { useLang } from "@/context/LanguageContext";
+import { t as dict } from "@/constants/i18n";
 import PaymentGateway, { PaymentMethod as GatewayMethod } from "@/components/PaymentGateway";
 
 const API = "https://zafaran-backend-production.up.railway.app";
@@ -141,6 +143,8 @@ function getMinDate(): Date {
 export default function CartScreen() {
   const router = useRouter();
   const { c } = useTheme();
+  const { lang } = useLang();
+  const tr = useMemo(() => dict(lang), [lang]);
   const s = useMemo(() => make_s(c), [c]);
   const { items, updateQty, clearCart, total, totalItems, chef_id } = useCart();
 
@@ -472,17 +476,17 @@ export default function CartScreen() {
           <TouchableOpacity activeOpacity={0.8} style={s.headerBtn} onPress={goBack}>
             <ArrowRight size={20} color={c.gold} />
           </TouchableOpacity>
-          <Text style={s.title}>السلة</Text>
+          <Text style={s.title}>{tr.cart}</Text>
           <View style={s.headerBtnGhost} />
         </View>
         <View style={s.emptyWrap}>
           <View style={s.emptyIcon}>
             <ShoppingBag size={62} color={c.gold} strokeWidth={1.4} />
           </View>
-          <Text style={s.emptyTitle}>السلة فاضية</Text>
-          <Text style={s.emptyText}>اختر طلبك من المتاجر، وبعدها كمل الطلب من هنا.</Text>
+          <Text style={s.emptyTitle}>{tr.emptyCart}</Text>
+          <Text style={s.emptyText}>{tr.emptyCartSub}</Text>
           <TouchableOpacity activeOpacity={0.9} style={s.primaryBtn} onPress={goHome}>
-            <Text style={s.primaryBtnText}>تصفح الوجبات</Text>
+            <Text style={s.primaryBtnText}>{tr.browseStores}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -731,7 +735,7 @@ export default function CartScreen() {
               )}
               <View style={s.summaryDivider} />
               <View style={s.summaryRow}>
-                <Text style={s.totalLabel}>الإجمالي</Text>
+                <Text style={s.totalLabel}>{tr.total}</Text>
                 <Text style={s.totalValue}>{money(grandTotal)}</Text>
               </View>
             </View>
