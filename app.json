@@ -1,8 +1,8 @@
-{
+﻿{
   "expo": {
-    "name": "زعفران",
+    "name": "ط²ط¹ظپط±ط§ظ†",
     "slug": "zafaran-app",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon-app.png",
     "scheme": "zafaranapp",
@@ -17,11 +17,11 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.zafaran.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "نستخدم موقعك لحساب رسوم التوصيل بدقة وتتبع طلبك أثناء التوصيل",
-        "NSPhotoLibraryUsageDescription": "نحتاج الوصول للصور لرفع صور منتجاتك وشهادة العمل الحر",
-        "NSCameraUsageDescription": "نحتاج الكاميرا لتصوير منتجاتك ورفع صورها"
+        "NSLocationWhenInUseUsageDescription": "ظ†ط³طھط®ط¯ظ… ظ…ظˆظ‚ط¹ظƒ ظ„ط­ط³ط§ط¨ ط±ط³ظˆظ… ط§ظ„طھظˆطµظٹظ„ ط¨ط¯ظ‚ط© ظˆطھطھط¨ط¹ ط·ظ„ط¨ظƒ ط£ط«ظ†ط§ط، ط§ظ„طھظˆطµظٹظ„",
+        "NSPhotoLibraryUsageDescription": "ظ†ط­طھط§ط¬ ط§ظ„ظˆطµظˆظ„ ظ„ظ„طµظˆط± ظ„ط±ظپط¹ طµظˆط± ظ…ظ†طھط¬ط§طھظƒ ظˆط´ظ‡ط§ط¯ط© ط§ظ„ط¹ظ…ظ„ ط§ظ„ط­ط±",
+        "NSCameraUsageDescription": "ظ†ط­طھط§ط¬ ط§ظ„ظƒط§ظ…ظٹط±ط§ ظ„طھطµظˆظٹط± ظ…ظ†طھط¬ط§طھظƒ ظˆط±ظپط¹ طµظˆط±ظ‡ط§"
       },
-      "buildNumber": "2",
+      "buildNumber": "3",
       "config": {
         "usesNonExemptEncryption": false
       },
@@ -90,14 +90,14 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "نستخدم موقعك لحساب رسوم التوصيل بدقة وتتبع طلبك أثناء التوصيل"
+          "locationWhenInUsePermission": "ظ†ط³طھط®ط¯ظ… ظ…ظˆظ‚ط¹ظƒ ظ„ط­ط³ط§ط¨ ط±ط³ظˆظ… ط§ظ„طھظˆطµظٹظ„ ط¨ط¯ظ‚ط© ظˆطھطھط¨ط¹ ط·ظ„ط¨ظƒ ط£ط«ظ†ط§ط، ط§ظ„طھظˆطµظٹظ„"
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "نحتاج الوصول للصور لرفع صور منتجاتك وشهادة العمل الحر",
-          "cameraPermission": "نحتاج الكاميرا لتصوير منتجاتك ورفع صورها"
+          "photosPermission": "ظ†ط­طھط§ط¬ ط§ظ„ظˆطµظˆظ„ ظ„ظ„طµظˆط± ظ„ط±ظپط¹ طµظˆط± ظ…ظ†طھط¬ط§طھظƒ ظˆط´ظ‡ط§ط¯ط© ط§ظ„ط¹ظ…ظ„ ط§ظ„ط­ط±",
+          "cameraPermission": "ظ†ط­طھط§ط¬ ط§ظ„ظƒط§ظ…ظٹط±ط§ ظ„طھطµظˆظٹط± ظ…ظ†طھط¬ط§طھظƒ ظˆط±ظپط¹ طµظˆط±ظ‡ط§"
         }
       ],
       [
