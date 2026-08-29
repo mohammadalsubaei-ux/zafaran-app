@@ -150,7 +150,9 @@ export default function DashboardScreen() {
     if (!chefId) return;
     if (!silent) setLoading(true);
     try {
-      const res  = await fetch(`${API}/api/orders/chef/${chefId}`);
+      // الشاشة تفلتر الطلبات محلياً لتبويبات (نشطة/سجل)، فتحتاج دفعة كافية.
+      // 100 هو سقف الخادم — والحل الدائم فلترة بالحالة من الخادم عند النمو.
+      const res  = await fetch(`${API}/api/orders/chef/${chefId}?limit=100&offset=0`);
       const json = await res.json();
       if (json.success) setOrders(json.data);
     } finally {

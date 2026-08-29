@@ -42,6 +42,7 @@ import {
 } from "lucide-react-native";
 
 const API = "https://zafaran-backend-production.up.railway.app";
+const PAGE_SIZE = 30;
 
 type OrderStatus =
   | "pending"
@@ -219,6 +220,8 @@ export default function OrdersScreen() {
   const [isGuest, setIsGuest] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasMore, setHasMore]       = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [tab, setTab] = useState<"active" | "history">("active");
   const [error, setError] = useState<string | null>(null);
   const [respondingId, setRespondingId] = useState<string | null>(null);
@@ -263,7 +266,8 @@ export default function OrdersScreen() {
 
         setIsGuest(false);
 
-        const res = await fetch(`${API}/api/orders/customer/${userData.id}`);
+        // الخادم يُرجع 30 طلباً افتراضياً — نجلب الباقي بالتمرير
+        const res = await fetch(`${API}/api/orders/customer/${userData.id}?limit=${PAGE_SIZE}&offset=0`);
         const json = await res.json().catch(() => null);
 
         if (!res.ok) {
@@ -278,7 +282,9 @@ export default function OrdersScreen() {
           return;
         }
 
-        setOrders(Array.isArray(json.data) ? json.data : []);
+        const list = Array.isArray(json.data) ? json.data : [];
+        setOrders(list);
+        setHasMore(list.length === PAGE_SIZE);
       } catch {
         setOrders([]);
         setError("تعذر الاتصال بالخادم. تأكد من الإنترنت وحاول مرة ثانية.");
@@ -289,6 +295,38 @@ export default function OrdersScreen() {
     },
     [router]
   );
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+
+    setLoadingMore(true);
+    try {
+      const stored = await AsyncStorage.getItem("user");
+      const userData = stored ? JSON.parse(stored) : null;
+      if (!userData?.id) return;
+
+      const res = await fetch(
+        `${API}/api/orders/customer/${userData.id}?limit=${PAGE_SIZE}&offset=${orders.length}`
+      );
+      const json = await res.json().catch(() => null);
+
+      const list = json?.success && Array.isArray(json.data) ? json.data : [];
+
+      if (list.length > 0) {
+        // الحارس يمنع تكرار طلب وصل مرتين عند تغيّر الترتيب أثناء التمرير
+        setOrders((prev) => {
+          const seen = new Set(prev.map((o: any) => o.id));
+          return [...prev, ...list.filter((o: any) => !seen.has(o.id))];
+        });
+      }
+
+      setHasMore(list.length === PAGE_SIZE);
+    } catch {
+      setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [hasMore, loadingMore, orders.length]);
 
   useFocusEffect(
     useCallback(() => {
@@ -722,6 +760,15 @@ export default function OrdersScreen() {
         renderItem={renderOrder}
         ListHeaderComponent={Header}
         contentContainerStyle={s.listContent}
+        onEndReached={tab === "history" ? loadMore : undefined}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={{ paddingVertical: 20 }}>
+              <ActivityIndicator color={c.gold} />
+            </View>
+          ) : null
+        }
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
