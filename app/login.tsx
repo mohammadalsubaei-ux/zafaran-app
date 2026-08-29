@@ -3,7 +3,16 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setToken } from "@/utils/authFetch";
-import auth from "@react-native-firebase/auth";
+// Firebase مكتبة أصلية لا تعمل في Expo Go — الاستيراد الثابت كان يُسقط
+// التطبيق كله عند الإقلاع. نحمّلها عند الحاجة فقط، فيعمل كل شيء آخر
+// أثناء التطوير، ويعمل التحقق كاملاً في البناء.
+function getAuth() {
+  try {
+    return require("@react-native-firebase/auth").default;
+  } catch {
+    return null;
+  }
+}
 import {
   View,
   Text,
@@ -196,6 +205,15 @@ export default function LoginScreen() {
       return;
     }
 
+    const auth = getAuth();
+    if (!auth) {
+      Alert.alert(
+        "غير متاح في وضع التطوير",
+        "التحقق بالرمز يحتاج نسخة مبنية — جرّبه بعد البناء."
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       const conf = await auth().signInWithPhoneNumber(toE164(clean));
@@ -283,7 +301,8 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const current = auth().currentUser;
+      const auth = getAuth();
+      const current = auth ? auth().currentUser : null;
       if (!current) {
         Alert.alert("انتهت الجلسة", "أعد إدخال رقمك من جديد.");
         setStage("phone");
