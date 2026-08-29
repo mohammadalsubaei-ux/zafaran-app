@@ -58,6 +58,18 @@ type MenuItem = {
   status?: string | null;
 };
 
+type SavedList = {
+  id: string;
+  name: string;
+  chef_id: string;
+  chef_name: string;
+  chef_status?: string | null;
+  available: number;
+  total_saved: number;
+  total: number;
+  items: { menu_item_id: string; name: string; price: number; image_url?: string | null; quantity: number }[];
+};
+
 type ReorderCard = {
   order_id: string;
   chef_id: string;
@@ -109,6 +121,7 @@ type Chef = {
   is_live?: boolean | null;
   live_url?: string | null;
   tier?: { id: string; label: string; color: string; show_badge: boolean } | null;
+  is_featured?: boolean | null;
   offers?: Offer[] | null;
 };
 
@@ -283,6 +296,7 @@ export default function HomeScreen() {
   const { lang } = useLang();
   const { addItem, clearCart, chef_id: cartChefId } = useCart();
   const [reorders, setReorders] = useState<ReorderCard[]>([]);
+  const [savedLists, setSavedLists] = useState<SavedList[]>([]);
   const tr = useMemo(() => dict(lang), [lang]);
   const s = useMemo(() => make_s(c), [c]);
 
@@ -438,6 +452,56 @@ export default function HomeScreen() {
     }
   }, []);
 
+  const loadSavedLists = useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem("user");
+      if (!raw) { setSavedLists([]); return; }
+
+      const res  = await fetch(`${API}/api/lists`);
+      const json = await res.json().catch(() => null);
+
+      setSavedLists(json?.success && Array.isArray(json.data) ? json.data : []);
+    } catch {
+      setSavedLists([]);
+    }
+  }, []);
+
+  const useSavedList = useCallback((list: SavedList) => {
+    if (list.available === 0) {
+      Alert.alert("غير متاحة الآن", "أصناف هذي السفرة غير متوفرة حالياً.");
+      return;
+    }
+
+    const apply = () => {
+      list.items.forEach((it) => {
+        addItem({
+          id: it.menu_item_id,
+          name: it.name,
+          price: it.price,
+          quantity: it.quantity,
+          chef_id: list.chef_id,
+          chef_name: list.chef_name,
+          image_url: it.image_url,
+        });
+      });
+      router.push("/cart" as never);
+    };
+
+    if (cartChefId && cartChefId !== list.chef_id) {
+      Alert.alert(
+        "سلتك من متجر آخر",
+        "نستبدل سلتك الحالية بهذي السفرة؟",
+        [
+          { text: "إلغاء", style: "cancel" },
+          { text: "استبدال", style: "destructive", onPress: () => { clearCart(); apply(); } },
+        ]
+      );
+      return;
+    }
+
+    apply();
+  }, [addItem, cartChefId, clearCart, router]);
+
   const reorderNow = useCallback((card: ReorderCard) => {
     const apply = () => {
       card.items.forEach((it) => {
@@ -474,7 +538,8 @@ export default function HomeScreen() {
     await loadSession();
     await fetchChefs("", false);
     await loadReorders();
-  }, [fetchChefs, loadSession, loadReorders]);
+    await loadSavedLists();
+  }, [fetchChefs, loadSession, loadReorders, loadSavedLists]);
 
   useFocusEffect(
     useCallback(() => {
@@ -616,6 +681,44 @@ export default function HomeScreen() {
             <Text style={s.statLabel}>متاح الآن</Text>
           </View>
         </View>
+
+        {savedLists.length > 0 ? (
+          <View>
+            <View style={s.secHeader}>
+              <View />
+              <Text style={s.secTitle}>سفراتي</Text>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={s.railFixed}
+              contentContainerStyle={s.topList}
+            >
+              {savedLists.map((list) => {
+                const off = list.available === 0 || list.chef_status === "closed";
+
+                return (
+                  <TouchableOpacity
+                    key={list.id}
+                    activeOpacity={0.88}
+                    style={[s.listCard, off && s.listCardOff]}
+                    onPress={() => useSavedList(list)}
+                  >
+                    <Text style={s.listName} numberOfLines={1}>{list.name}</Text>
+                    <Text style={s.listChef} numberOfLines={1}>{list.chef_name}</Text>
+
+                    <Text style={s.listMeta}>
+                      {off
+                        ? list.chef_status === "closed" ? tr.statusClosed : tr.unavailable
+                        : `${list.available} صنف · ${list.total.toFixed(0)} ${tr.currency}`}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        ) : null}
 
         {reorders.length > 0 ? (
           <View>
@@ -815,7 +918,7 @@ export default function HomeScreen() {
         ) : null}
       </View>
     );
-  }, [c, s, tr, isDark, reorders, reorderNow, banners, chefs, chefsByTrack, liveChefs, error, onRefresh, openChef, openLive, openTrack, search]);
+  }, [c, s, tr, isDark, reorders, reorderNow, savedLists, useSavedList, banners, chefs, chefsByTrack, liveChefs, error, onRefresh, openChef, openLive, openTrack, search]);
 
   const renderChef = useCallback(
     ({ item }: { item: Chef }) => {
@@ -873,6 +976,12 @@ export default function HomeScreen() {
               <Text style={s.chefOrders}>
                 {safeNumber(item.total_orders, "0")} طلب
               </Text>
+
+              {item.is_featured ? (
+                <View style={s.adBadge}>
+                  <Text style={s.adBadgeText}>إعلان</Text>
+                </View>
+              ) : null}
 
               {item.tier?.show_badge ? (
                 <View style={[s.tierBadge, { borderColor: item.tier.color }]}>
@@ -1243,12 +1352,19 @@ const make_s = (c: Colors) => StyleSheet.create({
   itemName: { color: c.text, fontSize: 10.5, textAlign: "center", marginTop: 5, fontFamily: "Almarai_700Bold" },
   priceRow: { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 2 },
   itemPriceOld: { color: c.textMuted, fontSize: 9.5, textDecorationLine: "line-through", fontFamily: "Almarai_400Regular" },
+  adBadge: { backgroundColor: c.adBg, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2, marginRight: 4 },
+  adBadgeText: { color: c.adText, fontSize: 9, fontFamily: "Almarai_400Regular" },
   tierBadge: { borderWidth: 1, borderRadius: 7, paddingHorizontal: 7, paddingVertical: 2, marginRight: 4 },
   tierBadgeText: { fontSize: 9.5, fontFamily: "Almarai_800ExtraBold" },
   discountBadge: { backgroundColor: c.dangerSoft, borderWidth: 1, borderColor: c.danger, borderRadius: 7, paddingHorizontal: 7, paddingVertical: 2, marginRight: 4 },
   discountBadgeText: { color: c.danger, fontSize: 9.5, fontFamily: "Almarai_800ExtraBold" },
   itemPrice: { color: c.gold, fontSize: 11, textAlign: "center", fontFamily: "Almarai_800ExtraBold" },
 
+  listCard: { width: 152, backgroundColor: c.surface, borderRadius: 16, borderWidth: 1, borderColor: c.border, padding: 13, justifyContent: "center", minHeight: 92 },
+  listCardOff: { opacity: 0.55 },
+  listName: { color: c.text, fontSize: 14, textAlign: "right", fontFamily: "Almarai_800ExtraBold" },
+  listChef: { color: c.textSoft, fontSize: 11, textAlign: "right", marginTop: 4, fontFamily: "Almarai_400Regular" },
+  listMeta: { color: c.gold, fontSize: 11.5, textAlign: "right", marginTop: 7, fontFamily: "Almarai_700Bold" },
   reCard: { width: 168, backgroundColor: c.surface, borderRadius: 18, borderWidth: 1, borderColor: c.border, padding: 10 },
   reImg: { width: "100%", height: 84, borderRadius: 13, backgroundColor: c.surfaceAlt },
   reChef: { color: c.text, fontSize: 13, textAlign: "right", marginTop: 8, fontFamily: "Almarai_800ExtraBold" },
