@@ -3,10 +3,16 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setToken } from "@/utils/authFetch";
-// Firebase مكتبة أصلية لا تعمل في Expo Go — الاستيراد الثابت كان يُسقط
-// التطبيق كله عند الإقلاع. نحمّلها عند الحاجة فقط، فيعمل كل شيء آخر
-// أثناء التطوير، ويعمل التحقق كاملاً في البناء.
+import Constants from "expo-constants";
+// Firebase مكتبة أصلية لا وجود لها في Expo Go.
+// try/catch حول require لا يكفي: المكتبة تنهار أثناء تحميلها فتصل
+// لمعالج الأخطاء العام قبل أن نلتقطها. لذلك نفحص البيئة أولاً
+// ولا نستدعيها إطلاقاً أثناء التطوير.
+const IS_EXPO_GO = Constants.appOwnership === "expo";
+
 function getAuth() {
+  if (IS_EXPO_GO) return null;
+
   try {
     return require("@react-native-firebase/auth").default;
   } catch {
