@@ -139,7 +139,7 @@ export default function WalletScreen() {
       setUser(parsed);
       return parsed as UserSession;
     } catch {
-      await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+      await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "cart_state"]);
       clearToken();
       setUser(null);
       return null;

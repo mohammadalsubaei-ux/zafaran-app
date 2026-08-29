@@ -216,7 +216,7 @@ export default function MenuScreen() {
       if (!storedUser) { setError("سجل الدخول من جديد."); setLoading(false); return; }
       let user: any = null;
       try { user = JSON.parse(storedUser); } catch {
-        await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+        await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "cart_state"]);
       clearToken();
         setError("جلسة غير صالحة."); setLoading(false); return;
       }

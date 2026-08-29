@@ -109,7 +109,7 @@ export default function DeleteAccountScreen() {
       const json = await res.json().catch(() => null);
 
       if (res.ok && json?.success) {
-        await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "push_token"]);
+        await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "push_token", "cart_state"]);
       clearToken();
         Alert.alert("تم حذف حسابك", "نشكرك على استخدامك زعفران", [
           { text: "حسناً", onPress: () => router.replace("/login" as any) },

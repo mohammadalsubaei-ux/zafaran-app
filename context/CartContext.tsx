@@ -1,4 +1,7 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const CART_KEY = "cart_state";
 
 interface CartItem {
   id: string;
@@ -29,6 +32,35 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [chef_id, setChefId] = useState<string | null>(null);
   const [chef_name, setChefName] = useState<string | null>(null);
+
+  // كانت السلة في الذاكرة فقط — من أغلق التطبيق للحظة يعود ويجدها فارغة،
+  // وهذا طلب ضائع لا مجرد إزعاج.
+  const loaded = useRef(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(CART_KEY)
+      .then((raw) => {
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if (Array.isArray(saved?.items) && saved.items.length > 0) {
+          setItems(saved.items);
+          setChefId(saved.chef_id || null);
+          setChefName(saved.chef_name || null);
+        }
+      })
+      .catch(() => {})
+      .finally(() => { loaded.current = true; });
+  }, []);
+
+  useEffect(() => {
+    // لا نكتب قبل انتهاء القراءة، وإلا محونا السلة المحفوظة بحالة فارغة
+    if (!loaded.current) return;
+
+    AsyncStorage.setItem(
+      CART_KEY,
+      JSON.stringify({ items, chef_id, chef_name })
+    ).catch(() => {});
+  }, [items, chef_id, chef_name]);
 
   const addItem = useCallback((item: CartItem) => {
     if (chef_id && chef_id !== item.chef_id) {
@@ -98,6 +130,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems([]);
     setChefId(null);
     setChefName(null);
+    AsyncStorage.removeItem(CART_KEY).catch(() => {});
   }, []);
 
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);

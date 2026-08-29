@@ -251,7 +251,7 @@ export default function OrdersScreen() {
         try {
           userData = JSON.parse(storedUser);
         } catch {
-          await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+          await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "cart_state"]);
       clearToken();
           setIsGuest(true);
           setOrders([]);

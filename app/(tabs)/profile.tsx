@@ -232,7 +232,7 @@ export default function ProfileScreen() {
       try {
         parsed = JSON.parse(stored);
       } catch {
-        await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+        await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "cart_state"]);
       clearToken();
         setUser(null);
         return;
@@ -405,7 +405,7 @@ export default function ProfileScreen() {
           text: t.yes,
           style: "destructive",
           onPress: async () => {
-            await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+            await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "cart_state"]);
       clearToken();
             router.replace("/login" as any);
           },

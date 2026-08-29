@@ -336,7 +336,7 @@ export default function DriverScreen() {
       { text: tr("no", lang), style: "cancel" },
       { text: tr("yes", lang), style: "destructive", onPress: async () => {
         stopTracking();
-        await AsyncStorage.multiRemove(["user", "user_id", "driver_id", "chef_id", "role", "push_token"]);
+        await AsyncStorage.multiRemove(["user", "user_id", "driver_id", "chef_id", "role", "push_token", "cart_state"]);
       clearToken();
         router.replace("/login" as any);
       }},

@@ -135,7 +135,7 @@ export default function FavoritesScreen() {
         try {
           user = JSON.parse(storedUser);
         } catch {
-          await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+          await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "cart_state"]);
       clearToken();
           setUserId(null);
           setFavoriteIds([]);

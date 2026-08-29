@@ -343,7 +343,7 @@ export default function HomeScreen() {
         setFavorites(savedFavorites ? JSON.parse(savedFavorites) : []);
       }
     } catch {
-      await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+      await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "cart_state"]);
       clearToken();
       setUserId(null);
       setFavorites([]);

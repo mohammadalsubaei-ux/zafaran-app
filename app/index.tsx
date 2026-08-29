@@ -113,7 +113,7 @@ export default function SplashScreen() {
         try {
           userData = JSON.parse(user);
         } catch {
-          await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+          await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "cart_state"]);
       clearToken();
           router.replace("/(tabs)" as any);
           return;
@@ -122,7 +122,7 @@ export default function SplashScreen() {
         // جلسة قديمة بلا رمز (من قبل نظام المصادقة): ندخله كضيف بدل أن
         // يتصفح ثم يصطدم برفض كل عملية حسّاسة بلا تفسير.
         if (!userData?.token) {
-          await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+          await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "cart_state"]);
           clearToken();
           router.replace("/(tabs)" as any);
           return;

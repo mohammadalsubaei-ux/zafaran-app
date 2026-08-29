@@ -226,7 +226,7 @@ export default function DashboardScreen() {
     Alert.alert("خروج", "تبي تطلع من حسابك؟", [
       { text: "لا", style: "cancel" },
       { text: "نعم", style: "destructive", onPress: async () => {
-        await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+        await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "cart_state"]);
       clearToken();
         router.replace("/login");
       }},

@@ -337,7 +337,7 @@ export default function CartScreen() {
     if (!storedUser) return null;
     try { return JSON.parse(storedUser); }
     catch {
-      await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role"]);
+      await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "cart_state"]);
       clearToken();
       return null;
     }
