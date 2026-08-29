@@ -124,7 +124,7 @@ const make_s = (c: Colors) => StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: c.goldSoft,
   },
   backBtn: { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: c.goldBorder, alignItems: "center", justifyContent: "center" },
-  headerTitle: { color: c.text, fontSize: 16, fontWeight: "800" },
+  headerTitle: { color: c.text, fontSize: 16, fontFamily: "Almarai_800ExtraBold" },
 
   card: {
     flexDirection: "row-reverse", gap: 12, backgroundColor: c.surface, borderRadius: 16,
@@ -134,11 +134,11 @@ const make_s = (c: Colors) => StyleSheet.create({
     width: 38, height: 38, borderRadius: 12, backgroundColor: c.goldSoft,
     alignItems: "center", justifyContent: "center",
   },
-  cardTitle: { color: c.text, fontSize: 14, fontWeight: "800", textAlign: "right", marginBottom: 3 },
+  cardTitle: { color: c.text, fontSize: 14, fontFamily: "Almarai_800ExtraBold", textAlign: "right", marginBottom: 3 },
   cardBody: { color: c.textSoft, fontSize: 12, textAlign: "right", marginBottom: 5, lineHeight: 18 },
   cardTime: { color: c.textMuted, fontSize: 10, textAlign: "right" },
 
   emptyWrap: { alignItems: "center", marginTop: 100, gap: 10 },
-  emptyTitle: { color: c.text, fontSize: 15, fontWeight: "800" },
+  emptyTitle: { color: c.text, fontSize: 15, fontFamily: "Almarai_800ExtraBold" },
   emptyText: { color: c.textSoft, fontSize: 12 },
 });

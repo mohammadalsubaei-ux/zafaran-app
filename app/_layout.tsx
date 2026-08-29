@@ -10,6 +10,12 @@ import UpdateBanner from "@/components/UpdateBanner";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { setupAuthFetch } from "@/utils/authFetch";
+import {
+  useFonts,
+  Almarai_400Regular,
+  Almarai_700Bold,
+  Almarai_800ExtraBold,
+} from "@expo-google-fonts/almarai";
 
 // يُركَّب مرة واحدة قبل أي طلب — كل نداء لخادم زعفران يحمل رمز الجلسة
 setupAuthFetch();
@@ -58,6 +64,16 @@ export default function RootLayout() {
 // يقرأ المظهر من ThemeProvider ويمرره لملاحة expo-router وشريط الحالة
 function ThemedShell() {
   const { isDark, c } = useTheme();
+
+  // تحميل مركزي مرة واحدة — كانت كل شاشة تحمّلها بنفسها، ومن نسيها
+  // (الإشعارات، PaymentGateway، UpdateBanner) تظهر بالخط الافتراضي.
+  const [fontsLoaded] = useFonts({
+    Almarai_400Regular,
+    Almarai_700Bold,
+    Almarai_800ExtraBold,
+  });
+
+  if (!fontsLoaded) return null;
 
   const navTheme = {
     ...(isDark ? DarkTheme : DefaultTheme),
