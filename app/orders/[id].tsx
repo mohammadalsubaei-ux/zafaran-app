@@ -8,6 +8,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  AppState,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -264,6 +265,17 @@ export default function OrderDetailScreen() {
 
   const trackingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // التحديث الدوري يستهلك بطارية المستخدم ويضغط الخادم بلا فائدة
+  // حين يكون التطبيق في الخلفية — نوقفه ونستأنفه عند العودة.
+  const [appActive, setAppActive] = useState(true);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      setAppActive(state === "active");
+    });
+    return () => sub.remove();
+  }, []);
+
   const [fontsLoaded] = useFonts({ Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold });
 
   const loadOrder = useCallback(async (silent = false) => {
@@ -298,14 +310,14 @@ export default function OrderDetailScreen() {
 
   useEffect(() => {
     const waiting = order?.status === "ready" && !order?.driver_id && order?.delivery_address !== "استلام شخصي";
-    if (!waiting) return;
+    if (!waiting || !appActive) return;
     const t = setInterval(() => { setNowTick(Date.now()); loadOrder(true); }, 20000);
     return () => clearInterval(t);
-  }, [order?.status, order?.driver_id, order?.delivery_address, loadOrder]);
+  }, [order?.status, order?.driver_id, order?.delivery_address, loadOrder, appActive]);
 
   // تتبع لحظي عند حالة delivering
   useEffect(() => {
-    if (order?.status === "delivering") {
+    if (order?.status === "delivering" && appActive) {
       fetchDriverLocation();
       trackingIntervalRef.current = setInterval(fetchDriverLocation, TRACKING_POLL_INTERVAL);
     } else {
@@ -318,7 +330,7 @@ export default function OrderDetailScreen() {
     return () => {
       if (trackingIntervalRef.current) clearInterval(trackingIntervalRef.current);
     };
-  }, [order?.status, fetchDriverLocation]);
+  }, [order?.status, fetchDriverLocation, appActive]);
 
   const cancelOrder = useCallback(() => {
     Alert.alert("إلغاء الطلب", "متأكد من إلغاء هذا الطلب؟", [
