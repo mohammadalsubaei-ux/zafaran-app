@@ -49,6 +49,8 @@ function GenderPicker({ gender, setGender }: {
   gender: "male" | "female";
   setGender: (g: "male" | "female") => void;
 }) {
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
   return (
     <View>
       <Text style={s.label}>الجنس</Text>
@@ -81,6 +83,9 @@ function CityPickerModal({ visible, onClose, cities, city, setCity }: {
   city: string;
   setCity: (c: string) => void;
 }) {
+  // مكوّن مستقل — يحتاج الوصول للثيم بنفسه، لا يرثه من الشاشة
+  const { c } = useTheme();
+  const s = useMemo(() => make_s(c), [c]);
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
