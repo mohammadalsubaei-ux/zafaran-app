@@ -37,6 +37,7 @@ import {
 import { TRACKS, itemMatchesTrack, tone, type TrackId } from "@/constants/categories";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import { useLang } from "@/context/LanguageContext";
+import { useCart } from "@/context/CartContext";
 import { t as dict } from "@/constants/i18n";
 
 const API = "https://zafaran-backend-production.up.railway.app";
@@ -55,6 +56,24 @@ type MenuItem = {
   image_url?: string | null;
   category?: string | null;
   status?: string | null;
+};
+
+type ReorderCard = {
+  order_id: string;
+  chef_id: string;
+  chef_name: string;
+  chef_city?: string | null;
+  chef_status?: string | null;
+  ordered_at?: string | null;
+  total: number;
+  items: {
+    menu_item_id: string;
+    name: string;
+    price: number;
+    image_url?: string | null;
+    quantity: number;
+    price_changed?: boolean;
+  }[];
 };
 
 type Offer = {
@@ -262,6 +281,8 @@ export default function HomeScreen() {
   const router = useRouter();
   const { c, isDark } = useTheme();
   const { lang } = useLang();
+  const { addItem, clearCart, chef_id: cartChefId } = useCart();
+  const [reorders, setReorders] = useState<ReorderCard[]>([]);
   const tr = useMemo(() => dict(lang), [lang]);
   const s = useMemo(() => make_s(c), [c]);
 
@@ -401,10 +422,59 @@ export default function HomeScreen() {
     }
   }, []);
 
+  // "اطلبها ثانية" — يعتمد على طلبات العميل السابقة، فيختفي للضيف
+  const loadReorders = useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem("user");
+      const user = raw ? JSON.parse(raw) : null;
+      if (!user?.id) { setReorders([]); return; }
+
+      const res  = await fetch(`${API}/api/orders/reorder/${user.id}`);
+      const json = await res.json().catch(() => null);
+
+      setReorders(json?.success && Array.isArray(json.data) ? json.data : []);
+    } catch {
+      setReorders([]);
+    }
+  }, []);
+
+  const reorderNow = useCallback((card: ReorderCard) => {
+    const apply = () => {
+      card.items.forEach((it) => {
+        addItem({
+          id: it.menu_item_id,
+          name: it.name,
+          price: it.price,
+          quantity: it.quantity,
+          chef_id: card.chef_id,
+          chef_name: card.chef_name,
+          image_url: it.image_url,
+        });
+      });
+      router.push("/cart" as never);
+    };
+
+    // السلة لمتجر واحد — نستأذن قبل استبدال سلة قائمة لمتجر آخر
+    if (cartChefId && cartChefId !== card.chef_id) {
+      Alert.alert(
+        "سلتك من متجر آخر",
+        "سلتك الحالية من متجر مختلف. نستبدلها بطلبك السابق؟",
+        [
+          { text: "إلغاء", style: "cancel" },
+          { text: "استبدال", style: "destructive", onPress: () => { clearCart(); apply(); } },
+        ]
+      );
+      return;
+    }
+
+    apply();
+  }, [addItem, cartChefId, clearCart, router]);
+
   const bootstrap = useCallback(async () => {
     await loadSession();
     await fetchChefs("", false);
-  }, [fetchChefs, loadSession]);
+    await loadReorders();
+  }, [fetchChefs, loadSession, loadReorders]);
 
   useFocusEffect(
     useCallback(() => {
@@ -547,6 +617,63 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {reorders.length > 0 ? (
+          <View>
+            <View style={s.secHeader}>
+              <View />
+              <Text style={s.secTitle}>اطلبها ثانية</Text>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={s.railFixed}
+              contentContainerStyle={s.topList}
+            >
+              {reorders.map((card) => {
+                const closed = card.chef_status === "closed";
+                const first  = card.items[0];
+
+                return (
+                  <View key={card.order_id} style={s.reCard}>
+                    <TouchableOpacity
+                      activeOpacity={0.88}
+                      onPress={() => openChef(card.chef_id)}
+                    >
+                      {first?.image_url ? (
+                        <Image source={{ uri: first.image_url }} style={s.reImg} />
+                      ) : (
+                        <View style={[s.reImg, s.topImgPlaceholder]}>
+                          <Store size={26} color={c.textMuted} strokeWidth={1.5} />
+                        </View>
+                      )}
+
+                      <Text style={s.reChef} numberOfLines={1}>{card.chef_name}</Text>
+                      <Text style={s.reItems} numberOfLines={1}>
+                        {card.items.map((i) => i.name).join(" · ")}
+                      </Text>
+                      <Text style={s.reTotal}>
+                        {card.total.toFixed(2)} {tr.currency}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      style={[s.reBtn, closed && s.reBtnOff]}
+                      disabled={closed}
+                      onPress={() => reorderNow(card)}
+                    >
+                      <Text style={[s.reBtnText, closed && s.reBtnTextOff]}>
+                        {closed ? tr.statusClosed : "اطلبها ثانية"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        ) : null}
+
         {liveChefs.length > 0 ? (
           <View>
             <View style={s.secHeader}>
@@ -688,7 +815,7 @@ export default function HomeScreen() {
         ) : null}
       </View>
     );
-  }, [c, s, tr, isDark, banners, chefs, chefsByTrack, liveChefs, error, onRefresh, openChef, openLive, openTrack, search]);
+  }, [c, s, tr, isDark, reorders, reorderNow, banners, chefs, chefsByTrack, liveChefs, error, onRefresh, openChef, openLive, openTrack, search]);
 
   const renderChef = useCallback(
     ({ item }: { item: Chef }) => {
@@ -1122,6 +1249,15 @@ const make_s = (c: Colors) => StyleSheet.create({
   discountBadgeText: { color: c.danger, fontSize: 9.5, fontFamily: "Almarai_800ExtraBold" },
   itemPrice: { color: c.gold, fontSize: 11, textAlign: "center", fontFamily: "Almarai_800ExtraBold" },
 
+  reCard: { width: 168, backgroundColor: c.surface, borderRadius: 18, borderWidth: 1, borderColor: c.border, padding: 10 },
+  reImg: { width: "100%", height: 84, borderRadius: 13, backgroundColor: c.surfaceAlt },
+  reChef: { color: c.text, fontSize: 13, textAlign: "right", marginTop: 8, fontFamily: "Almarai_800ExtraBold" },
+  reItems: { color: c.textSoft, fontSize: 10.5, textAlign: "right", marginTop: 3, fontFamily: "Almarai_400Regular" },
+  reTotal: { color: c.gold, fontSize: 12.5, textAlign: "right", marginTop: 5, fontFamily: "Almarai_800ExtraBold" },
+  reBtn: { marginTop: 9, minHeight: 36, borderRadius: 11, backgroundColor: c.goldSolid, alignItems: "center", justifyContent: "center" },
+  reBtnOff: { backgroundColor: c.surfaceAlt },
+  reBtnText: { color: c.onGold, fontSize: 12, fontFamily: "Almarai_800ExtraBold" },
+  reBtnTextOff: { color: c.textMuted },
   railFixed: {
     flexGrow: 0,
     flexShrink: 0,
