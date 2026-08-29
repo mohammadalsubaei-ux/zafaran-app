@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Almarai_400Regular,
   Almarai_700Bold,
@@ -127,7 +128,13 @@ export default function CategoriesScreen() {
     setError(null);
 
     try {
-      const res = await fetch(`${API}/api/chefs`);
+      const [[, uLat], [, uLng]] = await AsyncStorage.multiGet([
+        "last_address_lat",
+        "last_address_lng",
+      ]);
+      const geo = uLat && uLng ? `?lat=${uLat}&lng=${uLng}` : "";
+
+      const res = await fetch(`${API}/api/chefs${geo}`);
       const json = await res.json().catch(() => null);
 
       if (!res.ok) {

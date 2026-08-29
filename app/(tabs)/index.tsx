@@ -355,9 +355,17 @@ export default function HomeScreen() {
     setError(null);
 
     try {
+      // إحداثيات العنوان المختار — الخادم يحتسب بها القرب في ترتيب المتاجر
+      const [[, uLat], [, uLng]] = await AsyncStorage.multiGet([
+        "last_address_lat",
+        "last_address_lng",
+      ]);
+
+      const geo = uLat && uLng ? `lat=${uLat}&lng=${uLng}` : "";
+
       const endpoint = query.trim()
         ? `${API}/api/chefs/search?q=${encodeURIComponent(query.trim())}`
-        : `${API}/api/chefs`;
+        : `${API}/api/chefs${geo ? `?${geo}` : ""}`;
 
       const response = await fetch(endpoint);
 
