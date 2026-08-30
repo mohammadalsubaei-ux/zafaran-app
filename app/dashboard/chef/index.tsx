@@ -65,7 +65,7 @@ const MINUTES = ["00", "15", "30", "45"];
 function formatArabicDateTime(iso: string): string {
   if (!iso) return "";
   const d = new Date(iso);
-  return d.toLocaleString("ar-SA", {
+  return d.toLocaleString("ar-SA-u-ca-gregory", {
     weekday: "short", month: "short", day: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
@@ -184,7 +184,7 @@ export default function DashboardScreen() {
     if (!chef) return null;
     if (chef.freelance_cert_url) {
       const d = chef.freelance_cert_uploaded_at ? new Date(chef.freelance_cert_uploaded_at) : null;
-      return { state: "uploaded" as const, date: d ? d.toLocaleDateString("ar-SA") : "" };
+      return { state: "uploaded" as const, date: d ? d.toLocaleDateString("ar-SA-u-ca-gregory") : "" };
     }
     const created = chef.created_at ? new Date(chef.created_at).getTime() : Date.now();
     const daysUsed = Math.floor((Date.now() - created) / 86400000);
@@ -941,7 +941,7 @@ export default function DashboardScreen() {
                   <TouchableOpacity key={idx} style={[s.dateChip, active && s.dateChipActive]}
                     onPress={() => setSelectedDate(date)} activeOpacity={0.85}>
                     <Text style={[s.dateChipDay, active && s.dateChipTextActive]}>
-                      {date.toLocaleDateString("ar-SA", { weekday: "short" })}
+                      {date.toLocaleDateString("ar-SA-u-ca-gregory", { weekday: "short" })}
                     </Text>
                     <Text style={[s.dateChipNum, active && s.dateChipTextActive]}>{date.getDate()}</Text>
                   </TouchableOpacity>

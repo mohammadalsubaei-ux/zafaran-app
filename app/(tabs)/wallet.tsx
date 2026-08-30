@@ -81,7 +81,7 @@ function formatDate(value: unknown) {
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return "غير محدد";
 
-  return date.toLocaleDateString("ar-SA", {
+  return date.toLocaleDateString("ar-SA-u-ca-gregory", {
     year: "numeric",
     month: "long",
     day: "numeric",

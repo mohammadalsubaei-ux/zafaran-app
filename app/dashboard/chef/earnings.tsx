@@ -32,7 +32,7 @@ const makeWStatus = (c: Colors): Record<string, { label: string; color: string }
 
 function fmtDate(d: string) {
   try {
-    return new Date(d).toLocaleDateString("ar-SA", { day: "numeric", month: "short", year: "numeric" });
+    return new Date(d).toLocaleDateString("ar-SA-u-ca-gregory", { day: "numeric", month: "short", year: "numeric" });
   } catch { return ""; }
 }
 

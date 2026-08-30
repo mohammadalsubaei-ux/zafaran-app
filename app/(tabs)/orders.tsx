@@ -170,7 +170,7 @@ function formatDate(value: unknown) {
   if (!value) return "غير محدد";
 
   try {
-    return new Date(String(value)).toLocaleDateString("ar-SA", {
+    return new Date(String(value)).toLocaleDateString("ar-SA-u-ca-gregory", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -184,7 +184,7 @@ function formatDateTime(value: unknown) {
   if (!value) return "";
 
   try {
-    return new Date(String(value)).toLocaleString("ar-SA", {
+    return new Date(String(value)).toLocaleString("ar-SA-u-ca-gregory", {
       weekday: "short",
       month: "short",
       day: "numeric",

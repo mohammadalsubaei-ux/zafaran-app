@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "ط²ط¹ظپط±ط§ظ†",
+    "name": "زعفران",
     "slug": "zafaran-app",
     "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon-app.png",
     "scheme": "zafaranapp",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/logo.png",
@@ -17,9 +17,9 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.zafaran.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "ظ†ط³طھط®ط¯ظ… ظ…ظˆظ‚ط¹ظƒ ظ„ط­ط³ط§ط¨ ط±ط³ظˆظ… ط§ظ„طھظˆطµظٹظ„ ط¨ط¯ظ‚ط© ظˆطھطھط¨ط¹ ط·ظ„ط¨ظƒ ط£ط«ظ†ط§ط، ط§ظ„طھظˆطµظٹظ„",
-        "NSPhotoLibraryUsageDescription": "ظ†ط­طھط§ط¬ ط§ظ„ظˆطµظˆظ„ ظ„ظ„طµظˆط± ظ„ط±ظپط¹ طµظˆط± ظ…ظ†طھط¬ط§طھظƒ ظˆط´ظ‡ط§ط¯ط© ط§ظ„ط¹ظ…ظ„ ط§ظ„ط­ط±",
-        "NSCameraUsageDescription": "ظ†ط­طھط§ط¬ ط§ظ„ظƒط§ظ…ظٹط±ط§ ظ„طھطµظˆظٹط± ظ…ظ†طھط¬ط§طھظƒ ظˆط±ظپط¹ طµظˆط±ظ‡ط§"
+        "NSLocationWhenInUseUsageDescription": "نستخدم موقعك لحساب رسوم التوصيل بدقة وتتبع طلبك أثناء التوصيل",
+        "NSPhotoLibraryUsageDescription": "نحتاج الوصول للصور لرفع صور منتجاتك وشهادة العمل الحر",
+        "NSCameraUsageDescription": "نحتاج الكاميرا لتصوير منتجاتك ورفع صورها"
       },
       "buildNumber": "3",
       "config": {
@@ -52,7 +52,7 @@
           "apiKey": "AIzaSyCVOlsoykrwCTn-95okEQ3XVzbTxmQGz0A"
         }
       },
-      "versionCode": 4,
+      "versionCode": 14,
       "intentFilters": [
         {
           "action": "VIEW",
@@ -90,14 +90,14 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "ظ†ط³طھط®ط¯ظ… ظ…ظˆظ‚ط¹ظƒ ظ„ط­ط³ط§ط¨ ط±ط³ظˆظ… ط§ظ„طھظˆطµظٹظ„ ط¨ط¯ظ‚ط© ظˆطھطھط¨ط¹ ط·ظ„ط¨ظƒ ط£ط«ظ†ط§ط، ط§ظ„طھظˆطµظٹظ„"
+          "locationWhenInUsePermission": "نستخدم موقعك لحساب رسوم التوصيل بدقة وتتبع طلبك أثناء التوصيل"
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "ظ†ط­طھط§ط¬ ط§ظ„ظˆطµظˆظ„ ظ„ظ„طµظˆط± ظ„ط±ظپط¹ طµظˆط± ظ…ظ†طھط¬ط§طھظƒ ظˆط´ظ‡ط§ط¯ط© ط§ظ„ط¹ظ…ظ„ ط§ظ„ط­ط±",
-          "cameraPermission": "ظ†ط­طھط§ط¬ ط§ظ„ظƒط§ظ…ظٹط±ط§ ظ„طھطµظˆظٹط± ظ…ظ†طھط¬ط§طھظƒ ظˆط±ظپط¹ طµظˆط±ظ‡ط§"
+          "photosPermission": "نحتاج الوصول للصور لرفع صور منتجاتك وشهادة العمل الحر",
+          "cameraPermission": "نحتاج الكاميرا لتصوير منتجاتك ورفع صورها"
         }
       ],
       [

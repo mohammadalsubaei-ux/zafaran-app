@@ -367,7 +367,7 @@ export default function DriverScreen() {
   };
 
   const renderOrder = ({ item }: { item: any }) => {
-    const statusMeta = statusMap[item.status] || STATUS.ready;
+    const statusMeta = statusMap[item.status] || statusMap.ready;
     const isBusy     = actionOrderId === item.id;
     const isHistory  = item.status === "delivered";
     const isThisTracking = trackingOrderId === item.id;
@@ -420,7 +420,7 @@ export default function DriverScreen() {
           <View style={[s.infoRow, { flexDirection: isRTL ? "row-reverse" : "row" }]}>
             <Clock3 size={14} color={c.gold} strokeWidth={1.7} />
             <Text style={[s.infoText, { textAlign: isRTL ? "right" : "left" }]}>
-              {item.created_at ? new Date(item.created_at).toLocaleString(lang === "ar" ? "ar-SA" : "en-US") : "—"}
+              {item.created_at ? new Date(item.created_at).toLocaleString(lang === "ar" ? "ar-SA-u-ca-gregory" : "en-US") : "—"}
             </Text>
           </View>
         </View>

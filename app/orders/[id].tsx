@@ -135,14 +135,14 @@ function formatDate(value: unknown) {
   if (!raw) return "غير محدد";
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return "غير محدد";
-  return date.toLocaleDateString("ar-SA", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  return date.toLocaleDateString("ar-SA-u-ca-gregory", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 }
 function formatDateTime(value: unknown) {
   const raw = text(value, "");
   if (!raw) return "غير محدد";
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return "غير محدد";
-  return date.toLocaleString("ar-SA", { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleString("ar-SA-u-ca-gregory", { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 // cash هي الطريقة الافتراضية في السلة — غيابها هنا كان يعرض "غير محدد" لكل طلب
@@ -608,7 +608,7 @@ export default function OrderDetailScreen() {
                 />
                 {lastUpdated && (
                   <Text style={s.lastUpdatedText}>
-                    آخر تحديث: {new Date(lastUpdated).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                    آخر تحديث: {new Date(lastUpdated).toLocaleTimeString("ar-SA-u-ca-gregory", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                   </Text>
                 )}
               </>
