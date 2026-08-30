@@ -36,6 +36,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFonts, Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold } from "@expo-google-fonts/almarai";
+import { ArrowRight, Store, Bike, Phone, ShieldCheck, UserRound } from "lucide-react-native";
 import { savePushToken } from "@/utils/notifications";
 
 const API = "https://zafaran-backend-production.up.railway.app";
@@ -329,6 +330,22 @@ export default function LoginScreen() {
     }
   };
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  مخرج الشاشة — بدونه يُحتجز المستخدم في التسجيل بلا رجوع.
+  //  يتدرّج للخلف خطوة خطوة، وفي أول خطوة يغادر الشاشة.
+  //  router.back() لا يفعل شيئاً إن وصل عبر replace (لا تاريخ)،
+  //  فنرجع للرئيسية بدل أن يبقى محجوزاً.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const goBack = () => {
+    if (stage === "profile") { setStage("code"); return; }
+    if (stage === "code")    { setStage("phone"); setCode(""); return; }
+    if (role !== "customer") { setRole("customer"); return; }
+    if (router.canGoBack())  { router.back(); return; }
+    router.replace("/(tabs)" as any);
+  };
+
+  const stageIndex = stage === "phone" ? 0 : stage === "code" ? 1 : 2;
+
   const roleLabel =
     role === "chef" ? "تسجيل متجر" : role === "driver" ? "تسجيل مندوب" : "";
 
@@ -338,10 +355,27 @@ export default function LoginScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
+        <View style={s.header}>
+          <TouchableOpacity style={s.backBtn} onPress={goBack} activeOpacity={0.7} hitSlop={10}>
+            <ArrowRight size={20} color={c.text} />
+          </TouchableOpacity>
+
+          <View style={s.dots}>
+            {[0, 1, 2].map((i) => (
+              <View key={i} style={[s.dot, i === stageIndex && s.dotActive]} />
+            ))}
+          </View>
+        </View>
+
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
           <View style={s.logoWrap}>
             <Image source={require("@/assets/images/logo.png")} style={s.logoMark} />
-            {roleLabel ? <Text style={s.roleTag}>{roleLabel}</Text> : null}
+            {roleLabel ? (
+              <View style={s.roleTagWrap}>
+                {role === "chef" ? <Store size={13} color={c.gold} /> : <Bike size={13} color={c.gold} />}
+                <Text style={s.roleTag}>{roleLabel}</Text>
+              </View>
+            ) : null}
           </View>
 
           {stage === "phone" ? (
@@ -350,9 +384,9 @@ export default function LoginScreen() {
               <Text style={s.formHint}>اكتب رقم جوالك ونرسل لك رمز تحقق</Text>
 
               <Text style={s.label}>رقم الجوال</Text>
-              <View style={s.inputWrap}>
+              <View style={s.inputRow}>
                 <TextInput
-                  style={s.input}
+                  style={[s.input, { flex: 1 }]}
                   placeholder="05xxxxxxxx"
                   placeholderTextColor={c.textMuted}
                   keyboardType="phone-pad"
@@ -360,6 +394,7 @@ export default function LoginScreen() {
                   onChangeText={setPhone}
                   maxLength={12}
                 />
+                <Phone size={17} color={c.textMuted} />
               </View>
 
               <TouchableOpacity style={s.btn} onPress={sendCode} disabled={loading}>
@@ -372,23 +407,25 @@ export default function LoginScreen() {
                 <>
                   <View style={s.divider}>
                     <View style={s.dividerLine} />
-                    <Text style={s.dividerText}>أو</Text>
+                    <Text style={s.dividerText}>أو انضم إلينا</Text>
                     <View style={s.dividerLine} />
                   </View>
 
-                  <TouchableOpacity style={s.chefBtn} onPress={() => setRole("chef")}>
-                    <Text style={s.chefBtnText}>سجّل متجرك</Text>
-                  </TouchableOpacity>
+                  <View style={s.roleRow}>
+                    <TouchableOpacity style={s.roleCard} onPress={() => setRole("chef")} activeOpacity={0.8}>
+                      <Store size={20} color={c.gold} />
+                      <Text style={s.roleCardTitle}>سجّل متجرك</Text>
+                      <Text style={s.roleCardHint}>ابدأ البيع من بيتك</Text>
+                    </TouchableOpacity>
 
-                  <TouchableOpacity style={s.switchBtn} onPress={() => setRole("driver")}>
-                    <Text style={s.switchText}>أو انضم كمندوب توصيل</Text>
-                  </TouchableOpacity>
+                    <TouchableOpacity style={s.roleCard} onPress={() => setRole("driver")} activeOpacity={0.8}>
+                      <Bike size={20} color={c.gold} />
+                      <Text style={s.roleCardTitle}>مندوب توصيل</Text>
+                      <Text style={s.roleCardHint}>اعمل بوقتك</Text>
+                    </TouchableOpacity>
+                  </View>
                 </>
-              ) : (
-                <TouchableOpacity style={s.switchBtn} onPress={() => setRole("customer")}>
-                  <Text style={s.switchText}>رجوع لتسجيل عميل</Text>
-                </TouchableOpacity>
-              )}
+              ) : null}
             </View>
           ) : null}
 
@@ -396,6 +433,11 @@ export default function LoginScreen() {
             <View style={s.form}>
               <Text style={s.formTitle}>رمز التحقق</Text>
               <Text style={s.formHint}>أرسلنا رمزاً من 6 أرقام إلى {phone}</Text>
+
+              <View style={s.secureNote}>
+                <ShieldCheck size={14} color={c.success} />
+                <Text style={s.secureText}>رقمك محفوظ ولا يظهر لأحد</Text>
+              </View>
 
               <View style={s.inputWrap}>
                 <TextInput
@@ -438,14 +480,15 @@ export default function LoginScreen() {
               <Text style={s.formHint}>تحققنا من رقمك — بقي اسمك فقط</Text>
 
               <Text style={s.label}>الاسم الكامل</Text>
-              <View style={s.inputWrap}>
+              <View style={s.inputRow}>
                 <TextInput
-                  style={s.input}
+                  style={[s.input, { flex: 1 }]}
                   placeholder="الاسم"
                   placeholderTextColor={c.textMuted}
                   value={name}
                   onChangeText={setName}
                 />
+                <UserRound size={17} color={c.textMuted} />
               </View>
 
               {role === "customer" ? (
@@ -486,10 +529,28 @@ export default function LoginScreen() {
 
 const make_s = (c: Colors) => StyleSheet.create({
   safe:              { flex: 1, backgroundColor: c.bg },
-  scroll:            { flexGrow: 1, padding: 24, justifyContent: "center" },
-  logoWrap:          { alignItems: "center", marginBottom: 28 },
-  logoMark:          { width: 230, height: 166, resizeMode: "contain", marginBottom: 6 },
-  roleTag:           { fontSize: 14, color: c.gold, fontFamily: "Almarai_700Bold", marginTop: 6 },
+  scroll:            { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 32, justifyContent: "center" },
+
+  header:            { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 4, paddingBottom: 2 },
+  backBtn:           { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceAlt, borderWidth: 1, borderColor: c.goldBorder },
+  dots:              { flexDirection: "row-reverse", gap: 6 },
+  dot:               { width: 6, height: 6, borderRadius: 3, backgroundColor: c.border },
+  dotActive:         { width: 18, backgroundColor: c.gold },
+
+  logoWrap:          { alignItems: "center", marginBottom: 20 },
+  logoMark:          { width: 172, height: 124, resizeMode: "contain" },
+  roleTagWrap:       { flexDirection: "row-reverse", alignItems: "center", gap: 6, marginTop: 8, backgroundColor: c.goldSoft, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: c.goldBorder },
+  roleTag:           { fontSize: 12.5, color: c.gold, fontFamily: "Almarai_700Bold" },
+
+  inputRow:          { flexDirection: "row-reverse", alignItems: "center", gap: 10, backgroundColor: c.surfaceAlt, borderRadius: 14, borderWidth: 1, borderColor: c.goldBorder, paddingHorizontal: 14, marginBottom: 14 },
+
+  roleRow:           { flexDirection: "row-reverse", gap: 10 },
+  roleCard:          { flex: 1, alignItems: "center", gap: 5, backgroundColor: c.surfaceAlt, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 8, borderWidth: 1, borderColor: c.goldBorder },
+  roleCardTitle:     { fontSize: 13.5, color: c.text, fontFamily: "Almarai_700Bold" },
+  roleCardHint:      { fontSize: 10.5, color: c.textSoft, fontFamily: "Almarai_400Regular" },
+
+  secureNote:        { flexDirection: "row-reverse", alignItems: "center", gap: 6, marginBottom: 16 },
+  secureText:        { fontSize: 11.5, color: c.textSoft, fontFamily: "Almarai_400Regular" },
   form:              { backgroundColor: c.surface, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: c.goldBorder },
   formTitle:         { fontSize: 24, color: c.text, textAlign: "right", marginBottom: 4, fontFamily: "Almarai_800ExtraBold" },
   formHint:          { fontSize: 12, color: c.textSoft, textAlign: "right", marginBottom: 20, fontFamily: "Almarai_400Regular" },
