@@ -233,12 +233,21 @@ export default function LoginScreen() {
       setStage("code");
       setSeconds(45);
     } catch (e: any) {
-      const code = String(e?.code || "");
-      const msg =
-        code.includes("too-many-requests") ? "محاولات كثيرة — انتظر قليلاً وحاول مرة ثانية." :
-        code.includes("invalid-phone")     ? "رقم الجوال غير صحيح." :
-        "تعذر إرسال الرمز — تأكد من الرقم والاتصال.";
-      Alert.alert("تنبيه", msg);
+      const code = String(e?.code || "").replace(/^auth\//, "");
+      // رسائل مفهومة للأكواد المعروفة، ويُعرض الكود الفني دائماً في سطر
+      // منفصل: بدونه لا يمكن تشخيص فشل الإرسال من جهاز المستخدم.
+      const known: Record<string, string> = {
+        "too-many-requests":          "محاولات كثيرة — انتظر قليلاً وحاول مرة ثانية.",
+        "invalid-phone-number":       "رقم الجوال غير صحيح.",
+        "quota-exceeded":             "تجاوزنا حد الرسائل اليومي — حاول لاحقاً.",
+        "network-request-failed":     "تحقق من اتصالك بالإنترنت.",
+        "app-not-authorized":         "هذه النسخة غير مصرّح لها بالتحقق — حدّث التطبيق من المتجر.",
+        "captcha-check-failed":       "تعذر التحقق الأمني — أعد المحاولة.",
+        "missing-client-identifier":  "تعذر التحقق من التطبيق — أعد المحاولة أو حدّث من المتجر.",
+        "invalid-app-credential":     "تعذر التحقق من التطبيق — حدّث التطبيق من المتجر.",
+      };
+      const msg = known[code] ?? "تعذر إرسال الرمز — تأكد من الرقم والاتصال.";
+      Alert.alert("تنبيه", code ? `${msg}\n\nالرمز: ${code}` : msg);
     } finally {
       setLoading(false);
     }
