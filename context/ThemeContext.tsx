@@ -138,15 +138,15 @@ type ThemeContextValue = {
 };
 
 const ThemeContext = createContext<ThemeContextValue>({
-  c: DARK,
-  mode: "dark",
-  isDark: true,
+  c: LIGHT,
+  mode: "light",
+  isDark: false,
   setMode: () => {},
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useColorScheme();
-  const [mode, setModeState] = useState<ThemeMode>("dark");
+  const [mode, setModeState] = useState<ThemeMode>("light");
 
   useEffect(() => {
     let alive = true;
@@ -170,7 +170,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     AsyncStorage.setItem(STORAGE_KEY, next).catch(() => {});
   }, []);
 
-  const isDark = mode === "auto" ? systemScheme !== "light" : mode === "dark";
+  const isDark = mode === "auto" ? systemScheme === "dark" : mode === "dark";
 
   const value = useMemo<ThemeContextValue>(
     () => ({ c: isDark ? DARK : LIGHT, mode, isDark, setMode }),
