@@ -1,24 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setToken } from "@/utils/authFetch";
-import Constants from "expo-constants";
-// Firebase مكتبة أصلية لا وجود لها في Expo Go.
-// try/catch حول require لا يكفي: المكتبة تنهار أثناء تحميلها فتصل
-// لمعالج الأخطاء العام قبل أن نلتقطها. لذلك نفحص البيئة أولاً
-// ولا نستدعيها إطلاقاً أثناء التطوير.
-const IS_EXPO_GO = Constants.appOwnership === "expo";
-
-function getAuth() {
-  if (IS_EXPO_GO) return null;
-
-  try {
-    return require("@react-native-firebase/auth").default;
-  } catch {
-    return null;
-  }
-}
+// الرمز يُرسل ويُتحقق منه على خادمنا عبر Authentica —
+// لا Firebase في التطبيق، ويعمل في Expo Go كما في النسخة المبنية.
 import {
   View,
   Text,
@@ -168,7 +154,11 @@ export default function LoginScreen() {
   const [cities, setCities] = useState<{ id: number; name_ar: string; region?: string | null }[]>([]);
   const [showCityPicker, setShowCityPicker] = useState(false);
 
-  const [confirmation, setConfirmation] = useState<any>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  // على أندرويد الكيبورد كان يغطي خانة الرمز — نمرّر للأسفل عند التركيز
+  const revealInput = () => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 250);
+  const [regToken, setRegToken] = useState<string | null>(null);
+  const [method, setMethod]     = useState<"sms" | "whatsapp">("sms");
   const [loading, setLoading]           = useState(false);
   const [seconds, setSeconds]           = useState(0);
 
@@ -201,110 +191,86 @@ export default function LoginScreen() {
   const [fontsLoaded] = useFonts({ Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold });
   if (!fontsLoaded) return null;
 
-  // 05xxxxxxxx → +9665xxxxxxxx (الصيغة التي تفهمها Firebase)
-  const toE164 = (raw: string) => {
-    let n = raw.replace(/[^0-9]/g, "");
-    if (n.startsWith("966")) return "+" + n;
-    if (n.startsWith("0"))   n = n.slice(1);
-    return "+966" + n;
+  const post = async (path: string, body: object) => {
+    const res = await fetch(`${API}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    return (await res.json().catch(() => null)) as any;
   };
 
-  const sendCode = async () => {
-    const clean = phone.replace(/[^0-9]/g, "");
+  // يُستدعى بعد أي رد يحمل جلسة — يخزّنها ويوجّه حسب الدور
+  const enter = async (json: any) => {
+    await AsyncStorage.setItem("user", JSON.stringify(json.data));
+    setToken(json.data?.token || null);
+    savePushToken().catch(() => {});
+    router.replace((ROLE_ROUTES[json.data.role] || "/(tabs)") as any);
+  };
 
+  const validPhone = () => {
+    const clean = phone.replace(/[^0-9]/g, "");
     if (!/^(05\d{8}|9665\d{8})$/.test(clean)) {
       Alert.alert("رقم غير صحيح", "اكتب رقم جوالك هكذا: 05xxxxxxxx");
-      return;
+      return null;
     }
+    return clean;
+  };
 
-    const auth = getAuth();
-    if (!auth) {
-      Alert.alert(
-        "غير متاح في وضع التطوير",
-        "التحقق بالرمز يحتاج نسخة مبنية — جرّبه بعد البناء."
-      );
-      return;
-    }
+  const sendCode = async (via: "sms" | "whatsapp" = method) => {
+    const clean = validPhone();
+    if (!clean) return;
 
     setLoading(true);
     try {
-      const conf = await auth().signInWithPhoneNumber(toE164(clean));
-      setConfirmation(conf);
+      const json = await post("/api/users/otp/send", { phone: clean, method: via });
+      if (!json?.success) {
+        Alert.alert("تنبيه", json?.message || "تعذر إرسال الرمز — تحقق من اتصالك.");
+        return;
+      }
+      setMethod(via);
+      setCode("");
       setStage("code");
       setSeconds(45);
-    } catch (e: any) {
-      const code = String(e?.code || "").replace(/^auth\//, "");
-      // رسائل مفهومة للأكواد المعروفة، ويُعرض الكود الفني دائماً في سطر
-      // منفصل: بدونه لا يمكن تشخيص فشل الإرسال من جهاز المستخدم.
-      const known: Record<string, string> = {
-        "too-many-requests":          "محاولات كثيرة — انتظر قليلاً وحاول مرة ثانية.",
-        "invalid-phone-number":       "رقم الجوال غير صحيح.",
-        "quota-exceeded":             "تجاوزنا حد الرسائل اليومي — حاول لاحقاً.",
-        "network-request-failed":     "تحقق من اتصالك بالإنترنت.",
-        "app-not-authorized":         "هذه النسخة غير مصرّح لها بالتحقق — حدّث التطبيق من المتجر.",
-        "captcha-check-failed":       "تعذر التحقق الأمني — أعد المحاولة.",
-        "missing-client-identifier":  "تعذر التحقق من التطبيق — أعد المحاولة أو حدّث من المتجر.",
-        "invalid-app-credential":     "تعذر التحقق من التطبيق — حدّث التطبيق من المتجر.",
-      };
-      const msg = known[code] ?? "تعذر إرسال الرمز — تأكد من الرقم والاتصال.";
-      Alert.alert("تنبيه", code ? `${msg}\n\nالرمز: ${code}` : msg);
+    } catch {
+      Alert.alert("تنبيه", "تحقق من اتصالك بالإنترنت.");
     } finally {
       setLoading(false);
     }
   };
 
-  // يرسل رمز Firebase لخادمنا فيصدر جلسة زعفران
-  const finish = async (idToken: string, withName?: string) => {
-    const res = await fetch(`${API}/api/users/phone-auth`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        idToken,
-        full_name: withName,
-        role,
-        city: city.trim() || undefined,
-      }),
-    });
-
-    const json = await res.json().catch(() => null);
-
-    if (!json?.success) {
-      Alert.alert("تنبيه", json?.message || "تعذر إتمام الدخول");
-      return;
-    }
-
-    // حساب جديد بلا اسم — ننتقل لخطوة الاسم
-    if (json.needs_profile) {
-      setStage("profile");
-      return;
-    }
-
-    await AsyncStorage.setItem("user", JSON.stringify(json.data));
-    setToken(json.data?.token || null);
-    savePushToken().catch(() => {});
-
-    router.replace((ROLE_ROUTES[json.data.role] || "/(tabs)") as any);
-  };
-
   const verifyCode = async () => {
-    if (code.trim().length < 6) {
-      Alert.alert("تنبيه", "اكتب الرمز المكوّن من 6 أرقام");
+    if (code.trim().length < 4) {
+      Alert.alert("تنبيه", "اكتب الرمز الذي وصلك");
       return;
     }
+    const clean = validPhone();
+    if (!clean) return;
 
     setLoading(true);
     try {
-      const cred = await confirmation.confirm(code.trim());
-      const idToken = await cred.user.getIdToken();
-      await finish(idToken);
-    } catch (e: any) {
-      const code2 = String(e?.code || "");
-      Alert.alert(
-        "تنبيه",
-        code2.includes("invalid-verification-code")
-          ? "الرمز غير صحيح — تأكد منه أو أعد الإرسال."
-          : "تعذر التحقق — حاول مرة ثانية."
-      );
+      const json = await post("/api/users/otp/verify", {
+        phone: clean,
+        otp: code.trim(),
+        role,
+        city: city.trim() || undefined,
+      });
+
+      if (!json?.success) {
+        Alert.alert("تنبيه", json?.message || "تعذر التحقق — حاول مرة ثانية.");
+        return;
+      }
+
+      // رقم جديد — نأخذ التذكرة وننتقل لخطوة الاسم
+      if (json.needs_profile) {
+        setRegToken(json.registration_token || null);
+        setStage("profile");
+        return;
+      }
+
+      await enter(json);
+    } catch {
+      Alert.alert("تنبيه", "تحقق من اتصالك بالإنترنت.");
     } finally {
       setLoading(false);
     }
@@ -319,19 +285,33 @@ export default function LoginScreen() {
       Alert.alert("تنبيه", "اختر مدينتك");
       return;
     }
+    if (!regToken) {
+      Alert.alert("انتهت الجلسة", "أعد إدخال رقمك من جديد.");
+      setStage("phone");
+      return;
+    }
 
     setLoading(true);
     try {
-      const auth = getAuth();
-      const current = auth ? auth().currentUser : null;
-      if (!current) {
-        Alert.alert("انتهت الجلسة", "أعد إدخال رقمك من جديد.");
-        setStage("phone");
+      const json = await post("/api/users/otp/register", {
+        registration_token: regToken,
+        full_name: name.trim(),
+        role,
+        city: city.trim() || undefined,
+      });
+
+      if (!json?.success) {
+        if (json?.code === "TICKET_EXPIRED") {
+          Alert.alert("انتهت المهلة", json.message);
+          setRegToken(null);
+          setStage("phone");
+          return;
+        }
+        Alert.alert("خطأ", json?.message || "تعذر إكمال التسجيل");
         return;
       }
 
-      const idToken = await current.getIdToken(true);
-      await finish(idToken, name.trim());
+      await enter(json);
     } catch {
       Alert.alert("خطأ", "تعذر إكمال التسجيل");
     } finally {
@@ -361,7 +341,7 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={s.safe}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         <View style={s.header}>
@@ -376,7 +356,7 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scrollRef} contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
           <View style={s.logoWrap}>
             <Image source={require("@/assets/images/logo.png")} style={s.logoMark} />
             {roleLabel ? (
@@ -398,6 +378,7 @@ export default function LoginScreen() {
                   style={[s.input, { flex: 1 }]}
                   placeholder="05xxxxxxxx"
                   placeholderTextColor={c.textMuted}
+                  onFocus={revealInput}
                   keyboardType="phone-pad"
                   value={phone}
                   onChangeText={setPhone}
@@ -406,7 +387,7 @@ export default function LoginScreen() {
                 <Phone size={17} color={c.textMuted} />
               </View>
 
-              <TouchableOpacity style={s.btn} onPress={sendCode} disabled={loading}>
+              <TouchableOpacity style={s.btn} onPress={() => sendCode("sms")} disabled={loading}>
                 {loading
                   ? <ActivityIndicator color={c.onGold} />
                   : <Text style={s.btnText}>أرسل الرمز</Text>}
@@ -441,7 +422,9 @@ export default function LoginScreen() {
           {stage === "code" ? (
             <View style={s.form}>
               <Text style={s.formTitle}>رمز التحقق</Text>
-              <Text style={s.formHint}>أرسلنا رمزاً من 6 أرقام إلى {phone}</Text>
+              <Text style={s.formHint}>
+                {method === "whatsapp" ? "أرسلنا الرمز على واتساب إلى " : "أرسلنا الرمز برسالة نصية إلى "}{phone}
+              </Text>
 
               <View style={s.secureNote}>
                 <ShieldCheck size={14} color={c.success} />
@@ -451,12 +434,13 @@ export default function LoginScreen() {
               <View style={s.inputWrap}>
                 <TextInput
                   style={[s.input, { textAlign: "center", letterSpacing: 8, fontSize: 22 }]}
-                  placeholder="------"
+                  placeholder="----"
                   placeholderTextColor={c.textMuted}
                   keyboardType="number-pad"
                   value={code}
                   onChangeText={setCode}
-                  maxLength={6}
+                  onFocus={revealInput}
+                  maxLength={8}
                   autoFocus
                 />
               </View>
@@ -469,13 +453,25 @@ export default function LoginScreen() {
 
               <TouchableOpacity
                 style={s.switchBtn}
-                disabled={seconds > 0}
-                onPress={sendCode}
+                disabled={seconds > 0 || loading}
+                onPress={() => sendCode(method)}
               >
                 <Text style={[s.switchText, seconds > 0 && { color: c.textMuted }]}>
                   {seconds > 0 ? `إعادة الإرسال بعد ${seconds} ثانية` : "إعادة إرسال الرمز"}
                 </Text>
               </TouchableOpacity>
+
+              {seconds <= 0 ? (
+                <TouchableOpacity
+                  style={s.switchBtn}
+                  disabled={loading}
+                  onPress={() => sendCode(method === "sms" ? "whatsapp" : "sms")}
+                >
+                  <Text style={s.switchText}>
+                    {method === "sms" ? "ما وصلك؟ أرسله على واتساب" : "أرسله برسالة نصية بدلاً"}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
 
               <TouchableOpacity style={s.switchBtn} onPress={() => { setStage("phone"); setCode(""); }}>
                 <Text style={s.switchText}>تغيير الرقم</Text>
@@ -494,6 +490,7 @@ export default function LoginScreen() {
                   style={[s.input, { flex: 1 }]}
                   placeholder="الاسم"
                   placeholderTextColor={c.textMuted}
+                  onFocus={revealInput}
                   value={name}
                   onChangeText={setName}
                 />
