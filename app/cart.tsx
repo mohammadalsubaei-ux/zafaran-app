@@ -82,7 +82,7 @@ type SavedAddress = {
   lng?: number | string | null;
   is_default?: boolean | null;
 };
-type PaymentMethod = "cash" | "stc_pay" | "apple_pay" | "card";
+type PaymentMethod = "cash" | "bank_transfer" | "stc_pay" | "apple_pay" | "card";
 
 type UserSession = {
   id?: string | number | null;
@@ -100,14 +100,15 @@ const PAYMENT_METHODS: Array<{
 }> = [
   { id: "cash",          title: "الدفع عند الاستلام", subtitle: "ادفع كاش أو تحويل عند وصول طلبك",  Icon: Banknote, enabled: true },
   { id: "bank_transfer", title: "تحويل بنكي",         subtitle: "حوّل على حساب زعفران وأرسل الإيصال", Icon: Landmark, enabled: true },
-  { id: "stc_pay",   title: "STC Pay",      subtitle: "قريبًا",            Icon: Wallet,     enabled: false },
-  { id: "apple_pay", title: "Apple Pay",     subtitle: "قريبًا",            Icon: Smartphone, enabled: false },
-  { id: "card",      title: "مدى / بطاقة",  subtitle: "قريبًا",            Icon: CreditCard, enabled: false },
+  { id: "apple_pay", title: "Apple Pay",     subtitle: "ادفع بلمسة واحدة",          Icon: Smartphone, enabled: false },
+  { id: "card",      title: "مدى / بطاقة",  subtitle: "مدى، فيزا، ماستركارد",     Icon: CreditCard, enabled: false },
+  { id: "stc_pay",   title: "STC Pay",      subtitle: "قريبًا",                    Icon: Wallet,     enabled: false },
 ];
 
-// لا تُعرض طرق الدفع غير المفعّلة — خيار معطّل مكتوب تحته "قريبًا" يقع تحت
-// Guideline 2.1 عند آبل. عند تفعيل Moyasar: بدّل enabled إلى true وستظهر تلقائياً.
-const VISIBLE_PAYMENT_METHODS = PAYMENT_METHODS.filter(m => m.enabled);
+// الدفع الإلكتروني (مدى/Apple Pay) يظهر فقط حين يكون إعداد online_payments_enabled = "true"
+// في الباك إند — يُشغَّل من Railway/Supabase بعد جهوزية البوابة، بلا بناء جديد.
+// خيار معطّل مكتوب تحته "قريبًا" يقع تحت Guideline 2.1 عند آبل، لذلك لا يُعرض أبداً.
+const ONLINE_METHOD_IDS: PaymentMethod[] = ["apple_pay", "card"];
 
 // ساعات متاحة للحجز
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 8); // 8 صباحاً - 10 مساءً
@@ -255,6 +256,13 @@ export default function CartScreen() {
   // حجز مسبق
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showPayment, setShowPayment]       = useState(false);
+  const [onlinePayEnabled, setOnlinePayEnabled] = useState(false);
+  const visiblePaymentMethods = useMemo(
+    () => PAYMENT_METHODS
+      .filter(m => m.enabled || (onlinePayEnabled && ONLINE_METHOD_IDS.includes(m.id)))
+      .map(m => ({ ...m, enabled: true })),
+    [onlinePayEnabled]
+  );
   const [payingOrderId, setPayingOrderId]   = useState<string | null>(null);
   const [selectedDate, setSelectedDate]     = useState<Date | null>(null);
   const [selectedHour, setSelectedHour]     = useState<number>(12);
@@ -312,13 +320,17 @@ export default function CartScreen() {
     Promise.all([
       fetch(`${API}/api/settings/bank_transfer_iban`).then(r => r.json()).catch(() => null),
       fetch(`${API}/api/settings/bank_transfer_name`).then(r => r.json()).catch(() => null),
-    ]).then(([ibanRes, nameRes]) => {
+      fetch(`${API}/api/settings/online_payments_enabled`).then(r => r.json()).catch(() => null),
+    ]).then(([ibanRes, nameRes, onlineRes]) => {
       if (!alive) return;
 
       const iban = String(ibanRes?.data?.value || "").trim();
       const name = String(nameRes?.data?.value || "").trim();
 
       if (iban) setBank({ iban, name: name || "زعفران" });
+
+      // غياب الإعداد (404) = مطفأ
+      setOnlinePayEnabled(String(onlineRes?.data?.value || "").trim().toLowerCase() === "true");
     });
 
     return () => { alive = false; };
@@ -497,12 +509,15 @@ export default function CartScreen() {
           return;
         }
 
-        // الدفع عند الاستلام: لا بوابة دفع — تأكيد مباشر والتحصيل عند التسليم
-        if (paymentMethod === "cash") {
+        // الدفع عند الاستلام أو التحويل البنكي: لا بوابة دفع — تأكيد مباشر
+        if (paymentMethod === "cash" || paymentMethod === "bank_transfer") {
           clearCart();
           Alert.alert(
             "تم إرسال طلبك بنجاح",
-            (orderId ? `رقم طلبك: ${orderId.slice(0, 8)}\n` : "") + "الدفع عند استلام الطلب — كاش أو تحويل.",
+            (orderId ? `رقم طلبك: ${orderId.slice(0, 8)}\n` : "") +
+              (paymentMethod === "cash"
+                ? "الدفع عند استلام الطلب — كاش أو تحويل."
+                : "حوّل المبلغ على حساب زعفران وأرسل الإيصال للمتجر من شاشة الطلب."),
             [{ text: "متابعة الطلب", onPress: () => router.replace("/(tabs)/orders" as any) }]
           );
           return;
@@ -771,7 +786,7 @@ export default function CartScreen() {
                 <Text style={s.sectionTitle}>طريقة الدفع</Text>
               </View>
               <View style={s.paymentGrid}>
-                {VISIBLE_PAYMENT_METHODS.filter(m => m.id !== "bank_transfer" || bank).map(method => {
+                {visiblePaymentMethods.filter(m => m.id !== "bank_transfer" || bank).map(method => {
                   const active = paymentMethod === method.id;
                   const Icon   = method.Icon;
                   return (
