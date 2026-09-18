@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   ActivityIndicator,
   Alert,
@@ -155,8 +156,17 @@ export default function LoginScreen() {
   const [showCityPicker, setShowCityPicker] = useState(false);
 
   const scrollRef = useRef<ScrollView>(null);
-  // على أندرويد الكيبورد كان يغطي خانة الرمز — نمرّر للأسفل عند التركيز
-  const revealInput = () => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 250);
+  // عند فتح الكيبورد نخفي كتلة الشعار فيصعد النموذج لأعلى الشاشة ويبقى الحقل ظاهراً فوق الكيبورد.
+  // (التمرير لآخر الصفحة كان يدفع حقل الاسم خارج الشاشة من الأعلى فيكتب المستخدم في حقل لا يراه.)
+  const [kbOpen, setKbOpen] = useState(false);
+  useEffect(() => {
+    const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvt = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const onShow = Keyboard.addListener(showEvt, () => setKbOpen(true));
+    const onHide = Keyboard.addListener(hideEvt, () => setKbOpen(false));
+    return () => { onShow.remove(); onHide.remove(); };
+  }, []);
+  const revealInput = () => setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: false }), 60);
   const [regToken, setRegToken] = useState<string | null>(null);
   const [method, setMethod]     = useState<"sms" | "whatsapp">("sms");
   const [loading, setLoading]           = useState(false);
@@ -356,8 +366,12 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        <ScrollView ref={scrollRef} contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-          <View style={s.logoWrap}>
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={[s.scroll, kbOpen && { justifyContent: "flex-start", paddingTop: 8 }]}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={[s.logoWrap, kbOpen && { display: "none" }]}>
             <Image source={require("@/assets/images/logo.png")} style={s.logoMark} />
             {roleLabel ? (
               <View style={s.roleTagWrap}>
@@ -493,6 +507,9 @@ export default function LoginScreen() {
                   onFocus={revealInput}
                   value={name}
                   onChangeText={setName}
+                  textAlign="right"
+                  returnKeyType="done"
+                  onSubmitEditing={() => Keyboard.dismiss()}
                 />
                 <UserRound size={17} color={c.textMuted} />
               </View>
