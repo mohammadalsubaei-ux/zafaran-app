@@ -544,7 +544,7 @@ const make_s = (c: Colors) => StyleSheet.create({
   dotActive:         { width: 18, backgroundColor: c.gold },
 
   logoWrap:          { alignItems: "center", marginBottom: 20 },
-  logoMark:          { width: 172, height: 124, resizeMode: "contain" },
+  logoMark:          { width: 160, height: 212, resizeMode: "contain" },
   roleTagWrap:       { flexDirection: "row-reverse", alignItems: "center", gap: 6, marginTop: 8, backgroundColor: c.goldSoft, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: c.goldBorder },
   roleTag:           { fontSize: 12.5, color: c.gold, fontFamily: "Almarai_700Bold" },
 
