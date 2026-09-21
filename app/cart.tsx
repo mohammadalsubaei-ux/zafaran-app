@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { clearToken } from "@/utils/authFetch";
+import { useDeliveryEnabled } from "@/utils/deliveryFlag";
 import * as Location from "expo-location";
 import {
   Almarai_400Regular,
@@ -167,7 +168,12 @@ export default function CartScreen() {
       .catch(() => {});
   }, []);
 
-  const [deliveryType, setDeliveryType]     = useState<DeliveryType>("delivery");
+  // التوصيل يتبع إعداد delivery_enabled في الباك إند. الافتراضي استلام فقط،
+  // ويتحول إلى "توصيل" بعد تحميل الإعداد إن كان مفعّلاً — بلا بناء جديد.
+  const [deliveryType, setDeliveryType]     = useState<DeliveryType>("pickup");
+  const deliveryEnabled = useDeliveryEnabled();
+  useEffect(() => { if (deliveryEnabled) setDeliveryType("delivery"); }, [deliveryEnabled]);
+  const [chefArea, setChefArea]             = useState("");
   const [paymentMethod, setPaymentMethod]   = useState<PaymentMethod>("cash");
 
   const [address, setAddress] = useState("");
@@ -245,6 +251,7 @@ export default function CartScreen() {
       .then(res => res.json())
       .then(json => {
         const chef = json?.data;
+        setChefArea([chef?.city, chef?.neighborhood].map((v: any) => String(v || "").trim()).filter(Boolean).join(" · "));
         if (chef?.lat != null && chef?.lng != null) {
           setChefLat(Number(chef.lat));
           setChefLng(Number(chef.lng));
@@ -700,22 +707,37 @@ export default function CartScreen() {
                 <Truck size={18} color={c.gold} />
                 <Text style={s.sectionTitle}>طريقة الاستلام</Text>
               </View>
-              <View style={s.deliveryRow}>
-                <TouchableOpacity activeOpacity={0.9}
-                  style={[s.deliveryCard, deliveryType === "delivery" && s.deliveryCardActive]}
-                  onPress={() => setDeliveryType("delivery")}>
-                  <Truck size={24} color={deliveryType === "delivery" ? c.gold : c.textMuted} />
-                  <Text style={[s.deliveryTitle, deliveryType === "delivery" && s.deliveryTitleActive]}>توصيل</Text>
-                  <Text style={s.deliverySub}>+ {money(deliveryType === "delivery" ? deliveryFee : feeParams.delivery_base_fee)}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity activeOpacity={0.9}
-                  style={[s.deliveryCard, deliveryType === "pickup" && s.deliveryCardActive]}
-                  onPress={() => { setDeliveryType("pickup"); setAddress(""); setLat(null); setLng(null); setSelectedAddrId(null); }}>
-                  <ShoppingBag size={24} color={deliveryType === "pickup" ? c.gold : c.textMuted} />
-                  <Text style={[s.deliveryTitle, deliveryType === "pickup" && s.deliveryTitleActive]}>استلام</Text>
-                  <Text style={s.deliverySub}>مجاني</Text>
-                </TouchableOpacity>
-              </View>
+              {deliveryEnabled ? (
+                <View style={s.deliveryRow}>
+                  <TouchableOpacity activeOpacity={0.9}
+                    style={[s.deliveryCard, deliveryType === "delivery" && s.deliveryCardActive]}
+                    onPress={() => setDeliveryType("delivery")}>
+                    <Truck size={24} color={deliveryType === "delivery" ? c.gold : c.textMuted} />
+                    <Text style={[s.deliveryTitle, deliveryType === "delivery" && s.deliveryTitleActive]}>توصيل</Text>
+                    <Text style={s.deliverySub}>+ {money(deliveryType === "delivery" ? deliveryFee : feeParams.delivery_base_fee)}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity activeOpacity={0.9}
+                    style={[s.deliveryCard, deliveryType === "pickup" && s.deliveryCardActive]}
+                    onPress={() => { setDeliveryType("pickup"); setAddress(""); setLat(null); setLng(null); setSelectedAddrId(null); }}>
+                    <ShoppingBag size={24} color={deliveryType === "pickup" ? c.gold : c.textMuted} />
+                    <Text style={[s.deliveryTitle, deliveryType === "pickup" && s.deliveryTitleActive]}>استلام</Text>
+                    <Text style={s.deliverySub}>مجاني</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={s.pickupOnlyCard}>
+                  <ShoppingBag size={24} color={c.gold} />
+                  <View style={s.pickupOnlyTextWrap}>
+                    <Text style={s.pickupOnlyTitle}>استلام من المتجر</Text>
+                    <Text style={s.pickupOnlySub}>
+                      {chefArea ? `${chefName} — ${chefArea}` : chefName}
+                    </Text>
+                    <Text style={s.pickupOnlyHint}>
+                      تستلم طلبك بنفسك بلا رسوم توصيل. يظهر لك موقع المتجر على الخريطة بعد قبول الطلب.
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
 
             {/* عنوان التوصيل */}
@@ -1016,6 +1038,11 @@ const make_s = (c: Colors) => StyleSheet.create({
   datePickerBtnText: { flex: 1, color: c.gold, textAlign: "right", fontSize: 13, fontFamily: "Almarai_700Bold" },
   dateHint:          { color: c.danger, textAlign: "right", marginTop: 8, fontSize: 11, fontFamily: "Almarai_400Regular" },
   deliveryRow:       { flexDirection: "row-reverse", gap: 10 },
+  pickupOnlyCard:    { flexDirection: "row-reverse", alignItems: "flex-start", gap: 12, backgroundColor: c.bg, borderRadius: 20, borderWidth: 1, borderColor: c.goldBorder, padding: 16 },
+  pickupOnlyTextWrap:{ flex: 1, gap: 4 },
+  pickupOnlyTitle:   { color: c.text, textAlign: "right", fontSize: 15, fontFamily: "Almarai_800ExtraBold" },
+  pickupOnlySub:     { color: c.gold, textAlign: "right", fontSize: 13, fontFamily: "Almarai_700Bold" },
+  pickupOnlyHint:    { color: c.textSoft, textAlign: "right", fontSize: 12, lineHeight: 20, fontFamily: "Almarai_400Regular" },
   deliveryCard:      { flex: 1, minHeight: 104, backgroundColor: c.bg, borderRadius: 20, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: c.goldSoft, gap: 5 },
   deliveryCardActive:{ backgroundColor: c.goldSoft, borderColor: c.goldBorder },
   deliveryTitle:     { color: c.textMuted, fontSize: 14, fontFamily: "Almarai_800ExtraBold" },

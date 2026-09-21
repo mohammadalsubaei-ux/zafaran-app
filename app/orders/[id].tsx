@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
   AppState,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -73,6 +74,8 @@ type Order = {
   chefs?: {
     city?: string | null;
     neighborhood?: string | null;
+    lat?: number | string | null;
+    lng?: number | string | null;
     users?: { full_name?: string | null; gender?: string | null; phone?: string | null } | null;
   } | null;
   order_items?: OrderItem[] | null;
@@ -525,6 +528,16 @@ export default function OrderDetailScreen() {
   const chefLocation = [order.chefs?.city, order.chefs?.neighborhood].filter(Boolean).join(" · ");
   const paymentColor = paymentStatusColor(c, order.payment_status, order.payment_method);
 
+  // موقع المتجر للاستلام: يظهر على الخريطة بعد قبول الطلب فقط (خصوصية الطباخة قبل القبول)
+  const chefLatNum = Number(order.chefs?.lat);
+  const chefLngNum = Number(order.chefs?.lng);
+  const chefHasCoords = order.chefs?.lat != null && order.chefs?.lng != null
+    && Number.isFinite(chefLatNum) && Number.isFinite(chefLngNum);
+  const pickupAccepted = isPickup && ["accepted", "preparing", "ready"].includes(statusKey);
+  const openChefMap = () => {
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${chefLatNum},${chefLngNum}`).catch(() => {});
+  };
+
   return (
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
@@ -833,8 +846,20 @@ export default function OrderDetailScreen() {
             <Text style={s.cardTitle}>{isPickup ? "طريقة الاستلام" : "عنوان التوصيل"}</Text>
           </View>
           <Text style={s.addressText}>
-            {isPickup ? "استلام شخصي من المتجر" : text(order.delivery_address, "العنوان غير محدد")}
+            {isPickup
+              ? (chefLocation ? `استلام شخصي من المتجر — ${chefLocation}` : "استلام شخصي من المتجر")
+              : text(order.delivery_address, "العنوان غير محدد")}
           </Text>
+          {pickupAccepted && chefHasCoords ? (
+            <TouchableOpacity activeOpacity={0.9} style={s.pickupMapBtn} onPress={openChefMap}>
+              <Navigation size={17} color={c.onGold} strokeWidth={2} />
+              <Text style={s.pickupMapBtnText}>فتح موقع المتجر في الخرائط</Text>
+            </TouchableOpacity>
+          ) : pickupAccepted ? (
+            <Text style={s.pickupHint}>لم يحدد المتجر موقعه على الخريطة — تواصل معه لمعرفة مكان الاستلام.</Text>
+          ) : isPickup && statusKey === "pending" ? (
+            <Text style={s.pickupHint}>يظهر موقع المتجر على الخريطة بعد قبول طلبك.</Text>
+          ) : null}
         </View>
 
         {/* زر التقييم */}
@@ -956,6 +981,9 @@ const make_s = (c: Colors) => StyleSheet.create({
   totalLabel:       { color: c.text, fontSize: 16, fontFamily: "Almarai_800ExtraBold" },
   totalValue:       { color: c.gold, fontSize: 20, fontFamily: "Almarai_800ExtraBold" },
   cashHint:         { color: c.textSoft, textAlign: "right", fontSize: 11, marginTop: 8, fontFamily: "Almarai_400Regular" },
+  pickupMapBtn:     { minHeight: 48, borderRadius: 16, backgroundColor: c.goldSolid, flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 12 },
+  pickupMapBtnText: { color: c.onGold, fontSize: 14, fontFamily: "Almarai_800ExtraBold" },
+  pickupHint:       { color: c.textMuted, textAlign: "right", fontSize: 12, lineHeight: 20, marginTop: 8, fontFamily: "Almarai_400Regular" },
   addressText:      { color: c.textSoft, textAlign: "right", fontSize: 13, lineHeight: 23, fontFamily: "Almarai_400Regular" },
   cancelText:       { color: c.danger, textAlign: "right", fontSize: 13, lineHeight: 23, fontFamily: "Almarai_400Regular" },
   reviewBtn:        { minHeight: 56, borderRadius: 20, backgroundColor: c.gold, flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 4 },

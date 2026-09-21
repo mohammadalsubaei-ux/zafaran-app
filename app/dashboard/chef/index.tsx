@@ -667,7 +667,7 @@ export default function DashboardScreen() {
             <View style={s.btnInner}>
               <MapPin size={16} color={chef?.lat && chef?.lng ? c.success : c.danger} strokeWidth={1.8} />
               <Text style={s.locationBtnText}>
-                {chef?.lat && chef?.lng ? "تحديث موقعي على الخريطة" : "حدد موقعك الآن (مطلوب لحساب التوصيل)"}
+                {chef?.lat && chef?.lng ? "تحديث موقعي على الخريطة" : "حدد موقعك الآن (مطلوب ليصل إليك العملاء)"}
               </Text>
             </View>
           </TouchableOpacity>

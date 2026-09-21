@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
+import { useDeliveryEnabled } from "@/utils/deliveryFlag";
 import {
   ArrowRight, ChevronDown, Headphones, MessageCircle, Mail,
 } from "lucide-react-native";
@@ -27,18 +28,34 @@ const SUPPORT_EMAIL = "mohammad.alsubaei@gmail.com";
 
 const WHATSAPP_MESSAGE = "مرحباً، أحتاج مساعدة بخصوص تطبيق زعفران";
 
-const FAQS = [
+type Faq = { q: string; a: string; delivery?: "on" | "off" };
+
+// delivery: "on" يظهر فقط والتوصيل مفعّل (delivery_enabled)، "off" يظهر فقط في وضع الاستلام.
+const FAQS: Faq[] = [
   {
     q: "كيف أطلب من زعفران؟",
     a: "تصفح المتاجر من الصفحة الرئيسية أو التصنيفات، أضف ما يعجبك للسلة، ثم اختر التوصيل أو الاستلام الشخصي وأكمل الطلب. بيوصلك إشعار مع كل تحديث لحالة طلبك.",
+    delivery: "on",
+  },
+  {
+    q: "كيف أطلب من زعفران؟",
+    a: "تصفح المتاجر من الصفحة الرئيسية أو التصنيفات، أضف ما يعجبك للسلة، وأكمل الطلب. بيوصلك إشعار مع كل تحديث لحالة طلبك، وتستلمه بنفسك من موقع المتجر.",
+    delivery: "off",
+  },
+  {
+    q: "كيف أستلم طلبي؟",
+    a: "بعد ما يقبل المتجر طلبك يظهر لك في صفحة الطلب زر يفتح موقع المتجر على الخريطة. ويوصلك إشعار أول ما يكون الطلب جاهزاً، فتتوجه للمتجر وتستلمه — بدون أي رسوم توصيل.",
+    delivery: "off",
   },
   {
     q: "كيف تحسب رسوم التوصيل؟",
     a: "رسوم التوصيل تعتمد على المسافة بينك وبين المتجر: رسوم أساسية للمسافات القريبة، وزيادة بسيطة لكل كيلومتر إضافي. الرسوم تظهر لك بوضوح في السلة قبل تأكيد الطلب.",
+    delivery: "on",
   },
   {
     q: "ما الفرق بين التوصيل والاستلام الشخصي؟",
-    a: "التوصيل يوصلك الطلب مندوب زعفران حتى باب بيتك. الاستلام الشخصي تستلم طلبك بنفسك من موقع المتجر بدون رسوم توصيل — ويوصلك إشعار أول ما يكون الطلب جاهزاً.",
+    a: "التوصيل يوصلك الطلب مندوب حتى باب بيتك. الاستلام الشخصي تستلم طلبك بنفسك من موقع المتجر بدون رسوم توصيل — ويوصلك إشعار أول ما يكون الطلب جاهزاً.",
+    delivery: "on",
   },
   {
     q: "هل أقدر ألغي طلبي؟",
@@ -53,13 +70,18 @@ const FAQS = [
     a: "من شاشة الدخول اختر \"سجّل مشروعك البيتي\" وأكمل بياناتك. بعد مراجعة حسابك وتوثيقه من فريق زعفران تقدر تضيف منتجاتك وتستقبل الطلبات وتتابع أرباحك من لوحتك.",
   },
   {
-    q: "كيف أسحب أرباحي كصاحب متجر أو مندوب؟",
+    q: "كيف أسحب أرباحي كصاحب متجر؟",
     a: "من لوحتك افتح \"الأرباح والمحفظة\"، وحدد المبلغ واطلب السحب. الطلب يراجع من إدارة زعفران ويحول لحسابك، ويوصلك إشعار فور التحويل.",
   },
 ];
 
 export default function Support() {
   const router = useRouter();
+  const deliveryEnabled = useDeliveryEnabled();
+  const visibleFaqs = useMemo(
+    () => FAQS.filter((f) => !f.delivery || (f.delivery === "on") === deliveryEnabled),
+    [deliveryEnabled]
+  );
   const { c } = useTheme();
   const s = useMemo(() => make_s(c), [c]);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -127,7 +149,7 @@ export default function Support() {
 
         <Text style={s.sectionTitle}>الأسئلة الشائعة</Text>
 
-        {FAQS.map((faq, index) => {
+        {visibleFaqs.map((faq, index) => {
           const open = openIndex === index;
           return (
             <TouchableOpacity

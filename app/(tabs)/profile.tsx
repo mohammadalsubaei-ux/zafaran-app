@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { clearToken } from "@/utils/authFetch";
+import { useDeliveryEnabled } from "@/utils/deliveryFlag";
 import {
   Almarai_400Regular,
   Almarai_700Bold,
@@ -195,6 +196,7 @@ function getInitials(name: string) {
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const deliveryEnabled = useDeliveryEnabled();
   const { lang, toggleLang } = useLang();
   const { c, mode, setMode } = useTheme();
   const s = useMemo(() => makeStyles(c), [c]);
@@ -540,14 +542,16 @@ export default function ProfileScreen() {
             <Text style={s.guestRoleText}>{t.guestChef}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={[s.guestRoleBtn, s.guestRoleBtnDriver]}
-            onPress={() => router.push({ pathname: "/login", params: { step: "driver_register" } } as any)}
-          >
-            <Truck size={17} color={c.info} strokeWidth={1.8} />
-            <Text style={[s.guestRoleText, { color: c.info }]}>{t.guestDriver}</Text>
-          </TouchableOpacity>
+          {deliveryEnabled ? (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[s.guestRoleBtn, s.guestRoleBtnDriver]}
+              onPress={() => router.push({ pathname: "/login", params: { step: "driver_register" } } as any)}
+            >
+              <Truck size={17} color={c.info} strokeWidth={1.8} />
+              <Text style={[s.guestRoleText, { color: c.info }]}>{t.guestDriver}</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </SafeAreaView>
     );

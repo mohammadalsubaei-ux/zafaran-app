@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setToken } from "@/utils/authFetch";
+import { useDeliveryEnabled } from "@/utils/deliveryFlag";
 // الرمز يُرسل ويُتحقق منه على خادمنا عبر Authentica —
 // لا Firebase في التطبيق، ويعمل في Expo Go كما في النسخة المبنية.
 import {
@@ -190,6 +191,12 @@ export default function LoginScreen() {
     if (target === "chef_register")   setRole("chef");
     if (target === "driver_register") setRole("driver");
   }, [params?.step]);
+
+  // تسجيل المناديب يتبع مفتاح التوصيل: والتوصيل مطفأ لا يُعرض ولا يُقبل دور المندوب
+  const deliveryEnabled = useDeliveryEnabled();
+  useEffect(() => {
+    if (!deliveryEnabled && role === "driver" && stage === "phone") setRole("customer");
+  }, [deliveryEnabled, role, stage]);
 
   // عدّاد إعادة الإرسال
   useEffect(() => {
@@ -422,11 +429,13 @@ export default function LoginScreen() {
                       <Text style={s.roleCardHint}>ابدأ البيع من بيتك</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={s.roleCard} onPress={() => setRole("driver")} activeOpacity={0.8}>
-                      <Bike size={20} color={c.gold} />
-                      <Text style={s.roleCardTitle}>مندوب توصيل</Text>
-                      <Text style={s.roleCardHint}>اعمل بوقتك</Text>
-                    </TouchableOpacity>
+                    {deliveryEnabled ? (
+                      <TouchableOpacity style={s.roleCard} onPress={() => setRole("driver")} activeOpacity={0.8}>
+                        <Bike size={20} color={c.gold} />
+                        <Text style={s.roleCardTitle}>مندوب توصيل</Text>
+                        <Text style={s.roleCardHint}>اعمل بوقتك</Text>
+                      </TouchableOpacity>
+                    ) : null}
                   </View>
                 </>
               ) : null}
