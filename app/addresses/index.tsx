@@ -51,12 +51,16 @@ export default function AddressesScreen() {
 
   useEffect(() => {
     AsyncStorage.getItem("user").then(u => {
-      if (u) {
-        const userData = JSON.parse(u);
+      let userData: any = null;
+      try { userData = u ? JSON.parse(u) : null; } catch { userData = null; }
+      if (userData?.id) {
         setUser(userData);
         loadAddresses(userData.id);
+      } else {
+        // زائر أو جلسة تالفة: لا نترك مؤشر التحميل يدور للأبد
+        setLoading(false);
       }
-    });
+    }).catch(() => setLoading(false));
   }, []);
 
   const loadAddresses = async (userId: string) => {
@@ -64,7 +68,9 @@ export default function AddressesScreen() {
     try {
       const res  = await fetch(`${API}/api/addresses/${userId}`);
       const json = await res.json();
-      if (json.success) setAddresses(json.data);
+      if (json?.success && Array.isArray(json.data)) setAddresses(json.data);
+    } catch {
+      // فشل الشبكة: نبقي القائمة الحالية
     } finally {
       setLoading(false);
     }
@@ -110,6 +116,10 @@ export default function AddressesScreen() {
       Alert.alert("تنبيه", "حدد الموقع على الخريطة");
       return;
     }
+    if (!user?.id) {
+      Alert.alert("تسجيل الدخول مطلوب", "سجل دخولك حتى تقدر تحفظ عناوينك.");
+      return;
+    }
     setSavingAddress(true);
     try {
       const res  = await fetch(`${API}/api/addresses`, {
@@ -124,8 +134,8 @@ export default function AddressesScreen() {
           is_default: addresses.length === 0,
         }),
       });
-      const json = await res.json();
-      if (json.success) {
+      const json = await res.json().catch(() => null);
+      if (json?.success) {
         setShowMap(false);
         setSelectedLocation(null);
         setAddressText("");
@@ -139,7 +149,11 @@ export default function AddressesScreen() {
             ["last_address_lng", String(selectedLocation.lng)],
           ]);
         }
+      } else {
+        Alert.alert("تعذر الحفظ", json?.message || "حاول مرة ثانية.");
       }
+    } catch {
+      Alert.alert("مشكلة اتصال", "تأكد من الإنترنت وحاول مرة ثانية.");
     } finally {
       setSavingAddress(false);
     }
@@ -149,18 +163,34 @@ export default function AddressesScreen() {
     Alert.alert("حذف العنوان", "تبي تحذف هذا العنوان؟", [
       { text: "لا", style: "cancel" },
       { text: "نعم", style: "destructive", onPress: async () => {
-        await fetch(`${API}/api/addresses/${id}`, { method: "DELETE" });
-        loadAddresses(user.id);
+        try {
+          await fetch(`${API}/api/addresses/${id}`, { method: "DELETE" });
+        } catch {
+          Alert.alert("مشكلة اتصال", "تعذر حذف العنوان، حاول مرة ثانية.");
+        }
+        if (user?.id) loadAddresses(user.id);
       }},
     ]);
   };
 
   const setDefault = async (address: any) => {
-    await fetch(`${API}/api/addresses/${address.id}`, {
-      method:  "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ ...address, is_default: true, user_id: user.id }),
-    });
+    if (!user?.id) return;
+    try {
+      const res  = await fetch(`${API}/api/addresses/${address.id}`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ ...address, is_default: true, user_id: user.id }),
+      });
+      const json = await res.json().catch(() => null);
+      // لا نحفظ العنوان محلياً كافتراضي إذا رفض الخادم التغيير
+      if (!res.ok || json?.success === false) {
+        Alert.alert("تعذر التحديث", json?.message || "حاول مرة ثانية.");
+        return;
+      }
+    } catch {
+      Alert.alert("مشكلة اتصال", "تأكد من الإنترنت وحاول مرة ثانية.");
+      return;
+    }
     await AsyncStorage.multiSet([
       ["last_address", String(address.address || "")],
       ["last_address_lat", String(address.lat ?? "")],

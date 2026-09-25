@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -429,6 +429,8 @@ export default function CartScreen() {
     }
   }, [locLoading]);
 
+  const orderInFlight = useRef(false);
+
   const readUserSession = useCallback(async (): Promise<UserSession | null> => {
     const storedUser = await AsyncStorage.getItem("user");
     if (!storedUser) return null;
@@ -464,10 +466,7 @@ export default function CartScreen() {
     return user;
   }, [address, chef_id, deliveryType, hasPreorder, isCartEmpty, lat, lng, loading, readUserSession, router, scheduledAt]);
 
-  const handleOrder = useCallback(async () => {
-    const user = await validateOrder();
-    if (!user?.id) return;
-
+  const submitOrder = useCallback(async (user: UserSession) => {
     setLoading(true);
     try {
       const isPreorder = hasPreorder && scheduledAt !== null;
@@ -542,7 +541,20 @@ export default function CartScreen() {
     } finally {
       setLoading(false);
     }
-  }, [address, chef_id, clearCart, deliveryFee, deliveryType, grandTotal, hasPreorder, items, lat, lng, paymentMethod, router, scheduledAt, subtotal, validateOrder]);
+  }, [address, chef_id, clearCart, deliveryType, hasPreorder, items, lat, lng, paymentMethod, router, scheduledAt]);
+
+  const handleOrder = useCallback(async () => {
+    // قفل فوري ضد الضغط المزدوج — حالة loading لا تتحدث إلا بعد انتظار التحقق
+    if (orderInFlight.current) return;
+    orderInFlight.current = true;
+    try {
+      const user = await validateOrder();
+      if (!user?.id) return;
+      await submitOrder(user);
+    } finally {
+      orderInFlight.current = false;
+    }
+  }, [submitOrder, validateOrder]);
 
   const handlePaymentSuccess = useCallback(() => {
     setShowPayment(false);

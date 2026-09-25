@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useRef, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -45,9 +45,21 @@ export default function ReviewScreen() {
     Almarai_800ExtraBold,
   });
 
+  const submitInFlight = useRef(false);
+
   const submitReview = async () => {
     Keyboard.dismiss();
+    // قفل فوري ضد الضغط المزدوج أثناء قراءة الجلسة وقبل تفعيل saving
+    if (submitInFlight.current || saving) return;
+    submitInFlight.current = true;
+    try {
+      await doSubmitReview();
+    } finally {
+      submitInFlight.current = false;
+    }
+  };
 
+  const doSubmitReview = async () => {
     if (!orderId) {
       Alert.alert("خطأ", "رقم الطلب غير موجود");
       return;

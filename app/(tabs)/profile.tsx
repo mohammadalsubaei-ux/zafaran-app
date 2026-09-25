@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { clearToken } from "@/utils/authFetch";
+import { useCart } from "@/context/CartContext";
 import { useDeliveryEnabled } from "@/utils/deliveryFlag";
 import {
   Almarai_400Regular,
@@ -199,6 +200,7 @@ export default function ProfileScreen() {
   const deliveryEnabled = useDeliveryEnabled();
   const { lang, toggleLang } = useLang();
   const { c, mode, setMode } = useTheme();
+  const { clearCart } = useCart();
   const s = useMemo(() => makeStyles(c), [c]);
   const t = T[lang] || T.ar;
 
@@ -407,15 +409,17 @@ export default function ProfileScreen() {
           text: t.yes,
           style: "destructive",
           onPress: async () => {
-            await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "cart_state"]);
-      clearToken();
+            // نمسح أيضاً آخر عنوان وإحداثياته والسلة في الذاكرة حتى لا تبقى بيانات المستخدم السابق
+            await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "cart_state", "last_address", "last_address_lat", "last_address_lng"]);
+            clearToken();
+            clearCart();
             router.replace("/login" as any);
           },
         },
       ],
       { cancelable: true }
     );
-  }, [router, t]);
+  }, [clearCart, router, t]);
 
   const openLogin = useCallback(() => {
     router.replace("/login" as any);

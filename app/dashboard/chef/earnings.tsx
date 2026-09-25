@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -96,6 +96,8 @@ export default function ChefEarnings() {
 
   const [fontsLoaded] = useFonts({ Almarai_400Regular, Almarai_700Bold, Almarai_800ExtraBold });
 
+  const withdrawInFlight = useRef(false);
+
   const loadAll = useCallback(async (uid: string) => {
     try {
       const [wRes, wdRes, txRes, chefRes] = await Promise.all([
@@ -119,8 +121,9 @@ export default function ChefEarnings() {
 
   useEffect(() => {
     (async () => {
-      const stored = await AsyncStorage.getItem("user");
-      const uid = stored ? JSON.parse(stored)?.id : null;
+      const stored = await AsyncStorage.getItem("user").catch(() => null);
+      let uid: string | null = null;
+      try { uid = stored ? JSON.parse(stored)?.id ?? null : null; } catch { uid = null; }
       if (!uid) { router.replace("/login"); return; }
       setUserId(uid);
       await loadAll(uid);
@@ -139,6 +142,9 @@ export default function ChefEarnings() {
     const amt = parseFloat(amount);
     if (!isFinite(amt) || amt <= 0) { Alert.alert("تنبيه", "ادخل مبلغا صحيحا"); return; }
     if (!userId) return;
+    // قفل فوري ضد الضغط المزدوج (حالة submitting لا تتحدث قبل إعادة الرسم)
+    if (withdrawInFlight.current) return;
+    withdrawInFlight.current = true;
 
     setSubmitting(true);
     try {
@@ -147,8 +153,8 @@ export default function ChefEarnings() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: amt }),
       });
-      const json = await res.json();
-      if (json.success) {
+      const json = await res.json().catch(() => null);
+      if (json?.success) {
         Alert.alert("تم", "تم إرسال طلب السحب وسنعلمك فور معالجته");
         setAmount("");
         setInputKey((k) => k + 1);
@@ -156,11 +162,12 @@ export default function ChefEarnings() {
       } else if (json?.code === "BANK_REQUIRED") {
         setShowBank(true);
       } else {
-        Alert.alert("تنبيه", json.message || "تعذر إرسال الطلب");
+        Alert.alert("تنبيه", json?.message || "تعذر إرسال الطلب");
       }
     } catch {
       Alert.alert("خطأ", "تعذر الاتصال بالسيرفر");
     } finally {
+      withdrawInFlight.current = false;
       setSubmitting(false);
     }
   };

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -80,6 +80,7 @@ function formatArabicTime(hour: number, minute: string): string {
 export default function DashboardScreen() {
   const [orders, setOrders]           = useState<any[]>([]);
   const [loading, setLoading]         = useState(true);
+  const statusInFlight = useRef(new Set<string>());
   const [refreshing, setRefreshing]   = useState(false);
   const [chefId, setChefId]           = useState<string | null>(null);
   const [chef, setChef]               = useState<any>(null);
@@ -132,17 +133,26 @@ export default function DashboardScreen() {
   }, []);
 
   const loadChef = useCallback(async () => {
-    const u = await AsyncStorage.getItem("user");
-    if (!u) return;
-    let user: any = null;
-    try { user = JSON.parse(u); } catch { return; }
-    if (!user?.id) return;
-    const res  = await fetch(`${API}/api/chefs?user_id=${user.id}`);
-    const json = await res.json();
-    if (json.success && json.data.length > 0) {
-      setChefId(json.data[0].id);
-      setChef(json.data[0]);
-      setChefStatus(json.data[0].status || "open");
+    let found = false;
+    try {
+      const u = await AsyncStorage.getItem("user");
+      if (!u) return;
+      let user: any = null;
+      try { user = JSON.parse(u); } catch { return; }
+      if (!user?.id) return;
+      const res  = await fetch(`${API}/api/chefs?user_id=${user.id}`);
+      const json = await res.json();
+      if (json?.success && Array.isArray(json.data) && json.data.length > 0) {
+        found = true;
+        setChefId(json.data[0].id);
+        setChef(json.data[0]);
+        setChefStatus(json.data[0].status || "open");
+      }
+    } catch {
+      // فشل الشبكة: لا نترك الشاشة معلقة
+    } finally {
+      // بدون متجر لن يُستدعى load()، فنوقف مؤشر التحميل هنا حتى لا يدور للأبد
+      if (!found) setLoading(false);
     }
   }, []);
 
@@ -154,7 +164,9 @@ export default function DashboardScreen() {
       // 100 هو سقف الخادم — والحل الدائم فلترة بالحالة من الخادم عند النمو.
       const res  = await fetch(`${API}/api/orders/chef/${chefId}?limit=100&offset=0`);
       const json = await res.json();
-      if (json.success) setOrders(json.data);
+      if (json?.success && Array.isArray(json.data)) setOrders(json.data);
+    } catch {
+      // فشل الشبكة: نبقي الطلبات الحالية كما هي
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -423,16 +435,26 @@ export default function DashboardScreen() {
   };
 
   const updateStatus = async (orderId: string, status: string) => {
-    // إرسال هوية الشيف — الخادم يتحقق من ملكية الطلب قبل أي تغيير
-    const stored = await AsyncStorage.getItem("user");
-    const userId = stored ? JSON.parse(stored)?.id : null;
-    const res  = await fetch(`${API}/api/orders/${orderId}/status`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, user_id: userId }),
-    });
-    const json = await res.json();
-    if (json.success) { Alert.alert("تم التحديث"); load(true); }
-    else Alert.alert("خطأ", json.message || "تعذر التحديث");
+    // منع الضغط المزدوج على نفس الطلب (إرسال PATCH مرتين وإشعارات مكررة)
+    if (statusInFlight.current.has(orderId)) return;
+    statusInFlight.current.add(orderId);
+    try {
+      // إرسال هوية الشيف — الخادم يتحقق من ملكية الطلب قبل أي تغيير
+      const stored = await AsyncStorage.getItem("user");
+      let userId: string | null = null;
+      try { userId = stored ? JSON.parse(stored)?.id ?? null : null; } catch { userId = null; }
+      const res  = await fetch(`${API}/api/orders/${orderId}/status`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, user_id: userId }),
+      });
+      const json = await res.json().catch(() => null);
+      if (json?.success) { Alert.alert("تم التحديث"); load(true); }
+      else Alert.alert("خطأ", json?.message || "تعذر التحديث");
+    } catch {
+      Alert.alert("خطأ", "تعذر الاتصال بالخادم، تحقق من الإنترنت");
+    } finally {
+      statusInFlight.current.delete(orderId);
+    }
   };
 
   const openTimeModal = (order: any, action: "confirm" | "propose") => {
@@ -1066,7 +1088,7 @@ export default function DashboardScreen() {
 
             <Text style={s.qrTitle}>اربط بثك بمتجرك</Text>
             <Text style={s.liveModalSub}>
-              تبث على تيك توك أو إنستقرام أو يوتيوب؟ الصق رابط بثك، ويظهر متجرك بشارة "يبث الآن" في رئيسية زعفران — فمن يشاهدك يطلب منك مباشرة.
+              تبث على تيك توك أو إنستقرام أو يوتيوب؟ الصق رابط بثك، ويظهر متجرك بشارة «يبث الآن» في رئيسية زعفران — فمن يشاهدك يطلب منك مباشرة.
             </Text>
 
             <Text style={s.liveLabel}>رابط البث</Text>

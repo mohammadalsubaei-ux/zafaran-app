@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTheme, type Colors } from "@/context/ThemeContext";
+import { useCart } from "@/context/CartContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { clearToken } from "@/utils/authFetch";
 import {
@@ -31,6 +32,7 @@ type Blocker = { code: string; message: string };
 export default function DeleteAccountScreen() {
   const router = useRouter();
   const { c } = useTheme();
+  const { clearCart } = useCart();
   const s = useMemo(() => make_s(c), [c]);
 
   const [userId, setUserId] = useState<string | null>(null);
@@ -109,8 +111,9 @@ export default function DeleteAccountScreen() {
       const json = await res.json().catch(() => null);
 
       if (res.ok && json?.success) {
-        await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "push_token", "cart_state"]);
-      clearToken();
+        await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "push_token", "cart_state", "last_address", "last_address_lat", "last_address_lng"]);
+        clearToken();
+        clearCart();
         Alert.alert("تم حذف حسابك", "نشكرك على استخدامك زعفران", [
           { text: "حسناً", onPress: () => router.replace("/login" as any) },
         ]);
@@ -125,7 +128,7 @@ export default function DeleteAccountScreen() {
     } finally {
       setDeleting(false);
     }
-  }, [deleting, confirmPhone, router, runCheck, userId]);
+  }, [clearCart, deleting, confirmPhone, router, runCheck, userId]);
 
   const confirmDelete = useCallback(() => {
     Alert.alert(

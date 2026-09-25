@@ -199,7 +199,7 @@ function getChefStatus(chef: Chef): "open" | "preorder" | "closed" {
 
 const CHEF_STATUS_UI: Record<
   "open" | "preorder" | "closed",
-  { bg: string; dot: string; text: string; label: string }
+  { bgKey: string; dotKey: string; textKey: string; label: string }
 > = {
   open:     { bgKey: "successSoft", dotKey: "success", textKey: "success", label: "متاح" },
   preorder: { bgKey: "goldSoft",    dotKey: "gold",    textKey: "gold",    label: "حجز مسبق" },
@@ -375,8 +375,11 @@ export default function HomeScreen() {
       setUserId(id);
 
       if (id) {
+        // قيمة مفضلة تالفة لا يجب أن تمسح جلسة المستخدم — لها try مستقل
         const savedFavorites = await AsyncStorage.getItem(`favorites_${id}`);
-        setFavorites(savedFavorites ? JSON.parse(savedFavorites) : []);
+        let parsedFavorites: unknown = [];
+        try { parsedFavorites = savedFavorites ? JSON.parse(savedFavorites) : []; } catch { parsedFavorites = []; }
+        setFavorites(Array.isArray(parsedFavorites) ? parsedFavorites : []);
       }
     } catch {
       await AsyncStorage.multiRemove(["user", "user_id", "chef_id", "role", "cart_state"]);
@@ -466,7 +469,7 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const useSavedList = useCallback((list: SavedList) => {
+  const applySavedList = useCallback((list: SavedList) => {
     if (list.available === 0) {
       Alert.alert("غير متاحة الآن", "أصناف هذي السفرة غير متوفرة حالياً.");
       return;
@@ -607,6 +610,12 @@ export default function HomeScreen() {
         return;
       }
 
+      // روابط البث من بيانات المتجر: نسمح بـ http/https فقط (لا tel: أو intent: أو روابط تطبيقات)
+      if (!/^https?:\/\//i.test(url)) {
+        openChef(chef.id);
+        return;
+      }
+
       Linking.openURL(url).catch(() => openChef(chef.id));
     },
     [openChef]
@@ -703,7 +712,7 @@ export default function HomeScreen() {
                     key={list.id}
                     activeOpacity={0.88}
                     style={[s.listCard, off && s.listCardOff]}
-                    onPress={() => useSavedList(list)}
+                    onPress={() => applySavedList(list)}
                   >
                     <Text style={s.listName} numberOfLines={1}>{list.name}</Text>
                     <Text style={s.listChef} numberOfLines={1}>{list.chef_name}</Text>
@@ -711,7 +720,7 @@ export default function HomeScreen() {
                     <Text style={s.listMeta}>
                       {off
                         ? list.chef_status === "closed" ? tr.statusClosed : tr.unavailable
-                        : `${list.available} صنف · ${list.total.toFixed(0)} ${tr.currency}`}
+                        : `${list.available} صنف · ${Number(list.total || 0).toFixed(0)} ${tr.currency}`}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -756,7 +765,7 @@ export default function HomeScreen() {
                         {card.items.map((i) => i.name).join(" · ")}
                       </Text>
                       <Text style={s.reTotal}>
-                        {card.total.toFixed(2)} {tr.currency}
+                        {Number(card.total || 0).toFixed(2)} {tr.currency}
                       </Text>
                     </TouchableOpacity>
 
@@ -918,7 +927,7 @@ export default function HomeScreen() {
         ) : null}
       </View>
     );
-  }, [c, s, tr, isDark, reorders, reorderNow, savedLists, useSavedList, banners, chefs, chefsByTrack, liveChefs, error, onRefresh, openChef, openLive, openTrack, search]);
+  }, [c, s, tr, isDark, reorders, reorderNow, savedLists, applySavedList, banners, chefs, chefsByTrack, liveChefs, error, onRefresh, openChef, openLive, openTrack, search]);
 
   const renderChef = useCallback(
     ({ item }: { item: Chef }) => {
