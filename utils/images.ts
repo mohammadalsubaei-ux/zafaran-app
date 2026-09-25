@@ -74,12 +74,12 @@ export async function uploadImageToBucket(
 
     if (!res.ok) {
       const errBody = await res.text().catch(() => "");
-      console.log("[upload-debug] bucket:", bucket, "| status:", res.status, "| body:", errBody);
+      if (__DEV__) console.log("[upload-debug] bucket:", bucket, "| status:", res.status, "| body:", errBody);
       return null;
     }
     return `${SUPA_URL}/storage/v1/object/public/${bucket}/${fileName}`;
   } catch (e: any) {
-    console.log("[upload-debug] network error:", e?.message || String(e));
+    if (__DEV__) console.log("[upload-debug] network error:", e?.message || String(e));
     return null;
   }
 }

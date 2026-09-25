@@ -8,8 +8,10 @@ const API = "https://zafaran-backend-production.up.railway.app";
 // إعداد طريقة عرض الإشعار
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
+    shouldShowAlert:  true,
+    shouldShowBanner: true,
+    shouldShowList:   true,
+    shouldPlaySound:  true,
     shouldSetBadge:  true,
   }),
 });

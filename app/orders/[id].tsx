@@ -289,10 +289,13 @@ export default function OrderDetailScreen() {
       const response = await fetch(`${API}/api/orders/${orderId}`);
       const json     = await response.json().catch(() => null);
       if (!response.ok || !json?.success || !json?.data) {
+        // التحديث الصامت (كل 20 ثانية): لا نمسح الطلب المعروض بسبب خطأ عابر
+        if (silent) return;
         setOrder(null); setError(json?.message || "الطلب غير موجود."); return;
       }
       setOrder(json.data);
     } catch {
+      if (silent) return;
       setOrder(null); setError("تعذر الاتصال بالخادم.");
     } finally { setLoading(false); setRefreshing(false); }
   }, [orderId]);

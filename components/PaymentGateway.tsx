@@ -52,6 +52,9 @@ export default function PaymentGateway({ visible, orderId, paymentMethod, onSucc
   const [runId, setRunId]       = useState(0);
   const cancelled = useRef(false);
   const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // نحفظ onSuccess في ref: تغيّر هوية الدالة من الأب يجب ألا يعيد بدء عملية الدفع كاملة
+  const onSuccessRef = useRef(onSuccess);
+  useEffect(() => { onSuccessRef.current = onSuccess; }, [onSuccess]);
 
   const checkStatus = useCallback(async (id: string): Promise<{ paid: boolean; tx: string }> => {
     for (let i = 0; i < POLL_ATTEMPTS; i++) {
@@ -101,7 +104,7 @@ export default function PaymentGateway({ visible, orderId, paymentMethod, onSucc
 
         if (paid) {
           setStage("success");
-          successTimer.current = setTimeout(() => onSuccess(tx), 1100);
+          successTimer.current = setTimeout(() => onSuccessRef.current(tx), 1100);
         } else {
           setStage("unconfirmed");
         }
@@ -116,16 +119,16 @@ export default function PaymentGateway({ visible, orderId, paymentMethod, onSucc
       cancelled.current = true;
       if (successTimer.current) clearTimeout(successTimer.current);
     };
-  }, [visible, orderId, runId, checkStatus, onSuccess]);
+  }, [visible, orderId, runId, checkStatus]);
 
   const recheck = useCallback(async () => {
     if (!orderId) return;
     setStage("verifying");
     const { paid, tx } = await checkStatus(orderId);
     if (cancelled.current) return;
-    if (paid) { setStage("success"); successTimer.current = setTimeout(() => onSuccess(tx), 1100); }
+    if (paid) { setStage("success"); successTimer.current = setTimeout(() => onSuccessRef.current(tx), 1100); }
     else setStage("unconfirmed");
-  }, [orderId, checkStatus, onSuccess]);
+  }, [orderId, checkStatus]);
 
   const retry = useCallback(() => setRunId(n => n + 1), []);
 
@@ -170,7 +173,7 @@ export default function PaymentGateway({ visible, orderId, paymentMethod, onSucc
                 <XCircle size={36} color={c.danger} strokeWidth={1.8} />
               </View>
               <Text style={[s.title, { color: c.danger }]}>لم يتأكد الدفع</Text>
-              <Text style={s.sub}>إن كنت أكملت الدفع اضغط "تحقق مجدداً". وإلا يبقى طلبك محفوظاً وتقدر تدفعه لاحقاً من شاشة الطلب.</Text>
+              <Text style={s.sub}>إن كنت أكملت الدفع اضغط «تحقق مجدداً». وإلا يبقى طلبك محفوظاً وتقدر تدفعه لاحقاً من شاشة الطلب.</Text>
               <TouchableOpacity activeOpacity={0.88} style={s.retryBtn} onPress={recheck}>
                 <Text style={s.retryText}>تحقق مجدداً</Text>
               </TouchableOpacity>

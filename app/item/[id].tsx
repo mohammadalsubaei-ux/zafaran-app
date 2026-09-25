@@ -34,10 +34,15 @@ import {
 import { useCart } from "@/context/CartContext";
 import { useTheme, type Colors } from "@/context/ThemeContext";
 
+// expo-router يفك ترميز المعاملات مسبقاً؛ فك الترميز مرة ثانية يرمي URIError مع نص فيه "%" (مثل "خصم 50%")
+function safeDecode(text: string) {
+  try { return decodeURIComponent(text); } catch { return text; }
+}
+
 function paramText(value: unknown, fallback = "") {
-  if (Array.isArray(value)) return decodeURIComponent(String(value[0] || fallback));
+  if (Array.isArray(value)) return safeDecode(String(value[0] || fallback));
   if (value === null || value === undefined) return fallback;
-  return decodeURIComponent(String(value || fallback));
+  return safeDecode(String(value || fallback));
 }
 
 function numberValue(value: unknown) {

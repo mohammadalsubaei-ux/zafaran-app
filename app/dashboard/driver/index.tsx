@@ -205,7 +205,8 @@ export default function DriverScreen() {
       }
       setReadyOrders(readyJson?.success     ? readyJson.data      || [] : []);
       const allDelivering = deliveringJson?.success ? deliveringJson.data || [] : [];
-      setMyOrders(driverId ? allDelivering.filter((o: any) => o.driver_id === driverId) : allDelivering);
+      // بدون هوية المندوب لا نعرض أي طلب قيد التوصيل — عرض الكل يكشف طلبات مناديب آخرين
+      setMyOrders(driverId ? allDelivering.filter((o: any) => o.driver_id === driverId) : []);
       setHistoryOrders(deliveredJson?.success ? deliveredJson.data || [] : []);
     } catch {
       setError(tr("connectionError", lang));
@@ -261,7 +262,8 @@ export default function DriverScreen() {
     // إرسال فوري
     await sendLocation(orderId, dId);
 
-    // إرسال كل 10 ثواني
+    // إرسال كل 10 ثواني — نوقف أي مؤقت سابق أولاً حتى لا يستمر إرسال موقع طلب قديم
+    if (locationIntervalRef.current) clearInterval(locationIntervalRef.current);
     locationIntervalRef.current = setInterval(() => {
       sendLocation(orderId, dId);
     }, LOCATION_INTERVAL);

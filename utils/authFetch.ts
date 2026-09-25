@@ -43,6 +43,12 @@ export function clearToken() {
   loaded = true;
 }
 
+// مقارنة المضيف بالضبط: includes() كانت تطابق روابط مثل evil.com/?x=<API_HOST>
+function isApiUrl(url: string): boolean {
+  const m = /^https:\/\/([^/?#:]+)(?::443)?(?:[/?#]|$)/i.exec(url);
+  return !!m && m[1].toLowerCase() === API_HOST;
+}
+
 let installed = false;
 
 export function setupAuthFetch() {
@@ -60,8 +66,8 @@ export function setupAuthFetch() {
       url = "";
     }
 
-    // لا نرسل الرمز لأي جهة خارجية — لخادم زعفران فقط
-    if (!url.includes(API_HOST)) {
+    // لا نرسل الرمز لأي جهة خارجية — لخادم زعفران فقط (مطابقة المضيف بالضبط وعبر https)
+    if (!isApiUrl(url)) {
       return original(input, init);
     }
 
